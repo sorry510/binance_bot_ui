@@ -22,14 +22,12 @@ export type RefreshTokenResult = {
 
 /** 登录 */
 export const getLogin = (data?: { username: string; password: string }) => {
-  return http.request<UserResult>("post", baseUrlApi("/login"), { data });
+  return http.request<UserResult>("post", baseUrlApi("login"), { data });
 };
 
 /** 刷新`token` */
 export const refreshTokenApi = (data?: object) => {
-  return http.request<RefreshTokenResult>(
-    "post",
-    baseUrlApi("/refresh-token"),
-    { data }
-  );
+  return http.request<RefreshTokenResult>("post", baseUrlApi("refresh-token"), {
+    data
+  });
 };

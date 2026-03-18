@@ -13,8 +13,12 @@ import { stringify } from "qs";
 import NProgress from "../progress";
 import { getToken, formatToken } from "@/utils/auth";
 
-export const baseUrlApi = (url: string) =>
-  process.env.NODE_ENV === "development" ? `/api/${url}` : `${url}`;
+export const baseUrlApi = (url: string) => {
+  if (process.env.NODE_ENV === "development") {
+    return `/api/${url}`;
+  }
+  return `/${url}`;
+};
 
 // 相关配置请参考：www.axios-js.com/zh-cn/docs/#axios-request-config-1
 const defaultConfig: AxiosRequestConfig = {
