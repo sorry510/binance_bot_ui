@@ -72,6 +72,24 @@ menus:
   purePermissionButton: Button Permission
   purePermissionButtonRouter: Route return button permission
   purePermissionButtonLogin: Login interface return button permission
+  dashboard: Dashboard
+  notifyConfig: Notify Config
+  futuresTrade: Futures Trade
+  futuresAccount: Futures Account
+  futuresTradeOrder: Futures Orders
+  futuresAccount2: Local Futures Account
+  strategyTemplate: Strategy Template
+  testStrategyResult: Test Results
+  coinNotice: Coin Notice
+  spotNotice: Spot Notice
+  futuresNotice: Futures Notice
+  marketListen: Market Listen
+  spotListen: Spot Listen
+  futuresListen: Futures Listen
+  fundingRate: Funding Rate Listen
+  newCoinRush: New Coin Rush
+  systemConfig: System Config
+  logs: Logs
 status:
   pureLoad: Loading...
   pureMessage: Message
@@ -89,3 +107,571 @@ login:
   pureUsernameReg: Please enter username
   purePassWordReg: Please enter password
   purePassWordRuleReg: The password format should be any combination of 8-18 digits
+dashboard:
+  section:
+    futures: Futures Trade
+    newCoinRush: New Coin Rush
+    coinNotice: Coin Notice
+    marketListen: Market Listener
+    fundingRate: Funding Rate Listener
+    notifyConfig: Notify Config
+    debug: Debug Mode
+    externalLinks: External Links
+  field:
+    websocket: WebSocket
+    priceChangeLimit: futures price change notice limit(%)
+    positionConvert: futures position convert notice
+    allowLong: Allow Long
+    allowShort: Allow Short
+    strategyTrade: Strategy Line
+    strategyCoin: Strategy Coin Group
+    maxCount: Max Position Count
+    lossMaxCount: Max Loss Count
+    lossAutoScale: Loss Auto Scale
+    marketCondition: Market Condition
+    marketConditionAuto: Auto Update Market Condition
+    excludeSymbols: Exclude Symbols
+    orderType: Order Type
+    testStrategy: Test Strategy
+    testAutoTradeLimit: Future test auto trade count limit
+    spotNewEnable: Spot New Listing
+    futureNewEnable: Futures New Listing
+    notifyChannelConfig: Notify Channel Config
+    pushTest: Push Test
+  button:
+    updateNow: Update Now
+    viewTestResult: View Test Result
+    openNotifyConfig: Open Notify Config
+    testPush: Test Push
+  hint:
+    autoUpdatePrice: Auto update price
+    priceChangeLimit: Non-zero:when the futures price change exceeds this value, a notification will be sent (once every 4 hours)
+    autoRefresh: Auto refresh every 10 minutes
+    limitMode: Limit order mode
+    marketMode: Market order mode
+    testAutoTradeLimit: Non-zero:after n consecutive wins of the test strategy, automatically switch to real trading. After n consecutive losses in real trading, switch back to the test strategy.
+    noExternalLinks: No external links
+  state:
+    on: ON
+    off: OFF
+  orderType:
+    market: MARKET
+    limit: LIMIT
+  strategyTrade:
+    line1: line1
+    line2: line2
+    line3: line3
+    line4: line4
+    line5: line5
+    line6: line6
+    line7: line7
+  strategyCoin:
+    coin1: coin1
+    coin2: coin2
+    coin3: coin3
+    coin4: coin4
+    coin5: coin5
+    coin6: coin6
+  market:
+    "1": Strong Bull
+    "2": Bull
+    "3": Sideways
+    "4": Bear
+    "5": Strong Bear
+  message:
+    updateSuccess: Updated successfully
+    updateFail: Update failed
+    sendSuccess: Sent successfully
+    sendFail: Send failed
+notifyConfigPage:
+  button:
+    add: Add Notify Config
+    edit: Edit
+    delete: Delete
+    cancel: Cancel
+    save: Save
+  table:
+    channel: Channel
+    module: Module
+    enable: Enable
+    operation: Operation
+  dialog:
+    addTitle: Add Notify Config
+    editTitle: Edit Notify Config
+  placeholder:
+    channel: Channel
+    module: Module
+  confirm:
+    title: Confirm
+    delete: Confirm deleting this config?
+  message:
+    saveSuccess: Saved successfully
+    updateSuccess: Updated successfully
+    deleteSuccess: Deleted successfully
+futuresSymbolPage:
+  button:
+    add: Add
+    enableAll: Enable All
+    disableAll: Disable All
+    search: Search
+    delete: Delete
+    batchEdit: Batch Edit
+    technology: Technology
+    strategy: Strategy
+    cancel: Cancel
+    confirm: Confirm
+    test: Test
+  placeholder:
+    symbol: Symbol
+    status: Status
+    marginType: Margin Type
+    pin: Pin
+    strategyTemplate: Select Strategy Template
+  state:
+    on: On
+    off: Off
+    pin: Pin
+  label:
+    refreshInterval: Refresh Interval
+    total: Total
+  table:
+    pin: Pin
+    symbol: Symbol
+    strategyType: Strategy Type
+    technology: Technology
+    strategy: Strategy
+    change24h: 24h Change
+    price: Price
+    marginType: Margin Type
+    usdt: Funds
+    leverage: Leverage
+    takeProfit: Take Profit
+    stopLoss: Stop Loss
+    enable: Enable
+    operation: Operation
+  dialog:
+    addTitle: Add Trading Pair
+    batchEditTitle: Batch Edit
+  batch:
+    strategyType: Strategy Type
+    strategyTemplate: Strategy Template
+    marginType: Margin Type
+    usdt: Funds
+    leverage: Leverage
+    profit: Take Profit
+    loss: Stop Loss
+  strategyType:
+    global: Global
+    custom: Custom
+    line1: line1
+    line2: line2
+    line3: line3
+    line4: line4
+    line5: line5
+    line6: line6
+    line7: line7
+  confirm:
+    title: Confirm
+    delete: Confirm deleting {symbol} ?
+    enableAll: Confirm enabling all symbols?
+    disableAll: Confirm disabling all symbols?
+  prompt:
+    title: Add Trading Pair
+    content: Enter symbol, for example BTCUSDT
+  message:
+    addSuccess: Added successfully
+    updateSuccess: Updated successfully
+    updateFail: Update failed
+    deleteSuccess: Deleted successfully
+    operateSuccess: Operated successfully
+    editSuccess: Edited successfully
+    editFail: Edit failed
+    deleteFail: Delete failed
+    actionSuccess: Operation succeeded
+    actionFail: Operation failed
+    testResult: Test result
+    templateError: Template data is invalid
+strategyTemplatePage:
+  button:
+    add: Add Template
+    refresh: Refresh
+    edit: Edit
+    delete: Delete
+    save: Save
+    technology: Technology
+    strategy: Strategy
+    cancel: Cancel
+    confirm: Confirm
+    test: Test
+  table:
+    name: Template Name
+    technology: Technology
+    strategy: Strategy
+    operation: Operation
+  dialog:
+    addTitle: Add Strategy Template
+    editTitle: Edit Strategy Template
+  placeholder:
+    name: Template Name
+  confirm:
+    title: Confirm
+    delete: Confirm deleting template {name} ?
+  message:
+    saveSuccess: Saved successfully
+    deleteSuccess: Deleted successfully
+    deleteFail: Delete failed
+    actionSuccess: Operation succeeded
+    actionFail: Operation failed
+    testResult: Test result
+  technology:
+    name: Name
+    klineInterval: Kline Interval
+    period: Period
+    multiplier: Multiplier
+    stdDevMultiplier: Std Dev Multiplier
+    enable: Enable
+  strategy:
+    name: Name
+    code: Code
+    fullScreen: Full Screen
+    type: Type
+    enable: Enable
+    long: Long
+    short: Short
+    closeLong: Close Long
+    closeShort: Close Short
+tradeCodePage:
+  button:
+    restart: Restart Service
+    stop: Stop Service
+    save: Save
+  confirm:
+    title: Confirm
+    save: Confirm saving current config?
+    restart: Confirm restarting service?
+    stop: Confirm stopping service?
+  message:
+    saveSuccess: Saved successfully
+    operateSuccess: Operated successfully
+newCoinPage:
+  button:
+    add: Add
+    refresh: Refresh
+    delete: Delete
+    save: Save
+  table:
+    symbol: Symbol
+    side: Trade Side
+    coinType: Coin Type
+    marginType: Margin Type
+    leverage: Leverage
+    quantity: Quantity
+    expectPrice: Expected Price
+    enable: Enable
+    operation: Operation
+  dialog:
+    addTitle: Add New Coin Config
+  placeholder:
+    symbol: Symbol
+  confirm:
+    title: Confirm
+    delete: Confirm deleting {symbol} ?
+  message:
+    addSuccess: Added successfully
+    updateSuccess: Updated successfully
+    deleteSuccess: Deleted successfully
+noticeFeaturePage:
+  button:
+    add: Add
+    refresh: Refresh
+    delete: Delete
+    save: Save
+  table:
+    symbol: Symbol
+    side: Side
+    noticePrice: Notice Price
+    profitPrice: Take Profit Price
+    lossPrice: Stop Loss Price
+    marginType: Margin Type
+    autoOrder: Auto Trade
+    leverage: Leverage
+    enable: Enable
+    operation: Operation
+  placeholder:
+    symbol: Symbol
+    noticePrice: Notice Price
+  dialog:
+    addTitle: Add Futures Notice
+  state:
+    yes: Yes
+    no: No
+  tip: Futures price notice with take-profit, stop-loss and auto-entry options.
+  confirm:
+    title: Confirm
+    delete: Confirm deleting {symbol} ?
+  message:
+    addSuccess: Added successfully
+    updateSuccess: Updated successfully
+    deleteSuccess: Deleted successfully
+noticeSpotPage:
+  button:
+    add: Add
+    refresh: Refresh
+    delete: Delete
+    save: Save
+  table:
+    symbol: Symbol
+    side: Side
+    noticePrice: Notice Price
+    noticed: Noticed
+    autoOrder: Auto Trade
+    quantity: Quantity
+    enable: Enable
+    operation: Operation
+  placeholder:
+    symbol: Symbol
+    noticePrice: Notice Price
+  dialog:
+    addTitle: Add Spot Notice
+  state:
+    yes: Yes
+    no: No
+  tip: Spot price notice with optional auto order.
+  confirm:
+    title: Confirm
+    delete: Confirm deleting {symbol} ?
+  message:
+    addSuccess: Added successfully
+    updateSuccess: Updated successfully
+    deleteSuccess: Deleted successfully
+futuresAccountPage:
+  tab:
+    asset: Assets
+    position: Positions
+    openOrder: Open Orders
+  button:
+    search: Search
+  placeholder:
+    symbol: Symbol
+  label:
+    currentProfit: Current Profit Rate
+    positionCount: Position Count
+    refreshInterval: Refresh Interval
+  table:
+    asset: Asset
+    balance: Balance
+    unrealized: Unrealized PnL
+    marginBalance: Margin Balance
+    available: Available Balance
+    maxWithdraw: Max Withdraw
+    updateTime: Update Time
+    symbol: Symbol
+    positionAmt: Position Amount
+    entryPrice: Entry Price
+    markPrice: Mark Price
+    profitRate: Profit Rate
+    leverage: Leverage
+    side: Side
+    orderPrice: Order Price
+    orderQty: Order Qty
+    executedQty: Executed Qty
+    tradeSide: Trade Side
+    positionSide: Position Side
+futuresAccount2Page:
+  tab:
+    asset: Assets
+    position: Local Positions
+    openOrder: Local Open Orders
+  button:
+    search: Search
+    delete: Delete
+  placeholder:
+    symbol: Symbol
+  label:
+    currentProfit: Current Profit Rate
+    positionCount: Position Count
+    refreshInterval: Refresh Interval
+  table:
+    asset: Asset
+    balance: Balance
+    unrealized: Unrealized PnL
+    available: Available Balance
+    symbol: Symbol
+    positionAmt: Position Amount
+    entryPrice: Entry Price
+    markPrice: Mark Price
+    profitRate: Profit Rate
+    leverage: Leverage
+    side: Side
+    operation: Operation
+    orderPrice: Order Price
+    orderQty: Order Qty
+    executedQty: Executed Qty
+    tradeSide: Trade Side
+    positionSide: Position Side
+    updateTime: Update Time
+  confirm:
+    title: Confirm
+    delete: Confirm deleting {symbol} ?
+  message:
+    updateSuccess: Updated successfully
+    updateFail: Update failed
+    deleteSuccess: Deleted successfully
+    deleteFail: Delete failed
+listenSpotPage:
+  button:
+    add: Add
+    refresh: Refresh
+    delete: Delete
+    save: Save
+  table:
+    symbol: Symbol
+    klineInterval: Kline Interval
+    changePercent: Change Threshold
+    noticeLimit: Min Notice Interval
+    lastNotice: Last Notice
+    enable: Enable
+    operation: Operation
+  type:
+    up: Up
+    down: Down
+  placeholder:
+    symbol: Symbol
+  dialog:
+    addTitle: Add Spot Listener
+  confirm:
+    title: Confirm
+    delete: Confirm deleting {symbol} ?
+  message:
+    addSuccess: Added successfully
+    updateSuccess: Updated successfully
+    deleteSuccess: Deleted successfully
+listenFeaturePage:
+  button:
+    add: Add
+    refresh: Refresh
+    delete: Delete
+    save: Save
+  table:
+    symbol: Symbol
+    listenType: Listen Type
+    klineInterval: Kline Interval
+    changePercent: Change Threshold
+    noticeLimit: Min Notice Interval
+    lastNotice: Last Notice
+    enable: Enable
+    operation: Operation
+  type:
+    up: Up
+    down: Down
+  placeholder:
+    symbol: Symbol
+  dialog:
+    addTitle: Add Futures Listener
+  confirm:
+    title: Confirm
+    delete: Confirm deleting {symbol} ?
+  message:
+    addSuccess: Added successfully
+    updateSuccess: Updated successfully
+    deleteSuccess: Deleted successfully
+listenFundingRatePage:
+  button:
+    search: Search
+    history: History
+  placeholder:
+    symbol: Symbol
+  label:
+    total: Total
+  table:
+    symbol: Symbol
+    rateNow: Current Funding Rate
+    time: Time
+    priceNow: Current Price
+    autoOrder: Auto Trade
+    operation: Operation
+    rate: Funding Rate
+    price: Price
+  state:
+    yes: Yes
+    no: No
+  dialog:
+    title: "{symbol} Funding Rate History"
+  message:
+    updateSuccess: Updated successfully
+orderPage:
+  button:
+    search: Search
+    delete: Delete
+    deleteAll: Delete All
+  placeholder:
+    symbol: Symbol
+    status: Status
+    side: Side
+    startTime: Start Time
+    endTime: End Time
+  state:
+    all: All
+    open: Open
+    closed: Closed
+  label:
+    currentProfit: Current Profit
+    total: Total
+  table:
+    symbol: Symbol
+    side: Side
+    amount: Amount
+    leverage: Leverage
+    avgPrice: Avg Price
+    nowPrice: Current Price
+    profit: Profit
+    profitRate: Profit Rate
+    period: Holding Duration
+    updateTime: Update Time
+    operation: Operation
+  confirm:
+    title: Confirm
+    delete: Confirm deleting {symbol} ?
+    deleteAll: Confirm deleting all order records?
+  message:
+    deleteSuccess: Deleted successfully
+testOrderPage:
+  button:
+    search: Search
+    delete: Delete
+    deleteAll: Delete All
+  placeholder:
+    symbol: Symbol
+    status: Status
+    side: Side
+    startTime: Start Time
+    endTime: End Time
+  state:
+    all: All
+    open: Open
+    close: Close
+  label:
+    currentProfit: Current Profit
+    total: Total
+  table:
+    symbol: Symbol
+    side: Side
+    amount: Amount
+    leverage: Leverage
+    openPrice: Open Price
+    nowPrice: Current Price
+    profit: Profit
+    profitRate: Profit Rate
+    closePrice: Close Price
+    period: Holding Duration
+    createTime: Create Time
+    operation: Operation
+  confirm:
+    title: Confirm
+    delete: Confirm deleting {symbol} ?
+    deleteAll: Confirm deleting all test results?
+  message:
+    deleteSuccess: Deleted successfully
+trade:
+  ISOLATED: "Isolated"
+  CROSSED: "Crossed"

@@ -1,12 +1,11 @@
 import { $t } from "@/plugins/i18n";
-const { VITE_HIDE_HOME } = import.meta.env;
 const Layout = () => import("@/layout/index.vue");
 
 export default {
   path: "/",
   name: "Home",
   component: Layout,
-  redirect: "/welcome",
+  redirect: "/dashboard",
   meta: {
     icon: "ep/home-filled",
     title: $t("menus.pureHome"),
@@ -14,12 +13,22 @@ export default {
   },
   children: [
     {
-      path: "/welcome",
-      name: "Welcome",
-      component: () => import("@/views/welcome/index.vue"),
+      path: "/dashboard",
+      name: "Dashboard",
+      component: () => import("@/views/dashboard/configShow.vue"),
       meta: {
-        title: $t("menus.pureHome"),
-        showLink: VITE_HIDE_HOME === "true" ? false : true
+        icon: "ep/home-filled",
+        title: "menus.dashboard",
+        showLink: true
+      }
+    },
+    {
+      path: "/notify-config",
+      name: "NotifyConfig",
+      component: () => import("@/views/notify/config.vue"),
+      meta: {
+        title: "menus.notifyConfig",
+        showLink: false
       }
     }
   ]

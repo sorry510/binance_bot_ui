@@ -9,12 +9,20 @@ import EpHomeFilled from "~icons/ep/home-filled?raw";
 import RiSearchLine from "~icons/ri/search-line?raw";
 import RiInformationLine from "~icons/ri/information-line?raw";
 
+// ttps://icon-sets.iconify.design/cryptocurrency/?keyword=ri
+import Ae from "~icons/cryptocurrency/ae?raw";
+import Agi from "~icons/cryptocurrency/agi?raw";
+import Ilk from "~icons/cryptocurrency/ilk?raw";
+
 const icons = [
   // Element Plus Icon: https://github.com/element-plus/element-plus-icons
   ["ep/home-filled", EpHomeFilled],
   // Remix Icon: https://github.com/Remix-Design/RemixIcon
   ["ri/search-line", RiSearchLine],
-  ["ri/information-line", RiInformationLine]
+  ["ri/information-line", RiInformationLine],
+  ["crypto/ae", Ae], // 合约交易
+  ["crypto/agi", Agi], // 现货交易
+  ["crypto/ilk", Ilk] // 系统设置
 ];
 
 // 本地菜单图标，后端在路由的 icon 中返回对应的图标字符串并且前端在此处使用 addIcon 添加即可渲染菜单图标

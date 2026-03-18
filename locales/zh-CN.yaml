@@ -72,6 +72,24 @@ menus:
   purePermissionButton: 按钮权限
   purePermissionButtonRouter: 路由返回按钮权限
   purePermissionButtonLogin: 登录接口返回按钮权限
+  dashboard: 配置中心
+  notifyConfig: 通知配置
+  futuresTrade: 合约交易
+  futuresAccount: 合约账户
+  futuresTradeOrder: 合约订单
+  futuresAccount2: 本地合约账户
+  strategyTemplate: 策略模板
+  testStrategyResult: 测试结果
+  coinNotice: 币种提醒
+  spotNotice: 现货提醒
+  futuresNotice: 合约提醒
+  marketListen: 市场监听
+  spotListen: 现货监听
+  futuresListen: 合约监听
+  fundingRate: 资金费率监听
+  newCoinRush: 抢新配置
+  systemConfig: 系统配置
+  logs: 日志
 status:
   pureLoad: 加载中...
   pureMessage: 消息
@@ -89,3 +107,571 @@ login:
   pureUsernameReg: 请输入账号
   purePassWordReg: 请输入密码
   purePassWordRuleReg: 密码格式应为1-20位数字、字母、符号的任意两种组合
+dashboard:
+  section:
+    futures: 合约交易
+    newCoinRush: 抢新配置
+    coinNotice: 币种提醒
+    marketListen: 市场监听
+    fundingRate: 资金费率监听
+    notifyConfig: 通知配置
+    debug: 调试模式
+    externalLinks: 外部链接
+  field:
+    websocket: WebSocket
+    priceChangeLimit: 合约价格变动通知阈值(%)
+    positionConvert: 仓位收益正负转换通知
+    allowLong: 允许做多
+    allowShort: 允许做空
+    strategyTrade: 交易策略
+    strategyCoin: 选币策略
+    maxCount: 最大持仓数
+    lossMaxCount: 最大持仓亏损数量
+    lossAutoScale: 自动缩放最大持仓亏损数量
+    marketCondition: 市场趋势
+    marketConditionAuto: 市场趋势自动更新
+    excludeSymbols: 排除自动交易的币
+    orderType: 下单类型
+    testStrategy: 测试策略
+    testAutoTradeLimit: 测试自动转换次数限制
+    spotNewEnable: 现货抢新
+    futureNewEnable: 合约抢新
+    notifyChannelConfig: 通知通道配置
+    pushTest: 推送测试
+  button:
+    updateNow: 立即更新
+    viewTestResult: 查看测试结果
+    openNotifyConfig: 打开通知配置
+    testPush: 测试推送
+  hint:
+    autoUpdatePrice: 自动更新价格
+    priceChangeLimit: 非 0 时，合约价格变动超过该值时发送通知(4小时间隔一次)
+    autoRefresh: 每 10 分钟自动刷新
+    limitMode: 限价单模式
+    marketMode: 市价单模式
+    testAutoTradeLimit: 非 0 时，测试策略连续盈利 n 次后，自动切换真实交易，真实交易连续亏损后 n 次后，切换回测试策略
+    noExternalLinks: 暂无外部链接
+  state:
+    on: 开启
+    off: 关闭
+  orderType:
+    market: MARKET
+    limit: LIMIT
+  strategyTrade:
+    line1: line1
+    line2: line2
+    line3: line3
+    line4: line4
+    line5: line5
+    line6: line6
+    line7: line7
+  strategyCoin:
+    coin1: coin1
+    coin2: coin2
+    coin3: coin3
+    coin4: coin4
+    coin5: coin5
+    coin6: coin6
+  market:
+    "1": 强多头
+    "2": 偏多头
+    "3": 震荡
+    "4": 偏空头
+    "5": 强空头
+  message:
+    updateSuccess: 更新成功
+    updateFail: 更新失败
+    sendSuccess: 发送成功
+    sendFail: 发送失败
+notifyConfigPage:
+  button:
+    add: 新增通知配置
+    edit: 编辑
+    delete: 删除
+    cancel: 取消
+    save: 保存
+  table:
+    channel: 渠道
+    module: 模块
+    enable: 启用
+    operation: 操作
+  dialog:
+    addTitle: 新增通知配置
+    editTitle: 编辑通知配置
+  placeholder:
+    channel: 渠道
+    module: 模块
+  confirm:
+    title: 提示
+    delete: 确认删除该配置?
+  message:
+    saveSuccess: 保存成功
+    updateSuccess: 更新成功
+    deleteSuccess: 删除成功
+futuresSymbolPage:
+  button:
+    add: 新增
+    enableAll: 全部开启
+    disableAll: 全部关闭
+    search: 查询
+    delete: 删除
+    batchEdit: 批量编辑
+    technology: 技术指标
+    strategy: 策略方法
+    cancel: 取消
+    confirm: 确认
+    test: 测试
+  placeholder:
+    symbol: 币种
+    status: 状态
+    marginType: 保证金模式
+    pin: 置顶
+    strategyTemplate: 选择策略模板
+  state:
+    on: 开启
+    off: 关闭
+    pin: 置顶
+  label:
+    refreshInterval: 刷新间隔
+    total: 总数
+  table:
+    pin: 置顶
+    symbol: 币种
+    strategyType: 策略类型
+    technology: 技术指标
+    strategy: 策略方法
+    change24h: 24h涨跌
+    price: 现价
+    marginType: 保证金模式
+    usdt: USDT
+    leverage: 杠杆
+    takeProfit: 止盈率(%)
+    stopLoss: 止损率(%)
+    enable: 启用
+    operation: 操作
+  dialog:
+    addTitle: 新增交易对
+    batchEditTitle: 批量编辑
+  batch:
+    strategyType: 策略类型
+    strategyTemplate: 策略模板
+    marginType: 保证金模式
+    usdt: USDT
+    leverage: 杠杆
+    profit: 止盈率(%)
+    loss: 止损率(%)
+  strategyType:
+    global: 全局
+    custom: 自定义
+    line1: line1
+    line2: line2
+    line3: line3
+    line4: line4
+    line5: line5
+    line6: line6
+    line7: line7
+  confirm:
+    title: 提示
+    delete: 确认删除 {symbol} ?
+    enableAll: 确认开启全部币种?
+    disableAll: 确认关闭全部币种?
+  prompt:
+    title: 新增交易对
+    content: 请输入币种符号，例如 BTCUSDT
+  message:
+    addSuccess: 新增成功
+    updateSuccess: 更新成功
+    updateFail: 更新失败
+    deleteSuccess: 删除成功
+    operateSuccess: 操作成功
+    editSuccess: 编辑成功
+    editFail: 编辑失败
+    deleteFail: 删除失败
+    actionSuccess: 操作成功
+    actionFail: 操作失败
+    testResult: 测试结果
+    templateError: 模板数据异常
+strategyTemplatePage:
+  button:
+    add: 新增模板
+    refresh: 刷新
+    edit: 编辑
+    delete: 删除
+    save: 保存
+    technology: 技术指标
+    strategy: 策略方法
+    cancel: 取消
+    confirm: 确认
+    test: 测试
+  table:
+    name: 模板名称
+    technology: 技术指标
+    strategy: 策略方法
+    operation: 操作
+  dialog:
+    addTitle: 新增策略模板
+    editTitle: 编辑策略模板
+  placeholder:
+    name: 模板名称
+  confirm:
+    title: 提示
+    delete: 确认删除模板 {name} ?
+  message:
+    saveSuccess: 保存成功
+    deleteSuccess: 删除成功
+    deleteFail: 删除失败
+    actionSuccess: 操作成功
+    actionFail: 操作失败
+    testResult: 测试结果
+  technology:
+    name: 名称
+    klineInterval: K线周期
+    period: 周期
+    multiplier: 乘数
+    stdDevMultiplier: 标准差乘数
+    enable: 启用
+  strategy:
+    name: 名称
+    code: 代码
+    fullScreen: 全屏编辑
+    type: 类型
+    enable: 启用
+    long: 做多
+    short: 做空
+    closeLong: 平多
+    closeShort: 平空
+tradeCodePage:
+  button:
+    restart: 重启服务
+    stop: 停止服务
+    save: 保存
+  confirm:
+    title: 提示
+    save: 确认保存当前配置?
+    restart: 确认重启服务?
+    stop: 确认停止服务?
+  message:
+    saveSuccess: 保存成功
+    operateSuccess: 操作成功
+newCoinPage:
+  button:
+    add: 新增
+    refresh: 刷新
+    delete: 删除
+    save: 保存
+  table:
+    symbol: 币种
+    side: 交易方向
+    coinType: 币种类型
+    marginType: 保证金模式
+    leverage: 杠杆
+    quantity: 数量
+    expectPrice: 预期价格
+    enable: 启用
+    operation: 操作
+  dialog:
+    addTitle: 新增抢新配置
+  placeholder:
+    symbol: 币种
+  confirm:
+    title: 提示
+    delete: 确认删除 {symbol} ?
+  message:
+    addSuccess: 新增成功
+    updateSuccess: 更新成功
+    deleteSuccess: 删除成功
+noticeFeaturePage:
+  button:
+    add: 新增
+    refresh: 刷新
+    delete: 删除
+    save: 保存
+  table:
+    symbol: 币种
+    side: 方向
+    noticePrice: 提醒价格
+    profitPrice: 止盈价
+    lossPrice: 止损价
+    marginType: 保证金模式
+    autoOrder: 自动交易
+    leverage: 杠杆
+    enable: 启用
+    operation: 操作
+  placeholder:
+    symbol: 币种
+    noticePrice: 提醒价格
+  dialog:
+    addTitle: 新增合约提醒
+  state:
+    yes: 是
+    no: 否
+  tip: 合约价格提醒，可配置止盈止损与自动开仓。
+  confirm:
+    title: 提示
+    delete: 确认删除 {symbol} ?
+  message:
+    addSuccess: 新增成功
+    updateSuccess: 更新成功
+    deleteSuccess: 删除成功
+noticeSpotPage:
+  button:
+    add: 新增
+    refresh: 刷新
+    delete: 删除
+    save: 保存
+  table:
+    symbol: 币种
+    side: 方向
+    noticePrice: 提醒价格
+    noticed: 已提醒
+    autoOrder: 自动交易
+    quantity: 数量
+    enable: 启用
+    operation: 操作
+  placeholder:
+    symbol: 币种
+    noticePrice: 提醒价格
+  dialog:
+    addTitle: 新增现货提醒
+  state:
+    yes: 是
+    no: 否
+  tip: 现货价格到达提醒，可选自动下单。
+  confirm:
+    title: 提示
+    delete: 确认删除 {symbol} ?
+  message:
+    addSuccess: 新增成功
+    updateSuccess: 更新成功
+    deleteSuccess: 删除成功
+futuresAccountPage:
+  tab:
+    asset: 资产
+    position: 持仓
+    openOrder: 当前挂单
+  button:
+    search: 查询
+  placeholder:
+    symbol: 币种
+  label:
+    currentProfit: 当前收益率(%)
+    positionCount: 持仓数
+    refreshInterval: 刷新间隔
+  table:
+    asset: 资产
+    balance: 余额
+    unrealized: 未实现盈亏
+    marginBalance: 保证金余额
+    available: 可用余额
+    maxWithdraw: 最大可转出
+    updateTime: 更新时间
+    symbol: 交易对
+    positionAmt: 持仓数量
+    entryPrice: 开仓均价
+    markPrice: 标记价格
+    profitRate: 收益率(%)
+    leverage: 杠杆
+    side: 方向
+    orderPrice: 委托价
+    orderQty: 委托数量
+    executedQty: 成交数量
+    tradeSide: 买卖方向
+    positionSide: 持仓方向
+futuresAccount2Page:
+  tab:
+    asset: 资产
+    position: 本地持仓
+    openOrder: 本地挂单
+  button:
+    search: 查询
+    delete: 删除
+  placeholder:
+    symbol: 币种
+  label:
+    currentProfit: 当前收益率(%)
+    positionCount: 持仓数
+    refreshInterval: 刷新间隔
+  table:
+    asset: 资产
+    balance: 余额
+    unrealized: 未实现盈亏
+    available: 可用余额
+    symbol: 交易对
+    positionAmt: 持仓数量
+    entryPrice: 开仓均价
+    markPrice: 标记价格
+    profitRate: 收益率(%)
+    leverage: 杠杆
+    side: 方向
+    operation: 操作
+    orderPrice: 委托价
+    orderQty: 委托数量
+    executedQty: 成交数量
+    tradeSide: 买卖方向
+    positionSide: 持仓方向
+    updateTime: 更新时间
+  confirm:
+    title: 提示
+    delete: 确认删除 {symbol} ?
+  message:
+    updateSuccess: 更新成功
+    updateFail: 更新失败
+    deleteSuccess: 删除成功
+    deleteFail: 删除失败
+listenSpotPage:
+  button:
+    add: 新增
+    refresh: 刷新
+    delete: 删除
+    save: 保存
+  table:
+    symbol: 币种
+    klineInterval: K线周期
+    changePercent: 涨跌幅阈值
+    noticeLimit: 通知最小间隔
+    lastNotice: 上次通知
+    enable: 启用
+    operation: 操作
+  type:
+    up: 上涨
+    down: 下跌
+  placeholder:
+    symbol: 币种
+  dialog:
+    addTitle: 新增现货监听
+  confirm:
+    title: 提示
+    delete: 确认删除 {symbol} ?
+  message:
+    addSuccess: 新增成功
+    updateSuccess: 更新成功
+    deleteSuccess: 删除成功
+listenFeaturePage:
+  button:
+    add: 新增
+    refresh: 刷新
+    delete: 删除
+    save: 保存
+  table:
+    symbol: 币种
+    listenType: 监听类型
+    klineInterval: K线周期
+    changePercent: 涨跌幅阈值
+    noticeLimit: 通知最小间隔
+    lastNotice: 上次通知
+    enable: 启用
+    operation: 操作
+  type:
+    up: 上涨
+    down: 下跌
+  placeholder:
+    symbol: 币种
+  dialog:
+    addTitle: 新增合约监听
+  confirm:
+    title: 提示
+    delete: 确认删除 {symbol} ?
+  message:
+    addSuccess: 新增成功
+    updateSuccess: 更新成功
+    deleteSuccess: 删除成功
+listenFundingRatePage:
+  button:
+    search: 查询
+    history: 历史
+  placeholder:
+    symbol: 币种
+  label:
+    total: 总数
+  table:
+    symbol: 币种
+    rateNow: 当前资金费率
+    time: 时间
+    priceNow: 当前价格
+    autoOrder: 自动交易
+    operation: 操作
+    rate: 资金费率
+    price: 价格
+  state:
+    yes: 是
+    no: 否
+  dialog:
+    title: "{symbol} 资金费率历史"
+  message:
+    updateSuccess: 更新成功
+orderPage:
+  button:
+    search: 查询
+    delete: 删除
+    deleteAll: 删除全部
+  placeholder:
+    symbol: 币种
+    status: 状态
+    side: 方向
+    startTime: 开始时间
+    endTime: 结束时间
+  state:
+    all: 全部
+    open: 未平仓
+    closed: 已平仓
+  label:
+    currentProfit: 当前收益
+    total: 总数
+  table:
+    symbol: 币种
+    side: 方向
+    amount: 数量
+    leverage: 杠杆
+    avgPrice: 均价
+    nowPrice: 现价
+    profit: 盈亏
+    profitRate: 收益率(%)
+    period: 持仓时长
+    updateTime: 更新时间
+    operation: 操作
+  confirm:
+    title: 提示
+    delete: 确认删除 {symbol} ?
+    deleteAll: 确认删除全部订单记录?
+  message:
+    deleteSuccess: 删除成功
+testOrderPage:
+  button:
+    search: 查询
+    delete: 删除
+    deleteAll: 删除全部
+  placeholder:
+    symbol: 币种
+    status: 状态
+    side: 方向
+    startTime: 开始时间
+    endTime: 结束时间
+  state:
+    all: 全部
+    open: 开仓
+    close: 平仓
+  label:
+    currentProfit: 当前收益
+    total: 总数
+  table:
+    symbol: 币种
+    side: 方向
+    amount: 数量
+    leverage: 杠杆
+    openPrice: 开仓价
+    nowPrice: 现价
+    profit: 盈亏
+    profitRate: 收益率(%)
+    closePrice: 平仓价
+    period: 持仓时长
+    createTime: 创建时间
+    operation: 操作
+  confirm:
+    title: 提示
+    delete: 确认删除 {symbol} ?
+    deleteAll: 确认删除全部测试结果?
+  message:
+    deleteSuccess: 删除成功
+trade:
+  ISOLATED: "逐仓"
+  CROSSED: "全仓"
