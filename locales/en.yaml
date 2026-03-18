@@ -552,8 +552,15 @@ listenFeaturePage:
     refresh: Refresh
     delete: Delete
     save: Save
+    technology: Technology
+    strategy: Strategy
+    cancel: Cancel
+    confirm: Confirm
+    test: Test
   table:
     symbol: Symbol
+    technology: Technology
+    strategy: Strategy
     listenType: Listen Type
     klineInterval: Kline Interval
     changePercent: Change Threshold
@@ -575,6 +582,11 @@ listenFeaturePage:
     addSuccess: Added successfully
     updateSuccess: Updated successfully
     deleteSuccess: Deleted successfully
+    updateFail: Update failed
+    deleteFail: Delete failed
+    actionSuccess: Operation succeeded
+    actionFail: Operation failed
+    testResult: Test result
 listenFundingRatePage:
   button:
     search: Search

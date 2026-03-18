@@ -552,8 +552,15 @@ listenFeaturePage:
     refresh: 刷新
     delete: 删除
     save: 保存
+    technology: 技术指标
+    strategy: 策略方法
+    cancel: 取消
+    confirm: 确认
+    test: 测试
   table:
     symbol: 币种
+    technology: 技术指标
+    strategy: 策略方法
     listenType: 监听类型
     klineInterval: K线周期
     changePercent: 涨跌幅阈值
@@ -575,6 +582,11 @@ listenFeaturePage:
     addSuccess: 新增成功
     updateSuccess: 更新成功
     deleteSuccess: 删除成功
+    updateFail: 更新失败
+    deleteFail: 删除失败
+    actionSuccess: 操作成功
+    actionFail: 操作失败
+    testResult: 测试结果
 listenFundingRatePage:
   button:
     search: 查询

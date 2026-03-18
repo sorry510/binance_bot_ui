@@ -33,3 +33,9 @@ export const getFundingRateHistory = (params: Query = {}) => {
     params
   });
 };
+
+export const testStrategyRule = (id: number | string, data: Query) => {
+  return http.post<any, Query>(baseUrlApi(`listen/strategy-rule/test/${id}`), {
+    data
+  });
+};
