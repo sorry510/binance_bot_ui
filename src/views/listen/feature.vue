@@ -42,6 +42,7 @@ interface StrategyItem {
 interface ListenRow {
   id: number;
   symbol: string;
+  close?: string;
   listen_type: "kline_base" | "kline_kc" | "custom";
   kline_interval?: string;
   change_percent?: number | string;
@@ -558,6 +559,12 @@ onMounted(fetchData);
         :label="t('listenFeaturePage.table.symbol')"
         align="center"
         min-width="120"
+      />
+      <el-table-column
+        prop="close"
+        :label="t('listenFeaturePage.table.currentPrice')"
+        align="center"
+        min-width="140"
       />
       <el-table-column
         :label="t('listenFeaturePage.table.technology')"

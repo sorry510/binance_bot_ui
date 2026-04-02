@@ -526,6 +526,7 @@ listenSpotPage:
     save: Save
   table:
     symbol: Symbol
+    currentPrice: Current Price
     klineInterval: Kline Interval
     changePercent: Change Threshold
     noticeLimit: Min Notice Interval
@@ -559,6 +560,7 @@ listenFeaturePage:
     test: Test
   table:
     symbol: Symbol
+    currentPrice: Current Price
     technology: Technology
     strategy: Strategy
     listenType: Listen Type

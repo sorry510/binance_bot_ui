@@ -526,6 +526,7 @@ listenSpotPage:
     save: 保存
   table:
     symbol: 币种
+    currentPrice: 当前价格
     klineInterval: K线周期
     changePercent: 涨跌幅阈值
     noticeLimit: 通知最小间隔
@@ -559,6 +560,7 @@ listenFeaturePage:
     test: 测试
   table:
     symbol: 币种
+    currentPrice: 当前价格
     technology: 技术指标
     strategy: 策略方法
     listenType: 监听类型

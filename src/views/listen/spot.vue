@@ -12,7 +12,19 @@ import {
 defineOptions({ name: "listenSpot" });
 const { t } = useI18n();
 
-const list = ref<any[]>([]);
+interface SpotListenRow {
+  id: number;
+  symbol: string;
+  close?: string;
+  kline_interval?: string;
+  notice_limit_min?: number | string;
+  change_percent?: number | string;
+  last_notice_time?: number | string;
+  last_notice_type?: string;
+  enable: boolean;
+}
+
+const list = ref<SpotListenRow[]>([]);
 const dialogVisible = ref(false);
 const form = reactive<any>({ symbol: "" });
 const intervals = [
@@ -106,6 +118,11 @@ onMounted(fetchData);
         prop="symbol"
         :label="t('listenSpotPage.table.symbol')"
         min-width="120"
+      />
+      <el-table-column
+        prop="close"
+        :label="t('listenSpotPage.table.currentPrice')"
+        min-width="140"
       />
       <el-table-column
         :label="t('listenSpotPage.table.klineInterval')"
