@@ -120,6 +120,11 @@ dashboard:
   field:
     websocket: WebSocket
     priceChangeLimit: futures price change notice limit(%)
+    fastMoveEnable: Fast move notice switch
+    fastMoveThreshold: Fast move threshold (%)
+    fastMoveRecover: Fast move recover threshold (%)
+    fastMoveCooldownSec: Fast move notice cooldown (sec)
+    fastMoveWindows: Fast move windows config
     positionConvert: futures position convert notice
     allowLong: Allow Long
     allowShort: Allow Short

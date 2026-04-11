@@ -119,7 +119,12 @@ dashboard:
     externalLinks: 外部链接
   field:
     websocket: WebSocket
-    priceChangeLimit: 合约价格变动通知阈值(%)
+    priceChangeLimit: 24h波动通知阈值(%)
+    fastMoveEnable: 快速波动通知开关
+    fastMoveThreshold: 快速波动阈值(%)
+    fastMoveRecover: 快速波动恢复阈值(%)
+    fastMoveCooldownSec: 快速波动通知冷却时间(秒)
+    fastMoveWindows: 快速波动窗口配置
     positionConvert: 仓位收益正负转换通知
     allowLong: 允许做多
     allowShort: 允许做空

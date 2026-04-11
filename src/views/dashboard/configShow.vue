@@ -24,6 +24,11 @@ const config = reactive<Record<string, any>>({
   tradeFutureEnable: 0,
   wsFuturesEnable: 0,
   WsFuturesPriceChangeLimit: 0,
+  WsFuturesFastMoveEnable: 0,
+  WsFuturesFastMoveThreshold: 0,
+  WsFuturesFastMoveRecover: 0,
+  WsFuturesFastMoveCooldownSec: 0,
+  WsFuturesFastMoveWindows: "",
   futuresPositionConvertEnable: 0,
   coinAllowLong: 1,
   coinAllowShort: 0,
@@ -205,6 +210,76 @@ onMounted(async () => {
             <span class="hint red">{{
               t("dashboard.hint.priceChangeLimit")
             }}</span>
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.fastMoveEnable")
+            }}</span>
+            <el-switch
+              :model-value="config.WsFuturesFastMoveEnable"
+              :active-value="1"
+              :inactive-value="0"
+              @change="value => saveField('ws_futures_fast_move_enable', value)"
+            />
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.fastMoveThreshold")
+            }}</span>
+            <el-input
+              v-model="config.WsFuturesFastMoveThreshold"
+              type="number"
+              class="compact-input"
+              @change="
+                value =>
+                  saveField('ws_futures_fast_move_threshold', Number(value))
+              "
+            />
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.fastMoveRecover")
+            }}</span>
+            <el-input
+              v-model="config.WsFuturesFastMoveRecover"
+              type="number"
+              class="compact-input"
+              @change="
+                value =>
+                  saveField('ws_futures_fast_move_recover', Number(value))
+              "
+            />
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.fastMoveCooldownSec")
+            }}</span>
+            <el-input
+              v-model="config.WsFuturesFastMoveCooldownSec"
+              type="number"
+              class="compact-input"
+              @change="
+                value =>
+                  saveField('ws_futures_fast_move_cooldown_sec', Number(value))
+              "
+            />
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.fastMoveWindows")
+            }}</span>
+            <el-input
+              v-model="config.WsFuturesFastMoveWindows"
+              class="wide-select"
+              @change="
+                value => saveField('ws_futures_fast_move_windows', value)
+              "
+            />
           </div>
 
           <div class="field-row">
