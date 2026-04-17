@@ -84,6 +84,7 @@ menus:
   spotNotice: 现货提醒
   futuresNotice: 合约提醒
   marketListen: 市场监听
+  marketNoticeLogs: 市场波动日志
   spotListen: 现货监听
   futuresListen: 合约监听
   fundingRate: 资金费率监听
@@ -206,6 +207,20 @@ notifyConfigPage:
   placeholder:
     channel: 渠道
     module: 模块
+  fields:
+    dingding_token: 钉钉Token
+    dingding_word: 钉钉关键词
+    slack_token: Slack Token
+    slack_channel_id: Slack Channel ID
+  moduleOptions:
+    futures: 合约交易
+    futures_test: 合约测试
+    futures_position_convert: 仓位收益正负转换
+    coin_notice: 币种通知
+    coin_listen: 币种监听
+    funding_rate: 资金费率
+    new_coin_rush: 新币抢购
+    futures_market_listen: 合约市场波动监听
   confirm:
     title: 提示
     delete: 确认删除该配置?
@@ -556,6 +571,8 @@ listenFeaturePage:
   button:
     add: 新增
     refresh: 刷新
+    search: 查询
+    reset: 重置
     delete: 删除
     save: 保存
     technology: 技术指标
@@ -578,8 +595,15 @@ listenFeaturePage:
   type:
     up: 上涨
     down: 下跌
+  listenType:
+    kline_base: 基础K线
+    kline_kc: KC通道
+    custom: 自定义
   placeholder:
     symbol: 币种
+    listenType: 监听类型
+  label:
+    refreshInterval: 刷新间隔
   dialog:
     addTitle: 新增合约监听
   confirm:
@@ -691,6 +715,38 @@ testOrderPage:
     deleteAll: 确认删除全部测试结果?
   message:
     deleteSuccess: 删除成功
+marketListenLogPage:
+  button:
+    search: 查询
+    reset: 重置
+  placeholder:
+    symbol: 币种
+    noticeType: 通知类型
+    direction: 方向
+    startTime: 开始时间
+    endTime: 结束时间
+  label:
+    total: 总数
+  noticeType:
+    fast_move: 快速波动
+    price_change: 价格变动
+  direction:
+    up: 上涨
+    down: 下跌
+  table:
+    id: ID
+    symbol: 币种
+    noticeType: 通知类型
+    window: 窗口
+    direction: 方向
+    source: 来源
+    price: 当前价格
+    basePrice: 基准价格
+    changePercent: 变动幅度(%)
+    thresholdPercent: 阈值(%)
+    content: 内容
+    createTime: 创建时间
+    updateTime: 更新时间
 trade:
   ISOLATED: "逐仓"
   CROSSED: "全仓"

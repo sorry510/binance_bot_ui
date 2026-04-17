@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from "vue-i18n";
 import { Codemirror } from "vue-codemirror";
@@ -69,6 +69,15 @@ function createEmptyTechnology() {
 const listLoading = ref(false);
 const dialogLoading = ref(false);
 const list = ref<ListenRow[]>([]);
+const interval = ref(
+  Number(localStorage.getItem("listenFeatureRefreshInterval") || 30)
+);
+const timer = ref<number | null>(null);
+
+const search = reactive({
+  symbol: "",
+  listen_type: ""
+});
 
 const addDialogVisible = ref(false);
 const addForm = reactive({
@@ -119,6 +128,8 @@ const indicatorTabs = [
   { key: "atr", label: "ATR" }
 ] as const;
 
+const listenTypeOptions = ["kline_base", "kline_kc", "custom"] as const;
+
 function formatTime(ts: number | string) {
   if (!ts) return "";
   return new Date(Number(ts)).toLocaleString();
@@ -130,6 +141,10 @@ function typeText(type: string) {
     : type === "down"
       ? t("listenFeaturePage.type.down")
       : "";
+}
+
+function listenTypeText(type: string) {
+  return type ? t(`listenFeaturePage.listenType.${type}`) : "";
 }
 
 const codeEditorExtensions = computed(() => {
@@ -273,10 +288,33 @@ const codeEditorExtensions = computed(() => {
   ];
 });
 
+function clearTimer() {
+  if (timer.value) {
+    window.clearInterval(timer.value);
+    timer.value = null;
+  }
+}
+
+function startTimer() {
+  clearTimer();
+  timer.value = window.setInterval(() => {
+    void fetchData();
+  }, interval.value * 1000);
+}
+
+function onIntervalChange() {
+  localStorage.setItem("listenFeatureRefreshInterval", String(interval.value));
+  startTimer();
+}
+
 async function fetchData() {
-  listLoading.value = true;
+  // listLoading.value = true;
   try {
-    const res = await getListenCoins({ type: 2 });
+    const res = await getListenCoins({
+      type: 2,
+      symbol: search.symbol.trim().toUpperCase() || undefined,
+      listen_type: search.listen_type || undefined
+    });
     list.value = (res?.data || []).map((item: any) => ({
       ...item,
       enable: Number(item.enable) > 0
@@ -284,6 +322,12 @@ async function fetchData() {
   } finally {
     listLoading.value = false;
   }
+}
+
+function resetSearch() {
+  search.symbol = "";
+  search.listen_type = "";
+  fetchData();
 }
 
 function buildRowPayload(row: ListenRow) {
@@ -533,18 +577,58 @@ async function onTestStrategyRule() {
   }
 }
 
-onMounted(fetchData);
+onMounted(async () => {
+  await fetchData();
+  startTimer();
+});
+
+onBeforeUnmount(() => {
+  clearTimer();
+});
 </script>
 
 <template>
   <div class="p-4 listen-feature-page">
-    <div class="mb-3 flex items-center gap-2">
-      <el-button type="primary" @click="openAddDialog">{{
-        t("listenFeaturePage.button.add")
-      }}</el-button>
-      <el-button :loading="listLoading" @click="fetchData">{{
-        t("listenFeaturePage.button.refresh")
-      }}</el-button>
+    <div class="mb-3 flex items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <el-input
+          v-model="search.symbol"
+          :placeholder="t('listenFeaturePage.placeholder.symbol')"
+          clearable
+          style="width: 160px"
+          @keyup.enter="fetchData"
+        />
+        <el-select
+          v-model="search.listen_type"
+          clearable
+          :placeholder="t('listenFeaturePage.placeholder.listenType')"
+          style="width: 160px"
+        >
+          <el-option
+            v-for="item in listenTypeOptions"
+            :key="item"
+            :label="listenTypeText(item)"
+            :value="item"
+          />
+        </el-select>
+        <el-button type="primary" :loading="listLoading" @click="fetchData">{{
+          t("listenFeaturePage.button.search")
+        }}</el-button>
+        <el-button type="primary" @click="openAddDialog">{{
+          t("listenFeaturePage.button.add")
+        }}</el-button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <el-select
+          v-model="interval"
+          style="width: 90px"
+          @change="onIntervalChange"
+        >
+          <el-option v-for="n in 30" :key="n" :label="`${n}s`" :value="n" />
+        </el-select>
+        <span>{{ t("listenFeaturePage.label.refreshInterval") }}</span>
+      </div>
     </div>
 
     <el-table
@@ -605,9 +689,12 @@ onMounted(fetchData);
             size="small"
             @change="saveRow(row)"
           >
-            <el-option label="kline_base" value="kline_base" />
-            <el-option label="kline_kc" value="kline_kc" />
-            <el-option label="custom" value="custom" />
+            <el-option
+              v-for="item in listenTypeOptions"
+              :key="item"
+              :label="listenTypeText(item)"
+              :value="item"
+            />
           </el-select>
         </template>
       </el-table-column>
@@ -715,9 +802,12 @@ onMounted(fetchData);
           :placeholder="t('listenFeaturePage.placeholder.symbol')"
         />
         <el-select v-model="addForm.listen_type">
-          <el-option label="kline_base" value="kline_base" />
-          <el-option label="kline_kc" value="kline_kc" />
-          <el-option label="custom" value="custom" />
+          <el-option
+            v-for="item in listenTypeOptions"
+            :key="item"
+            :label="listenTypeText(item)"
+            :value="item"
+          />
         </el-select>
       </div>
       <template #footer>

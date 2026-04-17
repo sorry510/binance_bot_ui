@@ -18,7 +18,6 @@ export default [
         name: "FuturesSymbol",
         component: () => import("@/views/futures/symbol.vue"),
         meta: {
-          icon: "crypto/ae",
           title: "menus.futuresTrade",
           showLink: true
         }
@@ -28,7 +27,6 @@ export default [
         name: "OrderList",
         component: () => import("@/views/order/index.vue"),
         meta: {
-          icon: "crypto/ae",
           title: "menus.futuresTradeOrder",
           showLink: true
         }
@@ -38,7 +36,6 @@ export default [
         name: "futuresAccount",
         component: () => import("@/views/futures/account.vue"),
         meta: {
-          icon: "crypto/ae",
           title: "menus.futuresAccount",
           showLink: true
         }
@@ -48,7 +45,6 @@ export default [
         name: "futuresAccount2",
         component: () => import("@/views/futures/account2.vue"),
         meta: {
-          icon: "crypto/ae",
           title: "menus.futuresAccount2",
           showLink: true
         }
@@ -58,7 +54,6 @@ export default [
         name: "strategyTemplate",
         component: () => import("@/views/futures/strategyTemplate.vue"),
         meta: {
-          icon: "crypto/ae",
           title: "menus.strategyTemplate",
           showLink: true
         }
@@ -68,8 +63,16 @@ export default [
         name: "testStrategyResult",
         component: () => import("@/views/order/testOrder.vue"),
         meta: {
-          icon: "crypto/ae",
           title: "menus.testStrategyResult",
+          showLink: true
+        }
+      },
+      {
+        path: "/futures/market-notice-logs",
+        name: "marketNoticeLogs",
+        component: () => import("@/views/logs/futures/marketListen.vue"),
+        meta: {
+          title: "menus.marketNoticeLogs",
           showLink: true
         }
       }
@@ -91,7 +94,6 @@ export default [
         name: "noticeSpot",
         component: () => import("@/views/notice/spot.vue"),
         meta: {
-          icon: "ri/information-line",
           title: "menus.spotNotice",
           showLink: true
         }
@@ -101,7 +103,6 @@ export default [
         name: "noticeFeature",
         component: () => import("@/views/notice/feature.vue"),
         meta: {
-          icon: "ri/information-line",
           title: "menus.futuresNotice",
           showLink: true
         }
@@ -124,7 +125,6 @@ export default [
         name: "listenSpot",
         component: () => import("@/views/listen/spot.vue"),
         meta: {
-          icon: "ri/search-line",
           title: "menus.spotListen",
           showLink: true
         }
@@ -134,7 +134,6 @@ export default [
         name: "listenFeature",
         component: () => import("@/views/listen/feature.vue"),
         meta: {
-          icon: "ri/search-line",
           title: "menus.futuresListen",
           showLink: true
         }
@@ -157,7 +156,6 @@ export default [
         name: "fundingRates",
         component: () => import("@/views/listen/fundingRate.vue"),
         meta: {
-          icon: "ri/search-line",
           title: "menus.fundingRate",
           showLink: true
         }
@@ -180,7 +178,6 @@ export default [
         name: "RushNewCoin",
         component: () => import("@/views/trade/newCoin.vue"),
         meta: {
-          icon: "crypto/agi",
           title: "menus.newCoinRush",
           showLink: true
         }
@@ -203,7 +200,6 @@ export default [
         name: "TradeCode",
         component: () => import("@/views/trade/tradeCode.vue"),
         meta: {
-          icon: "crypto/ilk",
           title: "menus.systemConfig",
           showLink: true
         }
@@ -226,7 +222,6 @@ export default [
         name: "logs",
         component: () => import("@/views/background/log.vue"),
         meta: {
-          icon: "ri/information-line",
           title: "menus.logs",
           showLink: true
         }

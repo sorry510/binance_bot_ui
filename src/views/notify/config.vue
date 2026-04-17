@@ -12,6 +12,17 @@ import {
 defineOptions({ name: "NotifyConfig" });
 const { t } = useI18n();
 
+const moduleOptions = [
+  "futures",
+  "futures_test",
+  "futures_position_convert",
+  "coin_notice",
+  "coin_listen",
+  "funding_rate",
+  "new_coin_rush",
+  "futures_market_listen"
+];
+
 const list = ref<any[]>([]);
 const dialogVisible = ref(false);
 const editingId = ref<number | null>(null);
@@ -79,7 +90,11 @@ onMounted(fetchData);
         prop="module"
         :label="t('notifyConfigPage.table.module')"
         min-width="160"
-      />
+      >
+        <template #default="{ row }">
+          {{ t(`notifyConfigPage.moduleOptions.${row.module}`) }}
+        </template>
+      </el-table-column>
       <el-table-column :label="t('notifyConfigPage.table.enable')" width="90">
         <template #default="{ row }"
           ><el-switch v-model="row.enable" @change="onEnable(row)"
@@ -122,41 +137,33 @@ onMounted(fetchData);
           :placeholder="t('notifyConfigPage.placeholder.module')"
         >
           <el-option
-            v-for="item in [
-              'futures',
-              'futures_test',
-              'futures_position_convert',
-              'coin_notice',
-              'coin_listen',
-              'funding_rate',
-              'new_coin_rush'
-            ]"
+            v-for="item in moduleOptions"
             :key="item"
-            :label="item"
+            :label="t(`notifyConfigPage.moduleOptions.${item}`)"
             :value="item"
           />
         </el-select>
         <el-input
           v-if="form.channel === 'dingding'"
           v-model="form.dingding_token"
-          placeholder="dingding token"
+          :placeholder="t('notifyConfigPage.fields.dingding_token')"
           class="md:col-span-2"
         />
         <el-input
           v-if="form.channel === 'dingding'"
           v-model="form.dingding_word"
-          placeholder="dingding keyword"
+          :placeholder="t('notifyConfigPage.fields.dingding_word')"
         />
         <el-input
           v-if="form.channel === 'slack'"
           v-model="form.slack_token"
-          placeholder="slack token"
+          :placeholder="t('notifyConfigPage.fields.slack_token')"
           class="md:col-span-2"
         />
         <el-input
           v-if="form.channel === 'slack'"
           v-model="form.slack_channel_id"
-          placeholder="slack channel id"
+          :placeholder="t('notifyConfigPage.fields.slack_channel_id')"
         />
       </div>
       <template #footer>

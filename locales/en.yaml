@@ -84,6 +84,7 @@ menus:
   spotNotice: Spot Notice
   futuresNotice: Futures Notice
   marketListen: Market Listen
+  marketNoticeLogs: Market Notice Logs
   spotListen: Spot Listen
   futuresListen: Futures Listen
   fundingRate: Funding Rate Listen
@@ -206,6 +207,20 @@ notifyConfigPage:
   placeholder:
     channel: Channel
     module: Module
+  fields:
+    dingding_token: DingTalk Token
+    dingding_word: DingTalk Keyword
+    slack_token: Slack Token
+    slack_channel_id: Slack Channel ID
+  moduleOptions:
+    futures: Futures Trading
+    futures_test: Futures Test
+    futures_position_convert: Position PnL Conversion
+    coin_notice: Coin Notice
+    coin_listen: Coin Listener
+    funding_rate: Funding Rate
+    new_coin_rush: New Coin Rush
+    futures_market_listen: Futures Market Volatility Listener
   confirm:
     title: Confirm
     delete: Confirm deleting this config?
@@ -556,6 +571,8 @@ listenFeaturePage:
   button:
     add: Add
     refresh: Refresh
+    search: Search
+    reset: Reset
     delete: Delete
     save: Save
     technology: Technology
@@ -578,8 +595,15 @@ listenFeaturePage:
   type:
     up: Up
     down: Down
+  listenType:
+    kline_base: Base Kline
+    kline_kc: KC Channel
+    custom: Custom
   placeholder:
     symbol: Symbol
+    listenType: Listen Type
+  label:
+    refreshInterval: Refresh Interval
   dialog:
     addTitle: Add Futures Listener
   confirm:
@@ -691,6 +715,38 @@ testOrderPage:
     deleteAll: Confirm deleting all test results?
   message:
     deleteSuccess: Deleted successfully
+marketListenLogPage:
+  button:
+    search: Search
+    reset: Reset
+  placeholder:
+    symbol: Symbol
+    noticeType: Notice Type
+    direction: Direction
+    startTime: Start Time
+    endTime: End Time
+  label:
+    total: Total
+  noticeType:
+    fast_move: Fast Move
+    price_change: Price Change
+  direction:
+    up: Up
+    down: Down
+  table:
+    id: ID
+    symbol: Symbol
+    noticeType: Notice Type
+    window: Window
+    direction: Direction
+    source: Source
+    price: Current Price
+    basePrice: Base Price
+    changePercent: Change Percent (%)
+    thresholdPercent: Threshold (%)
+    content: Content
+    createTime: Create Time
+    updateTime: Update Time
 trade:
   ISOLATED: "Isolated"
   CROSSED: "Crossed"
