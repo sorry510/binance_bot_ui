@@ -46,7 +46,8 @@ function profitPercent(row: any) {
     : "0";
 }
 
-async function fetchData() {
+async function fetchData(resetPage = false) {
+  if (resetPage) query.page = 1;
   loading.value = true;
   try {
     const res = await getOrders({
@@ -105,7 +106,7 @@ onMounted(fetchData);
         v-model="query.symbol"
         :placeholder="t('orderPage.placeholder.symbol')"
         style="width: 140px"
-        @keyup.enter="fetchData"
+        @keyup.enter="fetchData(true)"
       />
       <el-select
         v-model="query.type"
@@ -137,7 +138,7 @@ onMounted(fetchData);
         type="datetime"
         :placeholder="t('orderPage.placeholder.endTime')"
       />
-      <el-button type="primary" :loading="loading" @click="fetchData">{{
+      <el-button type="primary" :loading="loading" @click="fetchData(true)">{{
         t("orderPage.button.search")
       }}</el-button>
       <el-button type="danger" :loading="loading" @click="onDeleteAll">{{
@@ -206,8 +207,28 @@ onMounted(fetchData);
         ></el-table-column
       >
     </el-table>
-    <div class="mt-3 text-right">
-      {{ t("orderPage.label.total") }}: {{ total }}
+    <div class="mt-3 flex items-center justify-between">
+      <span>{{ t("orderPage.label.total") }}: {{ total }}</span>
+      <el-pagination
+        :current-page="query.page"
+        :page-size="query.limit"
+        background
+        layout="total, sizes, prev, pager, next"
+        :page-sizes="[20, 50, 100, 200, 500, 1000, 10000]"
+        :total="total"
+        @current-change="
+          page => {
+            query.page = page;
+            fetchData();
+          }
+        "
+        @size-change="
+          size => {
+            query.limit = size;
+            fetchData(true);
+          }
+        "
+      />
     </div>
   </div>
 </template>

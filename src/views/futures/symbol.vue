@@ -1047,7 +1047,7 @@ onBeforeUnmount(() => {
         :page-size="search.limit"
         background
         layout="total, sizes, prev, pager, next"
-        :page-sizes="[20, 50, 100]"
+        :page-sizes="[20, 50, 100, 200, 500, 1000, 10000]"
         :total="total"
         @current-change="
           page => {

@@ -599,9 +599,14 @@ listenFeaturePage:
     kline_base: Base Kline
     kline_kc: KC Channel
     custom: Custom
+  state:
+    all: All
+    enabled: Enabled
+    disabled: Disabled
   placeholder:
     symbol: Symbol
     listenType: Listen Type
+    enable: Enable Status
   label:
     refreshInterval: Refresh Interval
   dialog:
@@ -718,7 +723,9 @@ testOrderPage:
 marketListenLogPage:
   button:
     search: Search
+    group: Group
     reset: Reset
+    ungroup: Ungroup
   placeholder:
     symbol: Symbol
     noticeType: Notice Type
@@ -736,6 +743,8 @@ marketListenLogPage:
   table:
     id: ID
     symbol: Symbol
+    groupCount: Count
+    latestCreateTime: Latest Time
     noticeType: Notice Type
     window: Window
     direction: Direction

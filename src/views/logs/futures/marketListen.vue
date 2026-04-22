@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import dayjs from "dayjs";
 import { getMarketNoticeLogs } from "@/api/marketNoticeLog";
@@ -10,6 +10,9 @@ const { t } = useI18n();
 const loading = ref(false);
 const list = ref<any[]>([]);
 const total = ref(0);
+const grouped = ref(false);
+const hasSearched = ref(false);
+const cacheKey = "market-notice-logs-query-cache";
 
 function getDefaultRange() {
   return {
@@ -29,6 +32,70 @@ const query = reactive<any>({
 
 const noticeTypeOptions = ["fast_move", "price_change"];
 const directionOptions = ["up", "down"];
+
+const groupedList = computed(() => {
+  const groupMap = new Map<string, any>();
+  list.value.forEach(row => {
+    const symbol = row.symbol || "-";
+    const current = groupMap.get(symbol);
+    if (current) {
+      current.children.push(row);
+      current.count += 1;
+      current.latestCreateTime = Math.max(
+        Number(current.latestCreateTime || 0),
+        Number(row.createTime || 0)
+      );
+      return;
+    }
+    groupMap.set(symbol, {
+      symbol,
+      count: 1,
+      latestCreateTime: Number(row.createTime || 0),
+      children: [row]
+    });
+  });
+  return Array.from(groupMap.values());
+});
+
+function saveQueryCache(hasSearched = false) {
+  sessionStorage.setItem(
+    cacheKey,
+    JSON.stringify({
+      hasSearched,
+      query: {
+        ...query,
+        start_time: query.start_time
+          ? new Date(query.start_time).toISOString()
+          : null,
+        end_time: query.end_time ? new Date(query.end_time).toISOString() : null
+      }
+    })
+  );
+}
+
+function restoreQueryCache() {
+  const raw = sessionStorage.getItem(cacheKey);
+  if (!raw) return false;
+  try {
+    const cached = JSON.parse(raw);
+    const cachedQuery = cached?.query || {};
+    hasSearched.value = Boolean(cached?.hasSearched);
+    Object.assign(query, {
+      ...query,
+      ...cachedQuery,
+      start_time: cachedQuery.start_time
+        ? new Date(cachedQuery.start_time)
+        : undefined,
+      end_time: cachedQuery.end_time
+        ? new Date(cachedQuery.end_time)
+        : undefined
+    });
+    return hasSearched.value;
+  } catch {
+    sessionStorage.removeItem(cacheKey);
+    return false;
+  }
+}
 
 function formatTime(ts?: number | string) {
   if (!ts) return "-";
@@ -52,6 +119,8 @@ async function fetchData(resetPage = false) {
     const data = res?.data || {};
     list.value = data.list || [];
     total.value = Number(data.total || 0);
+    hasSearched.value = true;
+    saveQueryCache(true);
   } finally {
     loading.value = false;
   }
@@ -66,10 +135,23 @@ function resetQuery() {
     direction: "",
     ...getDefaultRange()
   });
+  grouped.value = false;
   fetchData();
 }
 
-onMounted(fetchData);
+watch(
+  query,
+  () => {
+    saveQueryCache(hasSearched.value);
+  },
+  { deep: true }
+);
+
+onMounted(() => {
+  if (restoreQueryCache()) {
+    fetchData();
+  }
+});
 </script>
 
 <template>
@@ -121,17 +203,30 @@ onMounted(fetchData);
       <el-button type="primary" :loading="loading" @click="fetchData(true)">
         {{ t("marketListenLogPage.button.search") }}
       </el-button>
-      <el-button @click="resetQuery">{{
-        t("marketListenLogPage.button.reset")
-      }}</el-button>
+      <el-button
+        :type="grouped ? 'primary' : 'default'"
+        @click="grouped = !grouped"
+      >
+        {{
+          grouped
+            ? t("marketListenLogPage.button.ungroup")
+            : t("marketListenLogPage.button.group")
+        }}
+      </el-button>
     </div>
 
-    <el-table v-loading="loading" :data="list" border size="small">
-      <el-table-column
+    <el-table
+      v-if="!grouped"
+      v-loading="loading"
+      :data="list"
+      border
+      size="small"
+    >
+      <!-- <el-table-column
         prop="id"
         :label="t('marketListenLogPage.table.id')"
         width="80"
-      />
+      /> -->
       <el-table-column
         prop="symbol"
         :label="t('marketListenLogPage.table.symbol')"
@@ -212,6 +307,105 @@ onMounted(fetchData);
       </el-table-column>
     </el-table>
 
+    <el-table
+      v-else
+      v-loading="loading"
+      :data="groupedList"
+      border
+      size="small"
+      row-key="symbol"
+    >
+      <el-table-column type="expand" width="60">
+        <template #default="{ row }">
+          <el-table :data="row.children" border size="small">
+            <el-table-column
+              prop="id"
+              :label="t('marketListenLogPage.table.id')"
+              width="80"
+            />
+            <el-table-column
+              prop="symbol"
+              :label="t('marketListenLogPage.table.symbol')"
+              min-width="120"
+            />
+            <el-table-column
+              prop="window"
+              :label="t('marketListenLogPage.table.window')"
+              min-width="90"
+            />
+            <el-table-column
+              :label="t('marketListenLogPage.table.direction')"
+              min-width="90"
+            >
+              <template #default="{ row: childRow }">
+                <el-tag
+                  :type="childRow.direction === 'up' ? 'danger' : 'success'"
+                >
+                  {{ t(`marketListenLogPage.direction.${childRow.direction}`) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('marketListenLogPage.table.price')"
+              min-width="110"
+            >
+              <template #default="{ row: childRow }">{{
+                formatNumber(childRow.price, 4)
+              }}</template>
+            </el-table-column>
+            <el-table-column
+              :label="t('marketListenLogPage.table.changePercent')"
+              min-width="120"
+            >
+              <template #default="{ row: childRow }">
+                <span
+                  :class="
+                    Number(childRow.change_percent) >= 0
+                      ? 'text-red-500'
+                      : 'text-green-500'
+                  "
+                >
+                  {{ formatNumber(childRow.change_percent) }}%
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="content"
+              :label="t('marketListenLogPage.table.content')"
+              min-width="180"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              :label="t('marketListenLogPage.table.createTime')"
+              min-width="170"
+            >
+              <template #default="{ row: childRow }">{{
+                formatTime(childRow.createTime)
+              }}</template>
+            </el-table-column>
+          </el-table>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="symbol"
+        :label="t('marketListenLogPage.table.symbol')"
+        min-width="140"
+      />
+      <el-table-column
+        prop="count"
+        :label="t('marketListenLogPage.table.groupCount')"
+        min-width="100"
+      />
+      <el-table-column
+        :label="t('marketListenLogPage.table.latestCreateTime')"
+        min-width="170"
+      >
+        <template #default="{ row }">{{
+          formatTime(row.latestCreateTime)
+        }}</template>
+      </el-table-column>
+    </el-table>
+
     <div class="mt-3 flex items-center justify-between">
       <span>{{ t("marketListenLogPage.label.total") }}: {{ total }}</span>
       <el-pagination
@@ -219,7 +413,7 @@ onMounted(fetchData);
         :page-size="query.limit"
         background
         layout="total, sizes, prev, pager, next"
-        :page-sizes="[20, 50, 100]"
+        :page-sizes="[20, 50, 100, 200, 500, 1000, 10000]"
         :total="total"
         @current-change="
           page => {

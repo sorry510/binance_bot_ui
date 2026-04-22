@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch
+} from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from "vue-i18n";
 import { Codemirror } from "vue-codemirror";
@@ -73,10 +80,12 @@ const interval = ref(
   Number(localStorage.getItem("listenFeatureRefreshInterval") || 30)
 );
 const timer = ref<number | null>(null);
+const searchCacheKey = "listen-feature-search-cache";
 
 const search = reactive({
   symbol: "",
-  listen_type: ""
+  listen_type: "",
+  enable: ""
 });
 
 const addDialogVisible = ref(false);
@@ -129,6 +138,36 @@ const indicatorTabs = [
 ] as const;
 
 const listenTypeOptions = ["kline_base", "kline_kc", "custom"] as const;
+const enableOptions = [
+  { labelKey: "listenFeaturePage.state.all", value: "" },
+  { labelKey: "listenFeaturePage.state.enabled", value: "1" },
+  { labelKey: "listenFeaturePage.state.disabled", value: "0" }
+] as const;
+
+function normalizeSearchState() {
+  if (search.listen_type == null) search.listen_type = "";
+  if (search.enable == null) search.enable = "";
+}
+
+function saveSearchCache() {
+  normalizeSearchState();
+  sessionStorage.setItem(searchCacheKey, JSON.stringify({ ...search }));
+}
+
+function restoreSearchCache() {
+  const raw = sessionStorage.getItem(searchCacheKey);
+  if (!raw) return;
+  try {
+    const cached = JSON.parse(raw);
+    Object.assign(search, {
+      symbol: cached?.symbol || "",
+      listen_type: cached?.listen_type || "",
+      enable: cached?.enable || ""
+    });
+  } catch {
+    sessionStorage.removeItem(searchCacheKey);
+  }
+}
 
 function formatTime(ts: number | string) {
   if (!ts) return "";
@@ -146,6 +185,10 @@ function typeText(type: string) {
 function listenTypeText(type: string) {
   return type ? t(`listenFeaturePage.listenType.${type}`) : "";
 }
+
+const showKlineColumns = computed(() =>
+  list.value.some(row => row.listen_type !== "custom")
+);
 
 const codeEditorExtensions = computed(() => {
   const keywords = new Set<string>([
@@ -308,12 +351,18 @@ function onIntervalChange() {
 }
 
 async function fetchData() {
+  normalizeSearchState();
+  saveSearchCache();
   // listLoading.value = true;
   try {
     const res = await getListenCoins({
       type: 2,
       symbol: search.symbol.trim().toUpperCase() || undefined,
-      listen_type: search.listen_type || undefined
+      listen_type: search.listen_type || undefined,
+      enable:
+        search.enable === "" || Number.isNaN(Number(search.enable))
+          ? undefined
+          : Number(search.enable)
     });
     list.value = (res?.data || []).map((item: any) => ({
       ...item,
@@ -327,6 +376,7 @@ async function fetchData() {
 function resetSearch() {
   search.symbol = "";
   search.listen_type = "";
+  search.enable = "";
   fetchData();
 }
 
@@ -578,6 +628,7 @@ async function onTestStrategyRule() {
 }
 
 onMounted(async () => {
+  restoreSearchCache();
   await fetchData();
   startTimer();
 });
@@ -585,6 +636,14 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   clearTimer();
 });
+
+watch(
+  search,
+  () => {
+    saveSearchCache();
+  },
+  { deep: true }
+);
 </script>
 
 <template>
@@ -609,6 +668,19 @@ onBeforeUnmount(() => {
             :key="item"
             :label="listenTypeText(item)"
             :value="item"
+          />
+        </el-select>
+        <el-select
+          v-model="search.enable"
+          clearable
+          :placeholder="t('listenFeaturePage.placeholder.enable')"
+          style="width: 120px"
+        >
+          <el-option
+            v-for="item in enableOptions"
+            :key="item.value"
+            :label="t(item.labelKey)"
+            :value="item.value"
           />
         </el-select>
         <el-button type="primary" :loading="listLoading" @click="fetchData">{{
@@ -699,6 +771,7 @@ onBeforeUnmount(() => {
         </template>
       </el-table-column>
       <el-table-column
+        v-if="showKlineColumns"
         :label="t('listenFeaturePage.table.klineInterval')"
         align="center"
         width="120"
@@ -733,6 +806,7 @@ onBeforeUnmount(() => {
         </template>
       </el-table-column>
       <el-table-column
+        v-if="showKlineColumns"
         :label="t('listenFeaturePage.table.changePercent')"
         align="center"
         width="130"

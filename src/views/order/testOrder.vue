@@ -42,7 +42,8 @@ function toPeriod(endTime: number, startTime: number) {
   return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
 }
 
-async function fetchData() {
+async function fetchData(resetPage = false) {
+  if (resetPage) query.page = 1;
   loading.value = true;
   try {
     const res = await getResults({
@@ -96,7 +97,7 @@ onMounted(fetchData);
         v-model="query.symbol"
         :placeholder="t('testOrderPage.placeholder.symbol')"
         style="width: 140px"
-        @keyup.enter="fetchData"
+        @keyup.enter="fetchData(true)"
       />
       <el-select
         v-model="query.type"
@@ -132,7 +133,7 @@ onMounted(fetchData);
         type="datetime"
         :placeholder="t('testOrderPage.placeholder.endTime')"
       />
-      <el-button type="primary" :loading="loading" @click="fetchData">{{
+      <el-button type="primary" :loading="loading" @click="fetchData(true)">{{
         t("testOrderPage.button.search")
       }}</el-button>
       <el-button type="danger" :loading="loading" @click="onDeleteAll">{{
@@ -209,8 +210,28 @@ onMounted(fetchData);
         ></el-table-column
       >
     </el-table>
-    <div class="mt-3 text-right">
-      {{ t("testOrderPage.label.total") }}: {{ total }}
+    <div class="mt-3 flex items-center justify-between">
+      <span>{{ t("testOrderPage.label.total") }}: {{ total }}</span>
+      <el-pagination
+        :current-page="query.page"
+        :page-size="query.limit"
+        background
+        layout="total, sizes, prev, pager, next"
+        :page-sizes="[20, 50, 100, 200, 500, 1000, 10000]"
+        :total="total"
+        @current-change="
+          page => {
+            query.page = page;
+            fetchData();
+          }
+        "
+        @size-change="
+          size => {
+            query.limit = size;
+            fetchData(true);
+          }
+        "
+      />
     </div>
   </div>
 </template>

@@ -547,9 +547,9 @@ listenSpotPage:
   table:
     symbol: 币种
     currentPrice: 当前价格
-    klineInterval: K线周期
-    changePercent: 涨跌幅阈值
-    noticeLimit: 通知最小间隔
+    klineInterval: kline
+    changePercent: 阈值
+    noticeLimit: 通知间隔
     lastNotice: 上次通知
     enable: 启用
     operation: 操作
@@ -586,9 +586,9 @@ listenFeaturePage:
     technology: 技术指标
     strategy: 策略方法
     listenType: 监听类型
-    klineInterval: K线周期
-    changePercent: 涨跌幅阈值
-    noticeLimit: 通知最小间隔
+    klineInterval: kline
+    changePercent: 阈值
+    noticeLimit: 通知间隔
     lastNotice: 上次通知
     enable: 启用
     operation: 操作
@@ -599,9 +599,14 @@ listenFeaturePage:
     kline_base: 基础K线
     kline_kc: KC通道
     custom: 自定义
+  state:
+    all: 全部
+    enabled: 已启用
+    disabled: 已禁用
   placeholder:
     symbol: 币种
     listenType: 监听类型
+    enable: 启用状态
   label:
     refreshInterval: 刷新间隔
   dialog:
@@ -718,7 +723,9 @@ testOrderPage:
 marketListenLogPage:
   button:
     search: 查询
+    group: 分组
     reset: 重置
+    ungroup: 取消分组
   placeholder:
     symbol: 币种
     noticeType: 通知类型
@@ -736,6 +743,8 @@ marketListenLogPage:
   table:
     id: ID
     symbol: 币种
+    groupCount: 条数
+    latestCreateTime: 最新时间
     noticeType: 通知类型
     window: 窗口
     direction: 方向
