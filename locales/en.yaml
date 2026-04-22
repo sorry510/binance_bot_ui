@@ -254,6 +254,8 @@ futuresSymbolPage:
   label:
     refreshInterval: Refresh Interval
     total: Total
+  tab:
+    favorite: Favorites
   table:
     pin: Pin
     symbol: Symbol
@@ -262,6 +264,7 @@ futuresSymbolPage:
     strategy: Strategy
     change24h: 24h Change
     price: Price
+    quoteVolume: 24h Volume
     marginType: Margin Type
     usdt: Funds
     leverage: Leverage
@@ -269,6 +272,9 @@ futuresSymbolPage:
     stopLoss: Stop Loss
     enable: Enable
     operation: Operation
+  volumeUnit:
+    tenThousand: ten-thousand
+    hundredMillion: hundred-million
   dialog:
     addTitle: Add Trading Pair
     batchEditTitle: Batch Edit

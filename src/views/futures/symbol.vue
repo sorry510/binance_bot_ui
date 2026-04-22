@@ -26,6 +26,7 @@ defineOptions({ name: "FuturesSymbol" });
 const { t } = useI18n();
 
 type IndicatorKey = "ma" | "ema" | "rsi" | "kc" | "boll" | "atr";
+type SymbolTabKey = "FAVORITE" | "USDT" | "USDC";
 
 interface FeatureRow {
   id: number;
@@ -131,11 +132,12 @@ const total = ref(0);
 const sort = ref("");
 const interval = ref(Number(localStorage.getItem("refreshInterval") || 30));
 const timer = ref<number | null>(null);
+const activeSymbolTab = ref<SymbolTabKey>("FAVORITE");
 
 const search = reactive({
   page: 1,
   limit: 50,
-  symbol_type: "USDT",
+  symbol_type: "FAVORITE",
   symbol: "",
   enable: "",
   margin_type: "",
@@ -176,6 +178,9 @@ const strategyIndex = ref<number | null>(null);
 const queryParams = computed(() => ({
   ...search,
   sort: sort.value,
+  symbol_type:
+    activeSymbolTab.value === "FAVORITE" ? undefined : activeSymbolTab.value,
+  pin: activeSymbolTab.value === "FAVORITE" ? "1" : search.pin,
   symbol: search.symbol.trim().toUpperCase()
 }));
 
@@ -422,7 +427,9 @@ function onSortChange({
 }
 
 function onTabChange(name: string | number) {
-  search.symbol_type = String(name);
+  const nextTab = String(name) as SymbolTabKey;
+  activeSymbolTab.value = nextTab;
+  if (nextTab !== "FAVORITE") search.symbol_type = nextTab;
   fetchData(true);
 }
 
@@ -435,6 +442,21 @@ function formatPrice(value: unknown, digits = 10) {
   const num = Number(value || 0);
   if (Number.isNaN(num)) return "0";
   return Number(num.toFixed(digits)).toString();
+}
+
+function formatQuoteVolume(value: unknown) {
+  const num = Number(value || 0);
+  if (Number.isNaN(num)) return "0.00";
+
+  if (num >= 100000000) {
+    return `${(num / 100000000).toFixed(2)} ${t("futuresSymbolPage.volumeUnit.hundredMillion")}`;
+  }
+
+  if (num >= 10000) {
+    return `${(num / 10000).toFixed(2)} ${t("futuresSymbolPage.volumeUnit.tenThousand")}`;
+  }
+
+  return num.toFixed(2);
 }
 
 async function onEnableChange(row: FeatureRow) {
@@ -822,14 +844,14 @@ onBeforeUnmount(() => {
           style="width: 150px"
           @keyup.enter="fetchData(true)"
         />
-        <el-select
+        <!-- <el-select
           v-model="search.pin"
           clearable
           :placeholder="t('futuresSymbolPage.placeholder.pin')"
           style="width: 100px"
         >
           <el-option :label="t('futuresSymbolPage.state.pin')" value="1" />
-        </el-select>
+        </el-select> -->
         <el-select
           v-model="search.enable"
           clearable
@@ -865,7 +887,11 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <el-tabs v-model="search.symbol_type" @tab-change="onTabChange">
+    <el-tabs v-model="activeSymbolTab" @tab-change="onTabChange">
+      <el-tab-pane
+        :label="t('futuresSymbolPage.tab.favorite')"
+        name="FAVORITE"
+      />
       <el-tab-pane label="USDT" name="USDT" />
       <el-tab-pane label="USDC" name="USDC" />
     </el-tabs>
@@ -897,6 +923,7 @@ onBeforeUnmount(() => {
         :label="t('futuresSymbolPage.table.symbol')"
         align="center"
         min-width="80"
+        sortable="custom"
       />
       <el-table-column
         :label="t('futuresSymbolPage.table.strategyType')"
@@ -947,11 +974,24 @@ onBeforeUnmount(() => {
         </template>
       </el-table-column>
       <el-table-column
+        prop="close"
         :label="t('futuresSymbolPage.table.price')"
         align="center"
         min-width="85"
+        sortable="custom"
       >
         <template #default="{ row }">{{ formatPrice(row.close, 10) }}</template>
+      </el-table-column>
+      <el-table-column
+        prop="quoteVolume"
+        :label="t('futuresSymbolPage.table.quoteVolume')"
+        align="center"
+        min-width="100"
+        sortable="custom"
+      >
+        <template #default="{ row }">{{
+          formatQuoteVolume(row.quoteVolume)
+        }}</template>
       </el-table-column>
       <el-table-column
         prop="percent_change"

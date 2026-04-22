@@ -254,6 +254,8 @@ futuresSymbolPage:
   label:
     refreshInterval: 刷新间隔
     total: 总数
+  tab:
+    favorite: 自选
   table:
     pin: 置顶
     symbol: 币种
@@ -262,6 +264,7 @@ futuresSymbolPage:
     strategy: 策略方法
     change24h: 24h涨跌
     price: 现价
+    quoteVolume: 24h成交量
     marginType: 保证金模式
     usdt: USDT
     leverage: 杠杆
@@ -269,6 +272,9 @@ futuresSymbolPage:
     stopLoss: 止损率(%)
     enable: 启用
     operation: 操作
+  volumeUnit:
+    tenThousand: 万
+    hundredMillion: 亿
   dialog:
     addTitle: 新增交易对
     batchEditTitle: 批量编辑
