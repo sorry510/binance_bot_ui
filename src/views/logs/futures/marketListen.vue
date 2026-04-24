@@ -16,8 +16,8 @@ const cacheKey = "market-notice-logs-query-cache";
 
 function getDefaultRange() {
   return {
-    start_time: dayjs().subtract(7, "day").toDate(),
-    end_time: dayjs().toDate()
+    start_time: dayjs().startOf("day").toDate(),
+    end_time: undefined
   };
 }
 
