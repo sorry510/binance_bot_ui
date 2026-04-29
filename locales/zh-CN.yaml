@@ -439,12 +439,17 @@ noticeFeaturePage:
     addSuccess: 新增成功
     updateSuccess: 更新成功
     deleteSuccess: 删除成功
+  buy: 做多
+  sell: 做空
 noticeSpotPage:
   button:
     add: 新增
     refresh: 刷新
     delete: 删除
     save: 保存
+  side:
+    buy: 买入
+    sell: 卖出
   table:
     symbol: 币种
     side: 方向
@@ -704,6 +709,8 @@ testOrderPage:
     all: 全部
     open: 开仓
     close: 平仓
+    long: 做多
+    short: 做空
   label:
     currentProfit: 当前收益
     total: 总数

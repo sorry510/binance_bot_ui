@@ -25,7 +25,11 @@ async function fetchData() {
 }
 
 async function saveRow(row: any) {
-  await setNoticeCoin(row.id, { ...row, enable: row.enable ? 1 : 0 });
+  await setNoticeCoin(row.id, {
+    ...row,
+    leverage: Number(row.leverage),
+    enable: row.enable ? 1 : 0
+  });
   ElMessage.success(t("noticeFeaturePage.message.updateSuccess"));
 }
 
@@ -77,8 +81,10 @@ onMounted(fetchData);
       <el-table-column :label="t('noticeFeaturePage.table.side')" width="120"
         ><template #default="{ row }"
           ><el-select v-model="row.side" @change="saveRow(row)"
-            ><el-option label="buy" value="buy" /><el-option
-              label="sell"
+            ><el-option
+              :label="t('noticeFeaturePage.buy')"
+              value="buy" /><el-option
+              :label="t('noticeFeaturePage.sell')"
               value="sell" /></el-select></template
       ></el-table-column>
       <el-table-column
@@ -108,8 +114,10 @@ onMounted(fetchData);
         width="140"
         ><template #default="{ row }"
           ><el-select v-model="row.marginType" @change="saveRow(row)"
-            ><el-option label="ISOLATED" value="ISOLATED" /><el-option
-              label="CROSSED"
+            ><el-option
+              :label="t('trade.ISOLATED')"
+              value="ISOLATED" /><el-option
+              :label="t('trade.CROSSED')"
               value="CROSSED" /></el-select></template
       ></el-table-column>
       <el-table-column
@@ -137,7 +145,7 @@ onMounted(fetchData);
         ><template #default="{ row }"
           ><el-switch v-model="row.enable" @change="saveRow(row)" /></template
       ></el-table-column>
-      <el-table-column
+      <!-- <el-table-column
         :label="t('noticeFeaturePage.table.operation')"
         width="90"
         ><template #default="{ row }"
@@ -145,7 +153,7 @@ onMounted(fetchData);
             t("noticeFeaturePage.button.delete")
           }}</el-button></template
         ></el-table-column
-      >
+      > -->
     </el-table>
     <el-dialog
       v-model="dialogVisible"

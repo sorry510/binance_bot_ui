@@ -25,7 +25,11 @@ async function fetchData() {
 }
 
 async function saveRow(row: any) {
-  await setNoticeCoin(row.id, { ...row, enable: row.enable ? 1 : 0 });
+  await setNoticeCoin(row.id, {
+    ...row,
+    leverage: Number(row.leverage),
+    enable: row.enable ? 1 : 0
+  });
   ElMessage.success(t("noticeSpotPage.message.updateSuccess"));
 }
 
@@ -77,8 +81,10 @@ onMounted(fetchData);
       <el-table-column :label="t('noticeSpotPage.table.side')" width="120">
         <template #default="{ row }"
           ><el-select v-model="row.side" @change="saveRow(row)"
-            ><el-option label="buy" value="buy" /><el-option
-              label="sell"
+            ><el-option
+              :label="t('noticeSpotPage.side.buy')"
+              value="buy" /><el-option
+              :label="t('noticeSpotPage.side.sell')"
               value="sell" /></el-select
         ></template>
       </el-table-column>

@@ -119,8 +119,10 @@ onMounted(fetchData);
         style="width: 100px"
         ><el-option
           :label="t('testOrderPage.state.all')"
-          value="all" /><el-option label="LONG" value="LONG" /><el-option
-          label="SHORT"
+          value="all" /><el-option
+          :label="t('testOrderPage.state.long')"
+          value="LONG" /><el-option
+          :label="t('testOrderPage.state.short')"
           value="SHORT"
       /></el-select>
       <el-date-picker

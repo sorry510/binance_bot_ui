@@ -439,12 +439,17 @@ noticeFeaturePage:
     addSuccess: Added successfully
     updateSuccess: Updated successfully
     deleteSuccess: Deleted successfully
+  buy: 做多
+  sell: 做空
 noticeSpotPage:
   button:
     add: Add
     refresh: Refresh
     delete: Delete
     save: Save
+  side:
+    buy: Buy
+    sell: Sell
   table:
     symbol: Symbol
     side: Side
@@ -704,6 +709,8 @@ testOrderPage:
     all: All
     open: Open
     close: Close
+    long: Long
+    short: Short
   label:
     currentProfit: Current Profit
     total: Total
