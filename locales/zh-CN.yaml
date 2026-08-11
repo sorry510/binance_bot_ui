@@ -740,7 +740,7 @@ testOrderPage:
   button:
     search: 查询
     delete: 删除
-    deleteAll: 删除全部
+    deleteFiltered: 删除筛选结果
   placeholder:
     symbol: 币种
     status: 状态
@@ -772,9 +772,11 @@ testOrderPage:
   confirm:
     title: 提示
     delete: 确认删除 {symbol} ?
-    deleteAll: 确认删除全部测试结果?
+    deleteFiltered: 确认删除当前搜索条件匹配的全部测试结果?
   message:
     deleteSuccess: 删除成功
+    deleteFilteredSuccess: 已删除 {count} 条测试结果
+    searchRequired: 请至少设置一个搜索条件
 marketListenLogPage:
   button:
     search: 查询

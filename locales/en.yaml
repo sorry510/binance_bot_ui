@@ -740,7 +740,7 @@ testOrderPage:
   button:
     search: Search
     delete: Delete
-    deleteAll: Delete All
+    deleteFiltered: Delete Filtered
   placeholder:
     symbol: Symbol
     status: Status
@@ -772,9 +772,11 @@ testOrderPage:
   confirm:
     title: Confirm
     delete: Confirm deleting {symbol} ?
-    deleteAll: Confirm deleting all test results?
+    deleteFiltered: Confirm deleting all test results matching the current filters?
   message:
     deleteSuccess: Deleted successfully
+    deleteFilteredSuccess: Deleted {count} test results
+    searchRequired: Set at least one search condition
 marketListenLogPage:
   button:
     search: Search

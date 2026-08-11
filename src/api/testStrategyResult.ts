@@ -6,8 +6,10 @@ export const getResults = (params: Query = {}) => {
   return http.get<any, Query>(baseUrlApi("test-strategy-results"), { params });
 };
 
-export const delAllResults = () => {
-  return http.request<any>("delete", baseUrlApi("test-strategy-results"));
+export const delResultsByQuery = (params: Query) => {
+  return http.request<any>("delete", baseUrlApi("test-strategy-results"), {
+    params
+  });
 };
 
 export const delResults = (id: number | string) => {

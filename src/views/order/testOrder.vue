@@ -4,8 +4,8 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from "vue-i18n";
 import dayjs from "dayjs";
 import {
-  delAllResults,
   delResults,
+  delResultsByQuery,
   getResults
 } from "../../api/testStrategyResult";
 
@@ -15,6 +15,7 @@ const { t } = useI18n();
 const list = ref<any[]>([]);
 const total = ref(0);
 const loading = ref(false);
+const deleting = ref(false);
 const query = reactive<any>({
   page: 1,
   limit: 200,
@@ -24,6 +25,21 @@ const query = reactive<any>({
   start_time: undefined,
   end_time: undefined
 });
+
+const searchParams = computed(() => ({
+  symbol: query.symbol.trim() || undefined,
+  type: query.type && query.type !== "all" ? query.type : undefined,
+  position_side:
+    query.position_side && query.position_side !== "all"
+      ? query.position_side
+      : undefined,
+  start_time: query.start_time ? +new Date(query.start_time) : undefined,
+  end_time: query.end_time ? +new Date(query.end_time) : undefined
+}));
+
+const hasSearchCondition = computed(() =>
+  Object.values(searchParams.value).some(value => value !== undefined)
+);
 
 const allProfit = computed(() =>
   list.value
@@ -47,9 +63,9 @@ async function fetchData(resetPage = false) {
   loading.value = true;
   try {
     const res = await getResults({
-      ...query,
-      start_time: query.start_time ? +new Date(query.start_time) : undefined,
-      end_time: query.end_time ? +new Date(query.end_time) : undefined
+      page: query.page,
+      limit: query.limit,
+      ...searchParams.value
     });
     const data = res?.data || {};
     list.value = (data.list || []).map((row: any) => ({
@@ -76,15 +92,30 @@ async function onDelete(row: any) {
   await fetchData();
 }
 
-async function onDeleteAll() {
+async function onDeleteFiltered() {
+  if (!hasSearchCondition.value) {
+    ElMessage.warning(t("testOrderPage.message.searchRequired"));
+    return;
+  }
+
   await ElMessageBox.confirm(
-    t("testOrderPage.confirm.deleteAll"),
+    t("testOrderPage.confirm.deleteFiltered"),
     t("testOrderPage.confirm.title"),
     { type: "warning" }
   );
-  await delAllResults();
-  ElMessage.success(t("testOrderPage.message.deleteSuccess"));
-  await fetchData();
+
+  deleting.value = true;
+  try {
+    const res = await delResultsByQuery(searchParams.value);
+    ElMessage.success(
+      t("testOrderPage.message.deleteFilteredSuccess", {
+        count: Number(res?.data?.deleted || 0)
+      })
+    );
+    await fetchData(true);
+  } finally {
+    deleting.value = false;
+  }
 }
 
 onMounted(fetchData);
@@ -138,9 +169,13 @@ onMounted(fetchData);
       <el-button type="primary" :loading="loading" @click="fetchData(true)">{{
         t("testOrderPage.button.search")
       }}</el-button>
-      <el-button type="danger" :loading="loading" @click="onDeleteAll">{{
-        t("testOrderPage.button.deleteAll")
-      }}</el-button>
+      <el-button
+        type="danger"
+        :disabled="!hasSearchCondition"
+        :loading="deleting"
+        @click="onDeleteFiltered"
+        >{{ t("testOrderPage.button.deleteFiltered") }}</el-button
+      >
       <span class="ml-auto"
         >{{ t("testOrderPage.label.currentProfit") }}: {{ allProfit }}</span
       >
