@@ -1,7 +1,12 @@
 export interface TechnologyConfigItem {
   name: string;
   kline_interval: string;
-  period: number | string;
+  period?: number | string;
+  fast_period?: number | string;
+  slow_period?: number | string;
+  signal_period?: number | string;
+  k_period?: number | string;
+  d_period?: number | string;
   multiplier?: number | string;
   std_dev_multiplier?: number | string;
   enable: boolean;
@@ -25,7 +30,7 @@ const reservedIndicatorNames = new Set([
   "NowSymbolLow",
   "NowSymbolHigh",
   "BasicTrend",
-  "Kdj",
+  "KdjSimple",
   "IsAsc",
   "IsDesc",
   "ROI",
@@ -68,21 +73,64 @@ export function validateTechnologyConfig(
         return { key: "intervalRequired", params: { name } };
       }
 
-      const period = Number(item.period);
-      const maximumPeriod = indicatorType === "rsi" ? 149 : 150;
-      if (!Number.isInteger(period) || period < 1 || period > maximumPeriod) {
-        return {
-          key: "periodInvalid",
-          params: { name, maximum: maximumPeriod }
-        };
+      if (indicatorType === "macd") {
+        const fastPeriod = Number(item.fast_period);
+        const slowPeriod = Number(item.slow_period);
+        const signalPeriod = Number(item.signal_period);
+        if (
+          !Number.isInteger(fastPeriod) ||
+          !Number.isInteger(slowPeriod) ||
+          !Number.isInteger(signalPeriod) ||
+          fastPeriod < 1 ||
+          slowPeriod < 1 ||
+          signalPeriod < 1 ||
+          fastPeriod >= slowPeriod ||
+          slowPeriod + signalPeriod - 1 > 150
+        ) {
+          return { key: "macdPeriodsInvalid", params: { name } };
+        }
+      } else if (indicatorType !== "obv") {
+        const period = Number(item.period);
+        const maximumPeriod =
+          indicatorType === "rsi" ||
+          indicatorType === "mfi" ||
+          indicatorType === "roc"
+            ? 149
+            : indicatorType === "adx"
+              ? 75
+              : 150;
+        if (!Number.isInteger(period) || period < 1 || period > maximumPeriod) {
+          return {
+            key: "periodInvalid",
+            params: { name, maximum: maximumPeriod }
+          };
+        }
       }
 
+      if (
+        indicatorType === "kdj" &&
+        (!Number.isInteger(Number(item.k_period)) ||
+          !Number.isInteger(Number(item.d_period)) ||
+          Number(item.k_period) < 1 ||
+          Number(item.k_period) > 150 ||
+          Number(item.d_period) < 1 ||
+          Number(item.d_period) > 150)
+      ) {
+        return { key: "kdjPeriodsInvalid", params: { name } };
+      }
       if (
         indicatorType === "kc" &&
         (!Number.isFinite(Number(item.multiplier)) ||
           Number(item.multiplier) < 0)
       ) {
         return { key: "multiplierInvalid", params: { name } };
+      }
+      if (
+        indicatorType === "supertrend" &&
+        (!Number.isFinite(Number(item.multiplier)) ||
+          Number(item.multiplier) <= 0)
+      ) {
+        return { key: "supertrendMultiplierInvalid", params: { name } };
       }
       if (
         indicatorType === "boll" &&

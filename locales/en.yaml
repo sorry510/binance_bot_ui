@@ -352,9 +352,30 @@ strategyTemplatePage:
     name: Name
     klineInterval: Kline Interval
     period: Period
+    fastPeriod: Fast Period
+    slowPeriod: Slow Period
+    signalPeriod: Signal Period
+    kPeriod: K Smoothing Period
+    dPeriod: D Smoothing Period
     multiplier: Multiplier
     stdDevMultiplier: Std Dev Multiplier
     enable: Enable
+    description:
+      ma: Averages prices to identify trend direction and support or resistance.
+      ema: Weights recent prices more heavily to detect trend changes faster.
+      macd: Compares fast and slow averages to show trend and momentum changes.
+      adx: Measures trend strength and uses directional lines to indicate direction.
+      mfi: Combines price and volume to measure buying and selling pressure.
+      obv: Accumulates directional volume to confirm whether volume supports a trend.
+      cci: Measures price deviation from its average to identify strength and extremes.
+      roc: Calculates the price change rate over a period to measure momentum.
+      kdj: Compares the close with its recent range to show momentum and extremes.
+      rsi: Measures momentum to identify overbought and oversold conditions.
+      kc: Uses an average and volatility bands to identify trends and breakouts.
+      boll: Uses standard-deviation bands to show volatility and breakouts.
+      donchian: Uses period highs and lows to form a channel for breakout detection.
+      atr: Measures market volatility without indicating price direction.
+      supertrend: Combines ATR and price into a trend line to identify trend changes.
   validation:
     nameRequired: "{indicator} indicator name is required"
     nameInvalid: "Indicator name {name} may contain only letters, numbers, and underscores, cannot start with a number, and cannot contain surrounding spaces"
@@ -362,7 +383,10 @@ strategyTemplatePage:
     nameDuplicate: "Indicator name {name} must be unique across all indicators"
     intervalRequired: "Indicator {name} must select a K-line interval"
     periodInvalid: "Indicator {name} period must be an integer between 1 and {maximum}"
+    macdPeriodsInvalid: "MACD indicator {name} periods must be positive integers, fast must be less than slow, and slow + signal - 1 must not exceed 150"
+    kdjPeriodsInvalid: "KDJ indicator {name} K and D smoothing periods must be integers between 1 and 150"
     multiplierInvalid: "KC indicator {name} multiplier must be a number greater than or equal to 0"
+    supertrendMultiplierInvalid: "Supertrend indicator {name} multiplier must be a number greater than 0"
     stdDevMultiplierInvalid: "BOLL indicator {name} standard deviation multiplier must be a number greater than or equal to 0"
   strategy:
     name: Name

@@ -26,7 +26,22 @@ defineOptions({ name: "FuturesSymbol" });
 
 const { t } = useI18n();
 
-type IndicatorKey = "ma" | "ema" | "rsi" | "kc" | "boll" | "atr";
+type IndicatorKey =
+  | "ma"
+  | "ema"
+  | "macd"
+  | "adx"
+  | "mfi"
+  | "obv"
+  | "cci"
+  | "roc"
+  | "kdj"
+  | "rsi"
+  | "kc"
+  | "boll"
+  | "donchian"
+  | "atr"
+  | "supertrend";
 type SymbolTabKey = "FAVORITE" | "USDT" | "USDC";
 
 interface FeatureRow {
@@ -60,7 +75,12 @@ interface StrategyItem {
 interface TechnologyItem {
   name: string;
   kline_interval: string;
-  period: number | string;
+  period?: number | string;
+  fast_period?: number | string;
+  slow_period?: number | string;
+  signal_period?: number | string;
+  k_period?: number | string;
+  d_period?: number | string;
   multiplier?: number | string;
   std_dev_multiplier?: number | string;
   enable: boolean;
@@ -77,10 +97,19 @@ function createEmptyTechnology() {
   return {
     ma: [] as TechnologyItem[],
     ema: [] as TechnologyItem[],
+    macd: [] as TechnologyItem[],
+    adx: [] as TechnologyItem[],
+    mfi: [] as TechnologyItem[],
+    obv: [] as TechnologyItem[],
+    cci: [] as TechnologyItem[],
+    roc: [] as TechnologyItem[],
+    kdj: [] as TechnologyItem[],
     rsi: [] as TechnologyItem[],
     kc: [] as TechnologyItem[],
     boll: [] as TechnologyItem[],
-    atr: [] as TechnologyItem[]
+    donchian: [] as TechnologyItem[],
+    atr: [] as TechnologyItem[],
+    supertrend: [] as TechnologyItem[]
   };
 }
 
@@ -105,10 +134,19 @@ const klineInterval = [
 const indicatorTabs = [
   { key: "ma", label: "MA" },
   { key: "ema", label: "EMA" },
+  { key: "macd", label: "MACD" },
+  { key: "adx", label: "ADX" },
+  { key: "mfi", label: "MFI" },
+  { key: "obv", label: "OBV" },
+  { key: "cci", label: "CCI" },
+  { key: "roc", label: "ROC" },
+  { key: "kdj", label: "KDJ" },
   { key: "rsi", label: "RSI" },
   { key: "kc", label: "KC" },
   { key: "boll", label: "BOLL" },
-  { key: "atr", label: "ATR" }
+  { key: "donchian", label: "DONCHIAN" },
+  { key: "atr", label: "ATR" },
+  { key: "supertrend", label: "SUPERTREND" }
 ] as const;
 
 const strategyTypeOptions = [
@@ -233,7 +271,7 @@ const codeEditorExtensions = computed(() => {
     "keys",
     "values",
     "len",
-    "Kdj",
+    "KdjSimple",
     "IsDesc",
     "IsAsc",
     "SystemStartTime",
@@ -282,14 +320,69 @@ const codeEditorExtensions = computed(() => {
             if (item.name) keywords.add(item.name);
             if (item.kline_interval) klineIntervalSet.add(item.kline_interval);
 
-            if (["ma", "ema", "rsi", "atr"].includes(key)) {
+            if (
+              ["ma", "ema", "mfi", "cci", "roc", "rsi", "atr"].includes(key)
+            ) {
               keywords.add(`${item.name}.KlineInterval`);
               keywords.add(`${item.name}.Period`);
               keywords.add(`${item.name}.Data`);
               keywords.add(`${item.name}.Data[]`);
             }
 
-            if (["kc", "boll"].includes(key)) {
+            if (key === "obv") {
+              keywords.add(`${item.name}.KlineInterval`);
+              keywords.add(`${item.name}.Data`);
+              keywords.add(`${item.name}.Data[]`);
+            }
+
+            if (key === "macd") {
+              keywords.add(`${item.name}.KlineInterval`);
+              keywords.add(`${item.name}.FastPeriod`);
+              keywords.add(`${item.name}.SlowPeriod`);
+              keywords.add(`${item.name}.SignalPeriod`);
+              keywords.add(`${item.name}.DIF`);
+              keywords.add(`${item.name}.DIF[]`);
+              keywords.add(`${item.name}.DEA`);
+              keywords.add(`${item.name}.DEA[]`);
+              keywords.add(`${item.name}.Histogram`);
+              keywords.add(`${item.name}.Histogram[]`);
+            }
+
+            if (key === "adx") {
+              keywords.add(`${item.name}.KlineInterval`);
+              keywords.add(`${item.name}.Period`);
+              keywords.add(`${item.name}.ADX`);
+              keywords.add(`${item.name}.ADX[]`);
+              keywords.add(`${item.name}.PlusDI`);
+              keywords.add(`${item.name}.PlusDI[]`);
+              keywords.add(`${item.name}.MinusDI`);
+              keywords.add(`${item.name}.MinusDI[]`);
+            }
+
+            if (key === "kdj") {
+              keywords.add(`${item.name}.KlineInterval`);
+              keywords.add(`${item.name}.Period`);
+              keywords.add(`${item.name}.KPeriod`);
+              keywords.add(`${item.name}.DPeriod`);
+              keywords.add(`${item.name}.K`);
+              keywords.add(`${item.name}.K[]`);
+              keywords.add(`${item.name}.D`);
+              keywords.add(`${item.name}.D[]`);
+              keywords.add(`${item.name}.J`);
+              keywords.add(`${item.name}.J[]`);
+            }
+
+            if (key === "supertrend") {
+              keywords.add(`${item.name}.KlineInterval`);
+              keywords.add(`${item.name}.Period`);
+              keywords.add(`${item.name}.Multiplier`);
+              keywords.add(`${item.name}.Data`);
+              keywords.add(`${item.name}.Data[]`);
+              keywords.add(`${item.name}.Trend`);
+              keywords.add(`${item.name}.Trend[]`);
+            }
+
+            if (["kc", "boll", "donchian"].includes(key)) {
               keywords.add(`${item.name}.KlineInterval`);
               keywords.add(`${item.name}.Period`);
               keywords.add(`${item.name}.High`);
@@ -615,7 +708,21 @@ async function confirmTechnology() {
     const payload = JSON.parse(JSON.stringify(technology.value));
     Object.keys(payload).forEach((key: string) => {
       payload[key].forEach((item: any) => {
-        item.period = item.period === "" ? 0 : Number(item.period);
+        if (item.period !== undefined)
+          item.period = item.period === "" ? 0 : Number(item.period);
+        if (item.fast_period !== undefined)
+          item.fast_period =
+            item.fast_period === "" ? 0 : Number(item.fast_period);
+        if (item.slow_period !== undefined)
+          item.slow_period =
+            item.slow_period === "" ? 0 : Number(item.slow_period);
+        if (item.signal_period !== undefined)
+          item.signal_period =
+            item.signal_period === "" ? 0 : Number(item.signal_period);
+        if (item.k_period !== undefined)
+          item.k_period = item.k_period === "" ? 0 : Number(item.k_period);
+        if (item.d_period !== undefined)
+          item.d_period = item.d_period === "" ? 0 : Number(item.d_period);
         if (item.multiplier !== undefined)
           item.multiplier =
             item.multiplier === "" ? 0 : Number(item.multiplier);
@@ -653,6 +760,27 @@ function addTechnologyItem(key: IndicatorKey) {
   const defaults: Record<IndicatorKey, TechnologyItem> = {
     ma: { name: "", kline_interval: "", period: 14, enable: false },
     ema: { name: "", kline_interval: "", period: 14, enable: false },
+    macd: {
+      name: "",
+      kline_interval: "",
+      fast_period: 12,
+      slow_period: 26,
+      signal_period: 9,
+      enable: false
+    },
+    adx: { name: "", kline_interval: "", period: 14, enable: false },
+    mfi: { name: "", kline_interval: "", period: 14, enable: false },
+    obv: { name: "", kline_interval: "", enable: false },
+    cci: { name: "", kline_interval: "", period: 20, enable: false },
+    roc: { name: "", kline_interval: "", period: 12, enable: false },
+    kdj: {
+      name: "",
+      kline_interval: "",
+      period: 9,
+      k_period: 3,
+      d_period: 3,
+      enable: false
+    },
     rsi: { name: "", kline_interval: "", period: 14, enable: false },
     kc: {
       name: "",
@@ -668,7 +796,20 @@ function addTechnologyItem(key: IndicatorKey) {
       std_dev_multiplier: 2,
       enable: false
     },
-    atr: { name: "", kline_interval: "", period: 14, enable: false }
+    donchian: {
+      name: "",
+      kline_interval: "",
+      period: 20,
+      enable: false
+    },
+    atr: { name: "", kline_interval: "", period: 14, enable: false },
+    supertrend: {
+      name: "",
+      kline_interval: "",
+      period: 10,
+      multiplier: 3,
+      enable: false
+    }
   };
   technology.value[key] = [...technology.value[key], { ...defaults[key] }];
 }
@@ -1209,10 +1350,22 @@ onBeforeUnmount(() => {
           :label="tab.label"
           :name="tab.key"
         >
-          <div class="mb-2">
-            <el-button type="primary" @click="addTechnologyItem(tab.key)">{{
-              t("futuresSymbolPage.button.add")
-            }}</el-button>
+          <div class="indicator-toolbar">
+            <el-button
+              class="indicator-add-button"
+              type="primary"
+              @click="addTechnologyItem(tab.key)"
+              >{{ t("futuresSymbolPage.button.add") }}</el-button
+            >
+            <span
+              class="indicator-description"
+              :title="
+                t(`strategyTemplatePage.technology.description.${tab.key}`)
+              "
+              >{{
+                t(`strategyTemplatePage.technology.description.${tab.key}`)
+              }}</span
+            >
           </div>
           <el-table
             :data="technology[tab.key]"
@@ -1246,6 +1399,7 @@ onBeforeUnmount(() => {
               </template>
             </el-table-column>
             <el-table-column
+              v-if="tab.key !== 'macd' && tab.key !== 'obv'"
               :label="t('strategyTemplatePage.technology.period')"
               align="center"
               width="120"
@@ -1255,7 +1409,57 @@ onBeforeUnmount(() => {
               /></template>
             </el-table-column>
             <el-table-column
-              v-if="tab.key === 'kc'"
+              v-if="tab.key === 'macd'"
+              :label="t('strategyTemplatePage.technology.fastPeriod')"
+              align="center"
+              width="120"
+            >
+              <template #default="{ row }">
+                <el-input v-model="row.fast_period" size="small" />
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-if="tab.key === 'macd'"
+              :label="t('strategyTemplatePage.technology.slowPeriod')"
+              align="center"
+              width="120"
+            >
+              <template #default="{ row }">
+                <el-input v-model="row.slow_period" size="small" />
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-if="tab.key === 'macd'"
+              :label="t('strategyTemplatePage.technology.signalPeriod')"
+              align="center"
+              width="120"
+            >
+              <template #default="{ row }">
+                <el-input v-model="row.signal_period" size="small" />
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-if="tab.key === 'kdj'"
+              :label="t('strategyTemplatePage.technology.kPeriod')"
+              align="center"
+              width="120"
+            >
+              <template #default="{ row }">
+                <el-input v-model="row.k_period" size="small" />
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-if="tab.key === 'kdj'"
+              :label="t('strategyTemplatePage.technology.dPeriod')"
+              align="center"
+              width="120"
+            >
+              <template #default="{ row }">
+                <el-input v-model="row.d_period" size="small" />
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-if="tab.key === 'kc' || tab.key === 'supertrend'"
               :label="t('strategyTemplatePage.technology.multiplier')"
               align="center"
               width="130"
@@ -1474,6 +1678,39 @@ onBeforeUnmount(() => {
 
 .futures-symbol-page :deep(.el-dialog__body) {
   padding-top: 12px;
+}
+
+.indicator-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  margin-bottom: 8px;
+}
+
+.indicator-add-button {
+  flex: 0 0 auto;
+}
+
+.indicator-description {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+
+@media (width <= 640px) {
+  .indicator-toolbar {
+    gap: 6px;
+  }
+
+  .indicator-description {
+    font-size: 11px;
+    line-height: 18px;
+  }
 }
 
 .code-full {

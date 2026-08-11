@@ -352,9 +352,30 @@ strategyTemplatePage:
     name: 名称
     klineInterval: K线周期
     period: 周期
+    fastPeriod: 快线周期
+    slowPeriod: 慢线周期
+    signalPeriod: 信号线周期
+    kPeriod: K平滑周期
+    dPeriod: D平滑周期
     multiplier: 乘数
     stdDevMultiplier: 标准差乘数
     enable: 启用
+    description:
+      ma: 均线平滑价格，用于判断趋势方向和支撑阻力。
+      ema: 加重近期价格权重，用于更快识别趋势变化。
+      macd: 比较快慢均线差异，用于观察趋势和动能变化。
+      adx: 衡量趋势强度，并用正负方向线辅助判断方向。
+      mfi: 结合价格与成交量，判断资金流入流出强弱。
+      obv: 累计成交量方向，用于验证价格趋势是否得到量能支持。
+      cci: 衡量价格偏离均值的程度，用于识别强弱与极端区间。
+      roc: 计算一定周期价格变化率，用于衡量涨跌动能。
+      kdj: 比较收盘价与近期区间，用于判断动能和超买超卖。
+      rsi: 衡量涨跌动能强弱，用于识别超买和超卖区间。
+      kc: 以均线和波动率构建通道，用于判断趋势与突破。
+      boll: 以标准差构建价格通道，用于观察波动与突破。
+      donchian: 取周期最高价和最低价形成通道，用于识别突破。
+      atr: 衡量市场波动幅度，不直接判断价格涨跌方向。
+      supertrend: 结合 ATR 与价格生成趋势线，用于识别趋势切换。
   validation:
     nameRequired: "{indicator} 指标名称不能为空"
     nameInvalid: "指标名称 {name} 只能包含英文字母、数字和下划线，且不能以数字开头或包含首尾空格"
@@ -362,7 +383,10 @@ strategyTemplatePage:
     nameDuplicate: "指标名称 {name} 必须在所有指标中唯一"
     intervalRequired: "指标 {name} 必须选择 K 线周期"
     periodInvalid: "指标 {name} 的周期必须是 1 到 {maximum} 之间的整数"
+    macdPeriodsInvalid: "MACD 指标 {name} 的周期必须是正整数，快线周期小于慢线周期，并且慢线周期 + 信号线周期 - 1 不能超过 150"
+    kdjPeriodsInvalid: "KDJ 指标 {name} 的 K 和 D 平滑周期必须是 1 到 150 之间的整数"
     multiplierInvalid: "KC 指标 {name} 的乘数必须是大于或等于 0 的数字"
+    supertrendMultiplierInvalid: "Supertrend 指标 {name} 的乘数必须是大于 0 的数字"
     stdDevMultiplierInvalid: "BOLL 指标 {name} 的标准差乘数必须是大于或等于 0 的数字"
   strategy:
     name: 名称
