@@ -355,6 +355,15 @@ strategyTemplatePage:
     multiplier: Multiplier
     stdDevMultiplier: Std Dev Multiplier
     enable: Enable
+  validation:
+    nameRequired: "{indicator} indicator name is required"
+    nameInvalid: "Indicator name {name} may contain only letters, numbers, and underscores, cannot start with a number, and cannot contain surrounding spaces"
+    nameReserved: "Indicator name {name} is reserved by the system"
+    nameDuplicate: "Indicator name {name} must be unique across all indicators"
+    intervalRequired: "Indicator {name} must select a K-line interval"
+    periodInvalid: "Indicator {name} period must be an integer between 1 and {maximum}"
+    multiplierInvalid: "KC indicator {name} multiplier must be a number greater than or equal to 0"
+    stdDevMultiplierInvalid: "BOLL indicator {name} standard deviation multiplier must be a number greater than or equal to 0"
   strategy:
     name: Name
     code: Code

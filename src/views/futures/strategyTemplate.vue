@@ -16,6 +16,7 @@ import {
   testStrategyRule
 } from "../../api/strategyTemplate";
 import { codeMirrorBasicSetup } from "../../utils/codemirror";
+import { validateTechnologyConfig } from "../../utils/technology";
 
 defineOptions({ name: "strategyTemplate" });
 const { t } = useI18n();
@@ -419,17 +420,28 @@ async function confirmTechnology() {
     const payload = JSON.parse(JSON.stringify(technology.value));
     Object.keys(payload).forEach((key: string) => {
       payload[key].forEach((item: any) => {
-        if (item.period !== "") item.period = Number(item.period);
-        if (item.multiplier !== undefined && item.multiplier !== "")
-          item.multiplier = Number(item.multiplier);
-        if (
-          item.std_dev_multiplier !== undefined &&
-          item.std_dev_multiplier !== ""
-        ) {
-          item.std_dev_multiplier = Number(item.std_dev_multiplier);
+        item.period = item.period === "" ? 0 : Number(item.period);
+        if (item.multiplier !== undefined)
+          item.multiplier =
+            item.multiplier === "" ? 0 : Number(item.multiplier);
+        if (item.std_dev_multiplier !== undefined) {
+          item.std_dev_multiplier =
+            item.std_dev_multiplier === ""
+              ? 0
+              : Number(item.std_dev_multiplier);
         }
       });
     });
+    const validationIssue = validateTechnologyConfig(payload);
+    if (validationIssue) {
+      ElMessage.error(
+        t(
+          `strategyTemplatePage.validation.${validationIssue.key}`,
+          validationIssue.params
+        )
+      );
+      return;
+    }
     await editData(technologySymbolId.value, {
       technology: JSON.stringify(payload)
     });

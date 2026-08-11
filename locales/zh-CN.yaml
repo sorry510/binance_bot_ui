@@ -355,6 +355,15 @@ strategyTemplatePage:
     multiplier: 乘数
     stdDevMultiplier: 标准差乘数
     enable: 启用
+  validation:
+    nameRequired: "{indicator} 指标名称不能为空"
+    nameInvalid: "指标名称 {name} 只能包含英文字母、数字和下划线，且不能以数字开头或包含首尾空格"
+    nameReserved: "指标名称 {name} 是系统保留名称"
+    nameDuplicate: "指标名称 {name} 必须在所有指标中唯一"
+    intervalRequired: "指标 {name} 必须选择 K 线周期"
+    periodInvalid: "指标 {name} 的周期必须是 1 到 {maximum} 之间的整数"
+    multiplierInvalid: "KC 指标 {name} 的乘数必须是大于或等于 0 的数字"
+    stdDevMultiplierInvalid: "BOLL 指标 {name} 的标准差乘数必须是大于或等于 0 的数字"
   strategy:
     name: 名称
     code: 代码
