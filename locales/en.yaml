@@ -54,6 +54,8 @@ panel:
   pureTagsStyleCardTip: Card tags for efficient browsing
   pureTagsStyleChrome: Chrome
   pureTagsStyleChromeTip: Chrome style is classic and elegant
+  pureMenuTitle: Menu Title
+  pureMenuTitlePlaceholder: Enter the menu title
   pureInterfaceDisplay: Interface Display
   pureGreyModel: Grey Model
   pureWeakModel: Weak Model

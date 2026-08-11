@@ -29,7 +29,7 @@ import SystemIcon from "@/assets/svg/system.svg?component";
 const { t } = useI18n();
 const { device } = useNav();
 const { isDark } = useDark();
-const { $storage } = useGlobal<GlobalPropertiesApi>();
+const { $storage, $config } = useGlobal<GlobalPropertiesApi>();
 
 const mixRef = ref();
 const verticalRef = ref();
@@ -59,6 +59,7 @@ const markValue = ref($storage.configure?.showModel ?? "smart");
 const logoVal = ref($storage.configure?.showLogo ?? true);
 
 const settings = reactive({
+  menuTitle: $storage.configure.menuTitle ?? $config.Title ?? "",
   greyVal: $storage.configure.grey,
   weakVal: $storage.configure.weak,
   tabsVal: $storage.configure.hideTabs,
@@ -86,6 +87,16 @@ function storageConfigureChange<T>(key: string, val: T): void {
   const storageConfigure = $storage.configure;
   storageConfigure[key] = val;
   $storage.configure = storageConfigure;
+}
+
+function menuTitleChange(value: string): void {
+  storageConfigureChange("menuTitle", value);
+}
+
+function menuTitleBlur(): void {
+  const menuTitle = settings.menuTitle.trim() || $config.Title || "";
+  settings.menuTitle = menuTitle;
+  storageConfigureChange("menuTitle", menuTitle);
 }
 
 /** 灰色模式设置 */
@@ -445,6 +456,16 @@ onUnmounted(() => removeMatchMedia);
         :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : 2"
         :options="markOptions"
         @change="onChange"
+      />
+
+      <p :class="['mt-5!', pClass]">{{ t("panel.pureMenuTitle") }}</p>
+      <el-input
+        v-model="settings.menuTitle"
+        clearable
+        maxlength="30"
+        :placeholder="t('panel.pureMenuTitlePlaceholder')"
+        @input="menuTitleChange"
+        @blur="menuTitleBlur"
       />
 
       <p class="mt-5! font-medium text-sm dark:text-white">

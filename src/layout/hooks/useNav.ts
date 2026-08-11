@@ -86,7 +86,7 @@ export function useNav() {
   });
 
   const title = computed(() => {
-    return $config.Title;
+    return $storage?.configure?.menuTitle?.trim() || $config.Title;
   });
 
   /** 动态title */

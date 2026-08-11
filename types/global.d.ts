@@ -134,6 +134,7 @@ declare global {
     themeColor?: string;
     overallStyle?: string;
     showLogo?: boolean;
+    menuTitle?: string;
     showModel?: string;
     menuSearchHistory?: number;
     username?: string;
@@ -161,6 +162,7 @@ declare global {
       hideTabs?: boolean;
       hideFooter?: boolean;
       showLogo?: boolean;
+      menuTitle?: string;
       showModel?: string;
       multiTagsCache?: boolean;
       stretch?: boolean | number;

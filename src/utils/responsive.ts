@@ -29,6 +29,7 @@ export const injectResponsiveStorage = (app: App, config: PlatformConfigs) => {
         hideTabs: config.HideTabs ?? false,
         hideFooter: config.HideFooter ?? true,
         showLogo: config.ShowLogo ?? true,
+        menuTitle: config.Title ?? "",
         showModel: config.ShowModel ?? "smart",
         multiTagsCache: config.MultiTagsCache ?? false,
         stretch: config.Stretch ?? false
