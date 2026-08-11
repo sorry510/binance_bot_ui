@@ -90,7 +90,10 @@ async function getPositions() {
 async function fetchData(type = tabName.value) {
   if (type === "account") {
     const res = await getFuturesAccount();
-    accountAssets.value = res?.data?.assets || [];
+    const assets = res?.data?.assets || [];
+    accountAssets.value = assets.filter(
+      (item: any) => item && Number(item.walletBalance) > 0
+    );
   } else if (type === "position") {
     await getPositions();
   } else if (type === "openOrder") {

@@ -125,8 +125,10 @@ onMounted(fetchData);
         :placeholder="t('orderPage.placeholder.side')"
         style="width: 100px"
         ><el-option :label="t('orderPage.state.all')" value="all" /><el-option
-          label="LONG"
-          value="LONG" /><el-option label="SHORT" value="SHORT"
+          :label="t('orderPage.side.long')"
+          value="LONG" /><el-option
+          :label="t('orderPage.side.short')"
+          value="SHORT"
       /></el-select>
       <el-date-picker
         v-model="query.start_time"

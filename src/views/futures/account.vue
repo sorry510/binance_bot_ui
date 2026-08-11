@@ -60,7 +60,7 @@ async function fetchData(type = tabName.value) {
     const res = await getFuturesAccount();
     const assets = res?.data?.assets || [];
     accountAssets.value = assets.filter(
-      (item: any) => Number(item.walletBalance) > 0
+      (item: any) => item && Number(item.walletBalance) > 0
     );
   } else if (type === "position") {
     const res = await getFuturesPositions();

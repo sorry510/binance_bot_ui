@@ -120,7 +120,6 @@ dashboard:
     externalLinks: External Links
   field:
     websocket: WebSocket
-    priceChangeLimit: futures price change notice limit(%)
     fastMoveEnable: Fast move notice switch
     fastMoveThreshold: Fast move threshold (%)
     fastMoveRecover: Fast move recover threshold (%)
@@ -151,7 +150,6 @@ dashboard:
     testPush: Test Push
   hint:
     autoUpdatePrice: Auto update price
-    priceChangeLimit: Non-zero:when the futures price change exceeds this value, a notification will be sent (once every 4 hours)
     autoRefresh: Auto refresh every 10 minutes
     limitMode: Limit order mode
     marketMode: Market order mode
@@ -344,6 +342,7 @@ strategyTemplatePage:
     delete: Confirm deleting template {name} ?
   message:
     saveSuccess: Saved successfully
+    nameRequired: Template name is required
     deleteSuccess: Deleted successfully
     deleteFail: Delete failed
     actionSuccess: Operation succeeded
@@ -391,10 +390,17 @@ newCoinPage:
     coinType: Coin Type
     marginType: Margin Type
     leverage: Leverage
+    tickSize: Tick Size
+    stepSize: Step Size
     quantity: Quantity
     expectPrice: Expected Price
     enable: Enable
     operation: Operation
+  option:
+    buy: Buy
+    sell: Sell
+    spot: Spot
+    futures: Futures
   dialog:
     addTitle: Add New Coin Config
   placeholder:
@@ -673,6 +679,9 @@ orderPage:
     all: All
     open: Open
     closed: Closed
+  side:
+    long: Long
+    short: Short
   label:
     currentProfit: Current Profit
     total: Total

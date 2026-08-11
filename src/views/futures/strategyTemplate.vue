@@ -44,6 +44,7 @@ interface TemplateRow {
   name: string;
   technology?: string;
   strategy?: string;
+  nameSaving?: boolean;
 }
 
 function createEmptyTechnology() {
@@ -87,6 +88,7 @@ const indicatorTabs = [
 const list = ref<TemplateRow[]>([]);
 const listLoading = ref(false);
 const dialogLoading = ref(false);
+const originalTemplateNames = new Map<number, string>();
 
 const createDialogVisible = ref(false);
 const createForm = reactive({ name: "" });
@@ -275,9 +277,43 @@ async function fetchData() {
   listLoading.value = true;
   try {
     const res = await getList();
-    list.value = res?.data || [];
+    list.value = (res?.data || []).map((item: TemplateRow) => ({
+      ...item,
+      nameSaving: false
+    }));
+    originalTemplateNames.clear();
+    list.value.forEach(item => originalTemplateNames.set(item.id, item.name));
   } finally {
     listLoading.value = false;
+  }
+}
+
+async function saveTemplateName(row: TemplateRow) {
+  if (row.nameSaving) return;
+
+  const originalName = originalTemplateNames.get(row.id) ?? row.name;
+  const name = row.name.trim();
+  if (!name) {
+    row.name = originalName;
+    ElMessage.error(t("strategyTemplatePage.message.nameRequired"));
+    return;
+  }
+  if (name === originalName) {
+    row.name = name;
+    return;
+  }
+
+  row.nameSaving = true;
+  try {
+    await editData(row.id, { name });
+    row.name = name;
+    originalTemplateNames.set(row.id, name);
+    ElMessage.success(t("strategyTemplatePage.message.saveSuccess"));
+  } catch (error) {
+    row.name = originalName;
+    ElMessage.error(t("strategyTemplatePage.message.actionFail"));
+  } finally {
+    row.nameSaving = false;
   }
 }
 
@@ -525,11 +561,20 @@ onMounted(fetchData);
       highlight-current-row
     >
       <el-table-column
-        prop="name"
         :label="t('strategyTemplatePage.table.name')"
-        show-overflow-tooltip
         align="center"
-      />
+        min-width="220"
+      >
+        <template #default="{ row }">
+          <el-input
+            v-model="row.name"
+            size="small"
+            :disabled="row.nameSaving"
+            @blur="saveTemplateName(row)"
+            @keyup.enter="saveTemplateName(row)"
+          />
+        </template>
+      </el-table-column>
       <el-table-column
         :label="t('strategyTemplatePage.table.technology')"
         align="center"

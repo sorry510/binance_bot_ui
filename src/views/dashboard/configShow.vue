@@ -23,7 +23,6 @@ const excludeSymbols = ref<string[]>([]);
 const config = reactive<Record<string, any>>({
   tradeFutureEnable: 0,
   wsFuturesEnable: 0,
-  WsFuturesPriceChangeLimit: 0,
   WsFuturesFastMoveEnable: 0,
   WsFuturesFastMoveThreshold: 0,
   WsFuturesFastMoveRecover: 0,
@@ -191,24 +190,6 @@ onMounted(async () => {
             />
             <span class="hint green">{{
               t("dashboard.hint.autoUpdatePrice")
-            }}</span>
-          </div>
-
-          <div class="field-row">
-            <span class="field-label">{{
-              t("dashboard.field.priceChangeLimit")
-            }}</span>
-            <el-input
-              v-model="config.WsFuturesPriceChangeLimit"
-              type="number"
-              class="compact-input"
-              @change="
-                value =>
-                  saveField('ws_futures_price_change_limit', Number(value))
-              "
-            />
-            <span class="hint red">{{
-              t("dashboard.hint.priceChangeLimit")
             }}</span>
           </div>
 

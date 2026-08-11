@@ -393,7 +393,7 @@ function mapFeaturePayload(row: FeatureRow) {
 }
 
 async function getFutures() {
-  listLoading.value = true;
+  // listLoading.value = true;
   try {
     const res = await getFeatures(queryParams.value);
     const data = res?.data || {};
@@ -401,7 +401,7 @@ async function getFutures() {
     list.value = rows.map(normalizeFeature);
     total.value = Number(data.total || 0);
   } finally {
-    listLoading.value = false;
+    // listLoading.value = false;
   }
 }
 
@@ -867,8 +867,8 @@ onBeforeUnmount(() => {
           :placeholder="t('futuresSymbolPage.placeholder.marginType')"
           style="width: 130px"
         >
-          <el-option label="ISOLATED" value="ISOLATED" />
-          <el-option label="CROSSED" value="CROSSED" />
+          <el-option :label="t('trade.ISOLATED')" value="ISOLATED" />
+          <el-option :label="t('trade.CROSSED')" value="CROSSED" />
         </el-select>
         <el-button type="success" @click="fetchData(true)">{{
           t("futuresSymbolPage.button.search")

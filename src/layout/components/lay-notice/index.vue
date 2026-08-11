@@ -20,7 +20,7 @@ const getLabel = computed(
 
 <template>
   <el-dropdown trigger="click" placement="bottom-end">
-    <span
+    <!-- <span
       :class="[
         'dropdown-badge',
         'navbar-bg-hover',
@@ -33,7 +33,7 @@ const getLabel = computed(
           <IconifyIconOffline :icon="BellIcon" />
         </span>
       </el-badge>
-    </span>
+    </span> -->
     <template #dropdown>
       <el-dropdown-menu>
         <el-tabs

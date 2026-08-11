@@ -79,22 +79,28 @@ onMounted(fetchData);
       <el-table-column :label="t('newCoinPage.table.side')" width="120"
         ><template #default="{ row }"
           ><el-select v-model="row.side" @change="saveRow(row)"
-            ><el-option label="buy" value="buy" /><el-option
-              label="sell"
+            ><el-option
+              :label="t('newCoinPage.option.buy')"
+              value="buy" /><el-option
+              :label="t('newCoinPage.option.sell')"
               value="sell" /></el-select></template
       ></el-table-column>
       <el-table-column :label="t('newCoinPage.table.coinType')" width="120"
         ><template #default="{ row }"
           ><el-select v-model="row.type" @change="saveRow(row)"
-            ><el-option label="spot" :value="1" /><el-option
-              label="futures"
+            ><el-option
+              :label="t('newCoinPage.option.spot')"
+              :value="1" /><el-option
+              :label="t('newCoinPage.option.futures')"
               :value="2" /></el-select></template
       ></el-table-column>
       <el-table-column :label="t('newCoinPage.table.marginType')" width="140"
         ><template #default="{ row }"
           ><el-select v-model="row.marginType" @change="saveRow(row)"
-            ><el-option label="ISOLATED" value="ISOLATED" /><el-option
-              label="CROSSED"
+            ><el-option
+              :label="t('trade.ISOLATED')"
+              value="ISOLATED" /><el-option
+              :label="t('trade.CROSSED')"
               value="CROSSED" /></el-select></template
       ></el-table-column>
       <el-table-column label="USDT" width="110"
@@ -105,11 +111,11 @@ onMounted(fetchData);
         ><template #default="{ row }"
           ><el-input v-model="row.leverage" @blur="saveRow(row)" /></template
       ></el-table-column>
-      <el-table-column label="tickSize" width="120"
+      <el-table-column :label="t('newCoinPage.table.tickSize')" width="120"
         ><template #default="{ row }"
           ><el-input v-model="row.tickSize" @blur="saveRow(row)" /></template
       ></el-table-column>
-      <el-table-column label="stepSize" width="120"
+      <el-table-column :label="t('newCoinPage.table.stepSize')" width="120"
         ><template #default="{ row }"
           ><el-input v-model="row.stepSize" @blur="saveRow(row)" /></template
       ></el-table-column>

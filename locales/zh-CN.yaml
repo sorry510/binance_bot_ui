@@ -120,7 +120,6 @@ dashboard:
     externalLinks: 外部链接
   field:
     websocket: WebSocket
-    priceChangeLimit: 24h波动通知阈值(%)
     fastMoveEnable: 快速波动通知开关
     fastMoveThreshold: 快速波动阈值(%)
     fastMoveRecover: 快速波动恢复阈值(%)
@@ -151,7 +150,6 @@ dashboard:
     testPush: 测试推送
   hint:
     autoUpdatePrice: 自动更新价格
-    priceChangeLimit: 非 0 时，合约价格变动超过该值时发送通知(4小时间隔一次)
     autoRefresh: 每 10 分钟自动刷新
     limitMode: 限价单模式
     marketMode: 市价单模式
@@ -344,6 +342,7 @@ strategyTemplatePage:
     delete: 确认删除模板 {name} ?
   message:
     saveSuccess: 保存成功
+    nameRequired: 模板名称不能为空
     deleteSuccess: 删除成功
     deleteFail: 删除失败
     actionSuccess: 操作成功
@@ -391,10 +390,17 @@ newCoinPage:
     coinType: 币种类型
     marginType: 保证金模式
     leverage: 杠杆
+    tickSize: 价格步长
+    stepSize: 数量步长
     quantity: 数量
     expectPrice: 预期价格
     enable: 启用
     operation: 操作
+  option:
+    buy: 买入
+    sell: 卖出
+    spot: 现货
+    futures: 合约
   dialog:
     addTitle: 新增抢新配置
   placeholder:
@@ -673,6 +679,9 @@ orderPage:
     all: 全部
     open: 未平仓
     closed: 已平仓
+  side:
+    long: 做多
+    short: 做空
   label:
     currentProfit: 当前收益
     total: 总数

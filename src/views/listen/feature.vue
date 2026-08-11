@@ -875,14 +875,14 @@ watch(
           v-model="addForm.symbol"
           :placeholder="t('listenFeaturePage.placeholder.symbol')"
         />
-        <el-select v-model="addForm.listen_type">
+        <!-- <el-select v-model="addForm.listen_type">
           <el-option
             v-for="item in listenTypeOptions"
             :key="item"
             :label="listenTypeText(item)"
             :value="item"
           />
-        </el-select>
+        </el-select> -->
       </div>
       <template #footer>
         <el-button @click="addDialogVisible = false">{{
