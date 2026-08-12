@@ -142,7 +142,9 @@ dashboard:
     lossMaxCount: Max Loss Count
     lossAutoScale: Loss Auto Scale
     marketCondition: Market Condition
+    currentMarketCondition: Current Type
     marketConditionAuto: Auto Update Market Condition
+    latestMarketAnalysis: Latest Analysis
     excludeSymbols: Exclude Symbols
     orderType: Order Type
     testStrategy: Test Strategy
@@ -158,7 +160,7 @@ dashboard:
     testPush: Test Push
   hint:
     autoUpdatePrice: Auto update price
-    autoRefresh: Auto refresh every 10 minutes
+    autoRefresh: Auto refresh every 60 minutes
     limitMode: Limit order mode
     marketMode: Market order mode
     testAutoTradeLimit: Non-zero:after n consecutive wins of the test strategy, automatically switch to real trading. After n consecutive losses in real trading, switch back to the test strategy.
@@ -190,6 +192,16 @@ dashboard:
     "3": Sideways
     "4": Bear
     "5": Strong Bear
+    "6": Bullish Divergence
+    "7": Bearish Divergence
+    "8": Broad Rise
+    "9": Broad Decline
+    "10": High-Volatility Sideways
+    "11": Low-Volatility Consolidation
+  analysis:
+    llm: AI Analysis
+    algorithm: Local Algorithm
+    confidence: Confidence
   message:
     updateSuccess: Updated successfully
     updateFail: Update failed

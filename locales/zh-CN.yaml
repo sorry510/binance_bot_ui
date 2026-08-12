@@ -142,7 +142,9 @@ dashboard:
     lossMaxCount: 最大持仓亏损数量
     lossAutoScale: 自动缩放最大持仓亏损数量
     marketCondition: 市场趋势
+    currentMarketCondition: 当前类型
     marketConditionAuto: 市场趋势自动更新
+    latestMarketAnalysis: 最近分析
     excludeSymbols: 排除自动交易的币
     orderType: 下单类型
     testStrategy: 测试策略
@@ -158,7 +160,7 @@ dashboard:
     testPush: 测试推送
   hint:
     autoUpdatePrice: 自动更新价格
-    autoRefresh: 每 10 分钟自动刷新
+    autoRefresh: 每 60 分钟自动刷新
     limitMode: 限价单模式
     marketMode: 市价单模式
     testAutoTradeLimit: 非 0 时，测试策略连续盈利 n 次后，自动切换真实交易，真实交易连续亏损后 n 次后，切换回测试策略
@@ -190,6 +192,16 @@ dashboard:
     "3": 震荡
     "4": 偏空头
     "5": 强空头
+    "6": 多头分化
+    "7": 空头分化
+    "8": 普涨
+    "9": 普跌
+    "10": 高波动震荡
+    "11": 低波动盘整
+  analysis:
+    llm: AI 分析
+    algorithm: 本地算法
+    confidence: 置信度
   message:
     updateSuccess: 更新成功
     updateFail: 更新失败

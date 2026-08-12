@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
@@ -20,6 +20,11 @@ const { t } = useI18n();
 const loading = ref(false);
 const symbols = ref<string[]>([]);
 const excludeSymbols = ref<string[]>([]);
+const marketAnalysis = ref<{
+  source: string;
+  confidence: number;
+  reason: string;
+} | null>(null);
 const config = reactive<Record<string, any>>({
   tradeFutureEnable: 0,
   wsFuturesEnable: 0,
@@ -72,8 +77,19 @@ const marketOptions = [
   { value: 2 },
   { value: 3 },
   { value: 4 },
-  { value: 5 }
+  { value: 5 },
+  { value: 6 },
+  { value: 7 },
+  { value: 8 },
+  { value: 9 },
+  { value: 10 },
+  { value: 11 }
 ];
+const currentMarketConditionLabel = computed(() => {
+  const value = Number(config.marketCondition);
+  if (!marketOptions.some(item => item.value === value)) return String(value);
+  return `${value} - ${t(`dashboard.market.${value}`)}`;
+});
 
 async function fetchConfig() {
   loading.value = true;
@@ -123,9 +139,19 @@ async function onTestPusher() {
 
 async function onUpdateMarketCondition() {
   try {
-    await updateMarketCondition();
+    const res = await updateMarketCondition();
     await fetchConfig();
-    ElMessage.success(t("dashboard.message.updateSuccess"));
+    const result = res?.data || {};
+    marketAnalysis.value = {
+      source: String(result.source || "algorithm"),
+      confidence: Number(result.confidence || 0),
+      reason: String(result.reason || "")
+    };
+    ElMessage.success(
+      result.reason
+        ? `${t("dashboard.message.updateSuccess")}: ${result.reason}`
+        : t("dashboard.message.updateSuccess")
+    );
   } catch {
     ElMessage.error(t("dashboard.message.updateFail"));
   }
@@ -387,6 +413,10 @@ onMounted(async () => {
                 :value="item.value"
               />
             </el-select>
+            <el-tag type="primary" effect="plain">
+              {{ t("dashboard.field.currentMarketCondition") }}:
+              {{ currentMarketConditionLabel }}
+            </el-tag>
           </div>
 
           <div class="field-row">
@@ -411,6 +441,33 @@ onMounted(async () => {
             <span v-if="config.marketConditionIsAuto === 1" class="hint">{{
               t("dashboard.hint.autoRefresh")
             }}</span>
+          </div>
+
+          <div v-if="marketAnalysis" class="field-row field-row-top">
+            <span class="field-label">{{
+              t("dashboard.field.latestMarketAnalysis")
+            }}</span>
+            <div class="market-analysis">
+              <div class="market-analysis-meta">
+                <el-tag
+                  :type="marketAnalysis.source === 'llm' ? 'success' : 'info'"
+                  size="small"
+                >
+                  {{
+                    marketAnalysis.source === "llm"
+                      ? t("dashboard.analysis.llm")
+                      : t("dashboard.analysis.algorithm")
+                  }}
+                </el-tag>
+                <span v-if="marketAnalysis.confidence > 0" class="hint">
+                  {{ t("dashboard.analysis.confidence") }}:
+                  {{ Math.round(marketAnalysis.confidence * 100) }}%
+                </span>
+              </div>
+              <div v-if="marketAnalysis.reason" class="market-analysis-reason">
+                {{ marketAnalysis.reason }}
+              </div>
+            </div>
           </div>
 
           <div class="field-row field-row-top">
@@ -678,6 +735,23 @@ onMounted(async () => {
 
 .market-select {
   width: 150px;
+}
+
+.market-analysis {
+  max-width: 720px;
+}
+
+.market-analysis-meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.market-analysis-reason {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
 }
 
 .wide-select {
