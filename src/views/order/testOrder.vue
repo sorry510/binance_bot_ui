@@ -58,6 +58,29 @@ function toPeriod(endTime: number, startTime: number) {
   return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
 }
 
+function isClosed(row: any) {
+  return Number(row.close_price) > 0;
+}
+
+function displayClosePrice(row: any) {
+  return isClosed(row) ? row.close_price : "-";
+}
+
+function positionSideLabel(positionSide: string) {
+  const side = String(positionSide || "").toLowerCase();
+  if (side === "long" || side === "short") {
+    return t(`testOrderPage.state.${side}`);
+  }
+  return positionSide || "-";
+}
+
+function profitClass(value: number | string) {
+  const profit = Number(value);
+  if (profit > 0) return "text-green-500";
+  if (profit < 0) return "text-red-500";
+  return "";
+}
+
 async function fetchData(resetPage = false) {
   if (resetPage) query.page = 1;
   loading.value = true;
@@ -186,11 +209,11 @@ onMounted(fetchData);
         :label="t('testOrderPage.table.symbol')"
         min-width="120"
       />
-      <el-table-column
-        prop="position_side"
-        :label="t('testOrderPage.table.side')"
-        min-width="90"
-      />
+      <el-table-column :label="t('testOrderPage.table.side')" min-width="90">
+        <template #default="{ row }">
+          {{ positionSideLabel(row.position_side) }}
+        </template>
+      </el-table-column>
       <el-table-column
         prop="position_amt"
         :label="t('testOrderPage.table.amount')"
@@ -212,21 +235,31 @@ onMounted(fetchData);
         :label="t('testOrderPage.table.nowPrice')"
         min-width="100"
       />
+      <el-table-column :label="t('testOrderPage.table.profit')" min-width="100">
+        <template #default="{ row }">
+          <span :class="profitClass(row.close_profit)">
+            {{ row.close_profit }}
+          </span>
+        </template>
+      </el-table-column>
       <el-table-column
-        prop="close_profit"
-        :label="t('testOrderPage.table.profit')"
-        min-width="100"
-      />
-      <el-table-column
-        prop="profit_percent"
         :label="t('testOrderPage.table.profitRate')"
         min-width="100"
-      />
+      >
+        <template #default="{ row }">
+          <span :class="profitClass(row.profit_percent)">
+            {{ row.profit_percent }}
+          </span>
+        </template>
+      </el-table-column>
       <el-table-column
-        prop="close_price"
         :label="t('testOrderPage.table.closePrice')"
         min-width="100"
-      />
+      >
+        <template #default="{ row }">
+          {{ displayClosePrice(row) }}
+        </template>
+      </el-table-column>
       <el-table-column
         prop="period"
         :label="t('testOrderPage.table.period')"

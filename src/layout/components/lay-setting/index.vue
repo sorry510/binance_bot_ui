@@ -10,7 +10,9 @@ import {
   onBeforeMount
 } from "vue";
 import { useI18n } from "vue-i18n";
+import { ElMessage } from "element-plus";
 import { emitter } from "@/utils/mitt";
+import { getToken } from "@/utils/auth";
 import LayPanel from "../lay-panel/index.vue";
 import { useNav } from "@/layout/hooks/useNav";
 import { useAppStoreHook } from "@/store/modules/app";
@@ -97,6 +99,37 @@ function menuTitleBlur(): void {
   const menuTitle = settings.menuTitle.trim() || $config.Title || "";
   settings.menuTitle = menuTitle;
   storageConfigureChange("menuTitle", menuTitle);
+}
+
+function copyTextWithFallback(text: string): boolean {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  textarea.remove();
+  return copied;
+}
+
+async function copyApiToken(): Promise<void> {
+  const token = getToken()?.accessToken;
+  if (!token) {
+    ElMessage.warning(t("panel.pureApiTokenEmpty"));
+    return;
+  }
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(token);
+    } else if (!copyTextWithFallback(token)) {
+      throw new Error("copy failed");
+    }
+    ElMessage.success(t("panel.pureApiTokenCopied"));
+  } catch {
+    ElMessage.error(t("panel.pureApiTokenCopyFailed"));
+  }
 }
 
 /** 灰色模式设置 */
@@ -467,6 +500,11 @@ onUnmounted(() => removeMatchMedia);
         @input="menuTitleChange"
         @blur="menuTitleBlur"
       />
+
+      <p :class="['mt-5!', pClass]">{{ t("panel.pureApiToken") }}</p>
+      <el-button class="w-full" type="primary" plain @click="copyApiToken">
+        {{ t("panel.pureCopyApiToken") }}
+      </el-button>
 
       <p class="mt-5! font-medium text-sm dark:text-white">
         {{ t("panel.pureInterfaceDisplay") }}

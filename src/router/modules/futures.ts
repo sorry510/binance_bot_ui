@@ -75,6 +75,15 @@ export default [
           title: "menus.marketNoticeLogs",
           showLink: true
         }
+      },
+      {
+        path: "/futures/liquidation-orders",
+        name: "futuresLiquidationOrders",
+        component: () => import("@/views/futures/liquidationOrder.vue"),
+        meta: {
+          title: "menus.futuresLiquidationOrders",
+          showLink: true
+        }
       }
     ]
   },

@@ -56,6 +56,11 @@ panel:
   pureTagsStyleChromeTip: Chrome style is classic and elegant
   pureMenuTitle: Menu Title
   pureMenuTitlePlaceholder: Enter the menu title
+  pureApiToken: API Token
+  pureCopyApiToken: Copy Current Token
+  pureApiTokenCopied: Token copied
+  pureApiTokenCopyFailed: Failed to copy token
+  pureApiTokenEmpty: No token is currently available
   pureInterfaceDisplay: Interface Display
   pureGreyModel: Grey Model
   pureWeakModel: Weak Model
@@ -82,6 +87,7 @@ menus:
   futuresAccount2: Local Futures Account
   strategyTemplate: Strategy Template
   testStrategyResult: Test Results
+  futuresLiquidationOrders: Market Liquidation Orders
   coinNotice: Coin Notice
   spotNotice: Spot Notice
   futuresNotice: Futures Notice
@@ -815,6 +821,31 @@ marketListenLogPage:
     content: Content
     createTime: Create Time
     updateTime: Update Time
+liquidationOrderPage:
+  button:
+    search: Search
+    reset: Reset
+    group: Group
+    ungroup: Ungroup
+  placeholder:
+    symbol: Symbol
+    side: Liquidation Side
+    minNotional: Minimum Notional (USDT)
+    startTime: Start Time
+    endTime: End Time
+  side:
+    SELL: Long Liquidation
+    BUY: Short Liquidation
+  table:
+    symbol: Symbol
+    side: Liquidation Side
+    price: Filled Price
+    lastFilledQty: Last Filled Quantity
+    notional: Notional (USDT)
+    notionalTotal: Total Notional
+    groupCount: Quantity
+    latestTime: Latest Time
+    tradeTime: Trade Time
 trade:
   ISOLATED: "Isolated"
   CROSSED: "Crossed"
