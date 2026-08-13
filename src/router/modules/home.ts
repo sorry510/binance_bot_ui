@@ -21,15 +21,6 @@ export default {
         title: "menus.dashboard",
         showLink: true
       }
-    },
-    {
-      path: "/notify-config",
-      name: "NotifyConfig",
-      component: () => import("@/views/notify/config.vue"),
-      meta: {
-        title: "menus.notifyConfig",
-        showLink: false
-      }
     }
   ]
 } satisfies RouteConfigsTable;

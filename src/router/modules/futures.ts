@@ -10,7 +10,7 @@ export default [
     meta: {
       icon: "crypto/ae",
       title: $t("menus.futuresTrade"),
-      rank: 1
+      rank: 2
     },
     children: [
       {
@@ -95,7 +95,7 @@ export default [
     meta: {
       icon: "ri/information-line",
       title: "menus.coinNotice",
-      rank: 2
+      rank: 3
     },
     children: [
       {
@@ -126,7 +126,7 @@ export default [
     meta: {
       icon: "ri/search-line",
       title: "menus.marketListen",
-      rank: 3
+      rank: 4
     },
     children: [
       {
@@ -157,7 +157,7 @@ export default [
     meta: {
       icon: "ri/search-line",
       title: "menus.fundingRate",
-      rank: 4
+      rank: 5
     },
     children: [
       {
@@ -179,7 +179,7 @@ export default [
     meta: {
       icon: "crypto/agi",
       title: "menus.newCoinRush",
-      rank: 5
+      rank: 6
     },
     children: [
       {
@@ -201,7 +201,7 @@ export default [
     meta: {
       icon: "crypto/ilk",
       title: "menus.systemConfig",
-      rank: 6
+      rank: 7
     },
     children: [
       {
@@ -223,7 +223,7 @@ export default [
     meta: {
       icon: "ri/information-line",
       title: "menus.logs",
-      rank: 7
+      rank: 8
     },
     children: [
       {

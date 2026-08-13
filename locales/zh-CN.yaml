@@ -80,7 +80,9 @@ menus:
   purePermissionButtonRouter: 路由返回按钮权限
   purePermissionButtonLogin: 登录接口返回按钮权限
   dashboard: 配置中心
+  notification: 通知
   notifyConfig: 通知配置
+  notificationHistory: 历史通知
   futuresTrade: 合约交易
   futuresAccount: 合约账户
   futuresTradeOrder: 合约订单
@@ -107,6 +109,11 @@ status:
   pureNoMessage: 暂无消息
   pureNoNotify: 暂无通知
   pureNoTodo: 暂无待办
+webNotification:
+  title: 网页通知
+  empty: 暂无通知
+  markAllRead: 全部已读
+  viewHistory: 查看历史
 login:
   pureUsername: 账号
   purePassword: 密码
@@ -123,7 +130,6 @@ dashboard:
     coinNotice: 币种提醒
     marketListen: 市场监听
     fundingRate: 资金费率监听
-    notifyConfig: 通知配置
     debug: 调试模式
     externalLinks: 外部链接
   field:
@@ -151,12 +157,10 @@ dashboard:
     testAutoTradeLimit: 测试自动转换次数限制
     spotNewEnable: 现货抢新
     futureNewEnable: 合约抢新
-    notifyChannelConfig: 通知通道配置
     pushTest: 推送测试
   button:
     updateNow: 立即更新
     viewTestResult: 查看测试结果
-    openNotifyConfig: 打开通知配置
     testPush: 测试推送
   hint:
     autoUpdatePrice: 自动更新价格
@@ -217,7 +221,7 @@ notifyConfigPage:
   table:
     channel: 渠道
     module: 模块
-    enable: 启用
+    enable: 模块推送
     operation: 操作
   dialog:
     addTitle: 新增通知配置
@@ -226,6 +230,7 @@ notifyConfigPage:
     channel: 渠道
     module: 模块
   fields:
+    modulePush: 模块外部推送
     dingding_token: 钉钉Token
     dingding_word: 钉钉关键词
     slack_token: Slack Token
@@ -246,6 +251,29 @@ notifyConfigPage:
     saveSuccess: 保存成功
     updateSuccess: 更新成功
     deleteSuccess: 删除成功
+notificationHistoryPage:
+  button:
+    search: 查询
+    reset: 重置
+    markRead: 标为已读
+    markAllRead: 全部标为已读
+  placeholder:
+    keyword: 搜索标题或内容
+    module: 请选择模块
+    readStatus: 请选择已读状态
+    startTime: 开始时间
+    endTime: 结束时间
+  table:
+    title: 标题
+    content: 内容
+    module: 模块
+    readStatus: 状态
+    createTime: 通知时间
+    readTime: 已读时间
+    operation: 操作
+  readStatus:
+    unread: 未读
+    read: 已读
 futuresSymbolPage:
   button:
     add: 新增

@@ -26,7 +26,16 @@ const moduleOptions = [
 const list = ref<any[]>([]);
 const dialogVisible = ref(false);
 const editingId = ref<number | null>(null);
-const form = reactive<any>({ channel: "dingding", module: "futures" });
+const defaultForm = {
+  channel: "dingding",
+  module: "futures",
+  enable: true,
+  dingding_token: "",
+  dingding_word: "",
+  slack_token: "",
+  slack_channel_id: ""
+};
+const form = reactive<any>({ ...defaultForm });
 
 async function fetchData() {
   const res = await getNotifyConfigs();
@@ -38,7 +47,7 @@ async function fetchData() {
 
 function openDialog(row?: any) {
   editingId.value = row?.id ?? null;
-  Object.assign(form, row || { channel: "dingding", module: "futures" });
+  Object.assign(form, defaultForm, row || {});
   dialogVisible.value = true;
 }
 
@@ -132,6 +141,10 @@ onMounted(fetchData);
           <el-option label="dingding" value="dingding" />
           <el-option label="slack" value="slack" />
         </el-select>
+        <div class="flex items-center gap-2">
+          <span>{{ t("notifyConfigPage.fields.modulePush") }}</span>
+          <el-switch v-model="form.enable" />
+        </div>
         <el-select
           v-model="form.module"
           :placeholder="t('notifyConfigPage.placeholder.module')"

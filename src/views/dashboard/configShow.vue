@@ -162,10 +162,6 @@ async function fetchSymbols() {
   symbols.value = res?.data || [];
 }
 
-function gotoNotifyConfig() {
-  router.push({ name: "NotifyConfig" });
-}
-
 function gotoTestStrategyResult() {
   router.push({ name: "testStrategyResult" });
 }
@@ -185,7 +181,6 @@ onMounted(async () => {
         'coin_notice',
         'market_listen',
         'funding_rate',
-        'notify_config',
         'debug',
         'external'
       ]"
@@ -626,22 +621,6 @@ onMounted(async () => {
             />
           </div>
         </template>
-      </el-collapse-item>
-
-      <el-collapse-item
-        name="notify_config"
-        :title="t('dashboard.section.notifyConfig')"
-      >
-        <div class="dashboard-body">
-          <div class="field-row">
-            <span class="field-label">{{
-              t("dashboard.field.notifyChannelConfig")
-            }}</span>
-            <el-button type="primary" size="small" @click="gotoNotifyConfig">{{
-              t("dashboard.button.openNotifyConfig")
-            }}</el-button>
-          </div>
-        </div>
       </el-collapse-item>
 
       <el-collapse-item name="debug">

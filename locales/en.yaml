@@ -80,7 +80,9 @@ menus:
   purePermissionButtonRouter: Route return button permission
   purePermissionButtonLogin: Login interface return button permission
   dashboard: Dashboard
+  notification: Notifications
   notifyConfig: Notify Config
+  notificationHistory: Notification History
   futuresTrade: Futures Trade
   futuresAccount: Futures Account
   futuresTradeOrder: Futures Orders
@@ -107,6 +109,11 @@ status:
   pureNoMessage: No Message
   pureNoNotify: No Notify
   pureNoTodo: No Todo
+webNotification:
+  title: Web Notifications
+  empty: No notifications
+  markAllRead: Mark all as read
+  viewHistory: View history
 login:
   pureUsername: Username
   purePassword: Password
@@ -123,7 +130,6 @@ dashboard:
     coinNotice: Coin Notice
     marketListen: Market Listener
     fundingRate: Funding Rate Listener
-    notifyConfig: Notify Config
     debug: Debug Mode
     externalLinks: External Links
   field:
@@ -151,12 +157,10 @@ dashboard:
     testAutoTradeLimit: Future test auto trade count limit
     spotNewEnable: Spot New Listing
     futureNewEnable: Futures New Listing
-    notifyChannelConfig: Notify Channel Config
     pushTest: Push Test
   button:
     updateNow: Update Now
     viewTestResult: View Test Result
-    openNotifyConfig: Open Notify Config
     testPush: Test Push
   hint:
     autoUpdatePrice: Auto update price
@@ -217,7 +221,7 @@ notifyConfigPage:
   table:
     channel: Channel
     module: Module
-    enable: Enable
+    enable: Module Push
     operation: Operation
   dialog:
     addTitle: Add Notify Config
@@ -226,6 +230,7 @@ notifyConfigPage:
     channel: Channel
     module: Module
   fields:
+    modulePush: External module push
     dingding_token: DingTalk Token
     dingding_word: DingTalk Keyword
     slack_token: Slack Token
@@ -246,6 +251,29 @@ notifyConfigPage:
     saveSuccess: Saved successfully
     updateSuccess: Updated successfully
     deleteSuccess: Deleted successfully
+notificationHistoryPage:
+  button:
+    search: Search
+    reset: Reset
+    markRead: Mark as read
+    markAllRead: Mark all as read
+  placeholder:
+    keyword: Search title or content
+    module: Select module
+    readStatus: Select read status
+    startTime: Start time
+    endTime: End time
+  table:
+    title: Title
+    content: Content
+    module: Module
+    readStatus: Status
+    createTime: Notification time
+    readTime: Read time
+    operation: Operation
+  readStatus:
+    unread: Unread
+    read: Read
 futuresSymbolPage:
   button:
     add: Add
