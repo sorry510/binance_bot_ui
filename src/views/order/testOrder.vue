@@ -14,6 +14,7 @@ const { t } = useI18n();
 
 const list = ref<any[]>([]);
 const total = ref(0);
+const currentProfit = ref("0.00");
 const loading = ref(false);
 const deleting = ref(false);
 const query = reactive<any>({
@@ -39,12 +40,6 @@ const searchParams = computed(() => ({
 
 const hasSearchCondition = computed(() =>
   Object.values(searchParams.value).some(value => value !== undefined)
-);
-
-const allProfit = computed(() =>
-  list.value
-    .reduce((sum, row) => sum + Number(row.close_profit || 0), 0)
-    .toFixed(2)
 );
 
 function formatTime(ts: number | string) {
@@ -99,6 +94,8 @@ async function fetchData(resetPage = false) {
           : toPeriod(row.updateTime, row.createTime)
     }));
     total.value = Number(data.total || 0);
+    const profit = Number(data.current_profit || 0);
+    currentProfit.value = Number.isFinite(profit) ? profit.toFixed(2) : "0.00";
   } finally {
     loading.value = false;
   }
@@ -200,7 +197,7 @@ onMounted(fetchData);
         >{{ t("testOrderPage.button.deleteFiltered") }}</el-button
       >
       <span class="ml-auto"
-        >{{ t("testOrderPage.label.currentProfit") }}: {{ allProfit }}</span
+        >{{ t("testOrderPage.label.currentProfit") }}: {{ currentProfit }}</span
       >
     </div>
     <el-table v-loading="loading" :data="list" border size="small">
