@@ -17,14 +17,35 @@ const total = ref(0);
 const currentProfit = ref("0.00");
 const loading = ref(false);
 const deleting = ref(false);
+
+const searchCacheKey = "testStrategyResultSearchParams";
+
+function loadSearchCache() {
+  try {
+    const cache = JSON.parse(localStorage.getItem(searchCacheKey) || "{}");
+    return {
+      symbol: typeof cache.symbol === "string" ? cache.symbol : "",
+      type: ["all", "open", "close"].includes(cache.type) ? cache.type : "",
+      position_side: ["all", "LONG", "SHORT"].includes(cache.position_side)
+        ? cache.position_side
+        : "",
+      start_time: Number(cache.start_time) || undefined,
+      end_time: Number(cache.end_time) || undefined
+    };
+  } catch {
+    return {};
+  }
+}
+
 const query = reactive<any>({
   page: 1,
-  limit: 200,
+  limit: 20,
   symbol: "",
   type: "",
   position_side: "",
   start_time: undefined,
-  end_time: undefined
+  end_time: undefined,
+  ...loadSearchCache()
 });
 
 const searchParams = computed(() => ({
@@ -74,6 +95,24 @@ function profitClass(value: number | string) {
   if (profit > 0) return "text-green-500";
   if (profit < 0) return "text-red-500";
   return "";
+}
+
+function saveSearchCache() {
+  localStorage.setItem(
+    searchCacheKey,
+    JSON.stringify({
+      symbol: query.symbol,
+      type: query.type,
+      position_side: query.position_side,
+      start_time: searchParams.value.start_time,
+      end_time: searchParams.value.end_time
+    })
+  );
+}
+
+function search() {
+  saveSearchCache();
+  fetchData(true);
 }
 
 async function fetchData(resetPage = false) {
@@ -148,7 +187,7 @@ onMounted(fetchData);
         v-model="query.symbol"
         :placeholder="t('testOrderPage.placeholder.symbol')"
         style="width: 140px"
-        @keyup.enter="fetchData(true)"
+        @keyup.enter="search"
       />
       <el-select
         v-model="query.type"
@@ -186,7 +225,7 @@ onMounted(fetchData);
         type="datetime"
         :placeholder="t('testOrderPage.placeholder.endTime')"
       />
-      <el-button type="primary" :loading="loading" @click="fetchData(true)">{{
+      <el-button type="primary" :loading="loading" @click="search">{{
         t("testOrderPage.button.search")
       }}</el-button>
       <el-button
