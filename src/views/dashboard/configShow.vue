@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { getFeaturesOptions } from "../../api/trade";
 import {
   editData,
+  getMarketConditionUpdateTask,
   getServiceConfig,
   testPusher,
-  updateMarketCondition
+  updateMarketCondition,
+  type MarketConditionUpdateTask
 } from "../../api/service";
 
 defineOptions({
@@ -25,6 +27,9 @@ const marketAnalysis = ref<{
   confidence: number;
   reason: string;
 } | null>(null);
+const marketUpdateTask = ref<MarketConditionUpdateTask | null>(null);
+let marketProgressTimer: ReturnType<typeof setTimeout> | undefined;
+let marketProgressPollFailures = 0;
 const config = reactive<Record<string, any>>({
   tradeFutureEnable: 0,
   wsFuturesEnable: 0,
@@ -90,6 +95,13 @@ const currentMarketConditionLabel = computed(() => {
   if (!marketOptions.some(item => item.value === value)) return String(value);
   return `${value} - ${t(`dashboard.market.${value}`)}`;
 });
+const marketUpdateRunning = computed(() =>
+  ["queued", "running"].includes(marketUpdateTask.value?.status || "")
+);
+const marketProgressLabel = computed(() => {
+  const stage = marketUpdateTask.value?.stage;
+  return stage ? t(`dashboard.marketProgress.${stage}`) : "";
+});
 
 async function fetchConfig() {
   loading.value = true;
@@ -138,22 +150,99 @@ async function onTestPusher() {
 }
 
 async function onUpdateMarketCondition() {
+  if (marketUpdateRunning.value) return;
+  clearMarketProgressTimer();
   try {
     const res = await updateMarketCondition();
-    await fetchConfig();
-    const result = res?.data || {};
-    marketAnalysis.value = {
-      source: String(result.source || "algorithm"),
-      confidence: Number(result.confidence || 0),
-      reason: String(result.reason || "")
-    };
-    ElMessage.success(
-      result.reason
-        ? `${t("dashboard.message.updateSuccess")}: ${result.reason}`
-        : t("dashboard.message.updateSuccess")
-    );
+    if (res?.code !== 200 || !res?.data?.taskId) {
+      throw new Error("market condition task was not created");
+    }
+    marketUpdateTask.value = res.data as MarketConditionUpdateTask;
+    marketProgressPollFailures = 0;
+    scheduleMarketConditionProgressPoll(0);
   } catch {
     ElMessage.error(t("dashboard.message.updateFail"));
+  }
+}
+
+function scheduleMarketConditionProgressPoll(delay: number) {
+  clearMarketProgressTimer();
+  marketProgressTimer = setTimeout(() => {
+    void pollMarketConditionProgress();
+  }, delay);
+}
+
+async function pollMarketConditionProgress() {
+  const taskId = marketUpdateTask.value?.taskId;
+  if (!taskId) return;
+  try {
+    const res = await getMarketConditionUpdateTask(taskId);
+    if (res?.code !== 200 || !res?.data) {
+      throw new Error("market condition task was not found");
+    }
+    const task = res.data as MarketConditionUpdateTask;
+    marketUpdateTask.value = task;
+    marketProgressPollFailures = 0;
+    if (task.status === "succeeded") {
+      await handleMarketConditionUpdateSuccess(task);
+      return;
+    }
+    if (task.status === "failed") {
+      ElMessage.error(task.error || t("dashboard.message.updateFail"));
+      return;
+    }
+    scheduleMarketConditionProgressPoll(1000);
+  } catch {
+    marketProgressPollFailures++;
+    if (marketProgressPollFailures < 3) {
+      scheduleMarketConditionProgressPoll(1500);
+      return;
+    }
+    if (marketUpdateTask.value) {
+      marketUpdateTask.value = {
+        ...marketUpdateTask.value,
+        status: "failed",
+        stage: "failed",
+        progress: 100,
+        error: t("dashboard.message.progressQueryFail")
+      };
+    }
+    ElMessage.error(t("dashboard.message.progressQueryFail"));
+  }
+}
+
+async function handleMarketConditionUpdateSuccess(
+  task: MarketConditionUpdateTask
+) {
+  const result = task.result;
+  if (result) {
+    config.marketCondition = result.marketCondition;
+  }
+  try {
+    await fetchConfig();
+  } catch {
+    // The completed task result remains authoritative when config refresh fails.
+  }
+  if (result) {
+    marketAnalysis.value = {
+      source: result.source || "algorithm",
+      confidence: Number(result.confidence || 0),
+      reason: result.reason || ""
+    };
+  }
+  const conditionName = result
+    ? `${result.marketCondition} - ${result.name}`
+    : currentMarketConditionLabel.value;
+  const detail = result?.reason ? `，${result.reason}` : "";
+  ElMessage.success(
+    `${t("dashboard.message.marketAnalysisSuccess")}: ${conditionName}${detail}`
+  );
+}
+
+function clearMarketProgressTimer() {
+  if (marketProgressTimer !== undefined) {
+    clearTimeout(marketProgressTimer);
+    marketProgressTimer = undefined;
   }
 }
 
@@ -168,6 +257,10 @@ function gotoTestStrategyResult() {
 
 onMounted(async () => {
   await Promise.all([fetchConfig(), fetchSymbols()]);
+});
+
+onBeforeUnmount(() => {
+  clearMarketProgressTimer();
 });
 </script>
 
@@ -430,12 +523,37 @@ onMounted(async () => {
               v-if="config.marketConditionIsAuto === 1"
               type="success"
               size="small"
+              :loading="marketUpdateRunning"
+              :disabled="marketUpdateRunning"
               @click="onUpdateMarketCondition"
               >{{ t("dashboard.button.updateNow") }}</el-button
             >
             <span v-if="config.marketConditionIsAuto === 1" class="hint">{{
               t("dashboard.hint.autoRefresh")
             }}</span>
+          </div>
+
+          <div v-if="marketUpdateTask" class="field-row field-row-top">
+            <span class="field-label">{{
+              t("dashboard.field.marketAnalysisProgress")
+            }}</span>
+            <div class="market-progress">
+              <el-progress
+                :percentage="marketUpdateTask.progress"
+                :status="
+                  marketUpdateTask.status === 'succeeded'
+                    ? 'success'
+                    : marketUpdateTask.status === 'failed'
+                      ? 'exception'
+                      : undefined
+                "
+                :indeterminate="marketUpdateTask.stage === 'calling_llm'"
+                :duration="3"
+              />
+              <div class="market-progress-stage">
+                {{ marketProgressLabel }}
+              </div>
+            </div>
           </div>
 
           <div v-if="marketAnalysis" class="field-row field-row-top">
@@ -731,6 +849,16 @@ onMounted(async () => {
   font-size: 13px;
   line-height: 1.6;
   color: var(--el-text-color-regular);
+}
+
+.market-progress {
+  width: min(560px, calc(100% - 20px));
+}
+
+.market-progress-stage {
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .wide-select {

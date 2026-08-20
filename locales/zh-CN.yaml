@@ -150,6 +150,7 @@ dashboard:
     marketCondition: 市场趋势
     currentMarketCondition: 当前类型
     marketConditionAuto: 市场趋势自动更新
+    marketAnalysisProgress: AI 分析进度
     latestMarketAnalysis: 最近分析
     excludeSymbols: 排除自动交易的币
     orderType: 下单类型
@@ -206,9 +207,24 @@ dashboard:
     llm: AI 分析
     algorithm: 本地算法
     confidence: 置信度
+  marketProgress:
+    queued: 任务已进入队列
+    starting: 正在启动分析任务
+    waiting: 正在等待行情分析资源
+    loading_market_data: 正在读取最新市场行情
+    calculating_fallback: 正在计算本地行情基线
+    preparing_llm: 正在整理 AI 分析数据
+    calling_llm: AI 正在分析市场，请耐心等待
+    validating_llm: 正在校验 AI 返回结果
+    using_fallback: 正在使用本地算法结果
+    saving: 正在保存市场趋势
+    completed: 分析完成
+    failed: 分析失败
   message:
     updateSuccess: 更新成功
     updateFail: 更新失败
+    marketAnalysisSuccess: 市场趋势分析完成
+    progressQueryFail: 查询 AI 分析进度失败
     sendSuccess: 发送成功
     sendFail: 发送失败
 notifyConfigPage:
@@ -366,6 +382,7 @@ futuresSymbolPage:
 strategyTemplatePage:
   button:
     add: 新增模板
+    importJson: 导入 JSON
     refresh: 刷新
     edit: 编辑
     delete: 删除
@@ -374,15 +391,20 @@ strategyTemplatePage:
     strategy: 策略方法
     cancel: 取消
     confirm: 确认
+    close: 关闭
+    viewJson: 查看
     test: 测试
   table:
     name: 模板名称
     technology: 技术指标
     strategy: 策略方法
+    json: JSON
     operation: 操作
   dialog:
     addTitle: 新增策略模板
     editTitle: 编辑策略模板
+    importTitle: 导入策略模板 JSON
+    jsonTitle: "{name} 完整 JSON"
   placeholder:
     name: 模板名称
   confirm:
@@ -396,6 +418,10 @@ strategyTemplatePage:
     actionSuccess: 操作成功
     actionFail: 操作失败
     testResult: 测试结果
+    importCreated: 已从 JSON 新增模板 {name}
+    importUpdated: 已从 JSON 更新模板 {name}
+    importFail: 导入策略模板失败
+    importRequired: 请输入策略模板 JSON
   technology:
     name: 名称
     klineInterval: K线周期

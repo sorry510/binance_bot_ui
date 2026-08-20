@@ -16,6 +16,16 @@ export const addData = (data: Query) => {
   return http.post<any, Query>(baseUrlApi("strategy-templates"), { data });
 };
 
+export const importData = (json: string) => {
+  return http.request<any>("post", baseUrlApi("strategy-templates/import"), {
+    data: json,
+    transformRequest: [data => data],
+    headers: {
+      "Content-Type": "application/json"
+    }
+  });
+};
+
 export const delData = (id: number | string) => {
   return http.request<any>("delete", baseUrlApi(`strategy-templates/${id}`));
 };

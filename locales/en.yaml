@@ -150,6 +150,7 @@ dashboard:
     marketCondition: Market Condition
     currentMarketCondition: Current Type
     marketConditionAuto: Auto Update Market Condition
+    marketAnalysisProgress: AI Analysis Progress
     latestMarketAnalysis: Latest Analysis
     excludeSymbols: Exclude Symbols
     orderType: Order Type
@@ -206,9 +207,24 @@ dashboard:
     llm: AI Analysis
     algorithm: Local Algorithm
     confidence: Confidence
+  marketProgress:
+    queued: Task queued
+    starting: Starting analysis task
+    waiting: Waiting for market analysis resources
+    loading_market_data: Loading the latest market data
+    calculating_fallback: Calculating the local market baseline
+    preparing_llm: Preparing data for AI analysis
+    calling_llm: AI is analyzing the market, please wait
+    validating_llm: Validating the AI response
+    using_fallback: Using the local algorithm result
+    saving: Saving the market condition
+    completed: Analysis completed
+    failed: Analysis failed
   message:
     updateSuccess: Updated successfully
     updateFail: Update failed
+    marketAnalysisSuccess: Market condition analysis completed
+    progressQueryFail: Failed to query AI analysis progress
     sendSuccess: Sent successfully
     sendFail: Send failed
 notifyConfigPage:
@@ -366,6 +382,7 @@ futuresSymbolPage:
 strategyTemplatePage:
   button:
     add: Add Template
+    importJson: Import JSON
     refresh: Refresh
     edit: Edit
     delete: Delete
@@ -374,15 +391,20 @@ strategyTemplatePage:
     strategy: Strategy
     cancel: Cancel
     confirm: Confirm
+    close: Close
+    viewJson: View
     test: Test
   table:
     name: Template Name
     technology: Technology
     strategy: Strategy
+    json: JSON
     operation: Operation
   dialog:
     addTitle: Add Strategy Template
     editTitle: Edit Strategy Template
+    importTitle: Import Strategy Template JSON
+    jsonTitle: "{name} Full JSON"
   placeholder:
     name: Template Name
   confirm:
@@ -396,6 +418,10 @@ strategyTemplatePage:
     actionSuccess: Operation succeeded
     actionFail: Operation failed
     testResult: Test result
+    importCreated: Created template {name} from JSON
+    importUpdated: Updated template {name} from JSON
+    importFail: Failed to import strategy template
+    importRequired: Please enter strategy template JSON
   technology:
     name: Name
     klineInterval: Kline Interval

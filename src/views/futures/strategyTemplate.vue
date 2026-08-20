@@ -6,16 +6,21 @@ import { Codemirror } from "vue-codemirror";
 import { autocompletion, completeFromList } from "@codemirror/autocomplete";
 import { indentWithTab } from "@codemirror/commands";
 import { javascript } from "@codemirror/lang-javascript";
+import { EditorState } from "@codemirror/state";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { keymap } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import {
   addData,
   delData,
   editData,
   getList,
+  importData,
   testStrategyRule
 } from "../../api/strategyTemplate";
-import { codeMirrorBasicSetup } from "../../utils/codemirror";
+import {
+  buildTemplateJsonEditorExtensions,
+  codeMirrorBasicSetup
+} from "../../utils/codemirror";
 import { validateTechnologyConfig } from "../../utils/technology";
 
 defineOptions({ name: "strategyTemplate" });
@@ -125,12 +130,22 @@ const indicatorTabs = [
 ] as const;
 
 const list = ref<TemplateRow[]>([]);
+const total = ref(0);
 const listLoading = ref(false);
 const dialogLoading = ref(false);
+const importLoading = ref(false);
 const originalTemplateNames = new Map<number, string>();
+const query = reactive({ page: 1, limit: 20 });
 
 const createDialogVisible = ref(false);
 const createForm = reactive({ name: "" });
+
+const importDialogVisible = ref(false);
+const importJson = ref("");
+
+const jsonDialogVisible = ref(false);
+const jsonDialogTitle = ref("");
+const jsonPreview = ref("");
 
 const technologyDialogVisible = ref(false);
 const technologyDialogTitle = ref("");
@@ -148,6 +163,12 @@ const code = ref("");
 const strategyIndex = ref<number | null>(null);
 
 const codeBasicSetup = codeMirrorBasicSetup;
+const importJsonEditorExtensions = buildTemplateJsonEditorExtensions();
+const jsonPreviewEditorExtensions = [
+  ...buildTemplateJsonEditorExtensions(),
+  EditorState.readOnly.of(true),
+  EditorView.editable.of(false)
+];
 
 const codeEditorExtensions = computed(() => {
   const keywords = new Set<string>([
@@ -370,11 +391,20 @@ const codeEditorExtensions = computed(() => {
 async function fetchData() {
   listLoading.value = true;
   try {
-    const res = await getList();
-    list.value = (res?.data || []).map((item: TemplateRow) => ({
+    const res = await getList({ page: query.page, limit: query.limit });
+    const data = res?.data || {};
+    list.value = (data.list || []).map((item: TemplateRow) => ({
       ...item,
       nameSaving: false
     }));
+    total.value = Number(data.total || 0);
+
+    if (list.value.length === 0 && total.value > 0 && query.page > 1) {
+      query.page -= 1;
+      await fetchData();
+      return;
+    }
+
     originalTemplateNames.clear();
     list.value.forEach(item => originalTemplateNames.set(item.id, item.name));
   } finally {
@@ -423,9 +453,96 @@ async function createTemplate() {
     await addData({ name: createForm.name.trim() });
     ElMessage.success(t("strategyTemplatePage.message.saveSuccess"));
     createDialogVisible.value = false;
+    query.page = 1;
     await fetchData();
   } finally {
     dialogLoading.value = false;
+  }
+}
+
+function createImportJsonTemplate() {
+  return JSON.stringify(
+    {
+      name: "",
+      technology: createEmptyTechnology(),
+      strategy: []
+    },
+    null,
+    2
+  );
+}
+
+function openImportDialog() {
+  importJson.value = createImportJsonTemplate();
+  importDialogVisible.value = true;
+}
+
+function parseStoredTemplateJson(value: string | undefined, fallback: unknown) {
+  if (!value || value.trim() === "" || value.trim() === "null") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return value;
+  }
+}
+
+function openJsonDialog(row: TemplateRow) {
+  jsonDialogTitle.value = t("strategyTemplatePage.dialog.jsonTitle", {
+    name: row.name
+  });
+  jsonPreview.value = JSON.stringify(
+    {
+      name: row.name,
+      technology: parseStoredTemplateJson(row.technology, {}),
+      strategy: parseStoredTemplateJson(row.strategy, [])
+    },
+    null,
+    2
+  );
+  jsonDialogVisible.value = true;
+}
+
+function getImportErrorMessage(error: unknown) {
+  const requestError = error as {
+    message?: string;
+    response?: { data?: { msg?: string } };
+  };
+  return (
+    requestError?.response?.data?.msg ||
+    requestError?.message ||
+    t("strategyTemplatePage.message.importFail")
+  );
+}
+
+async function submitImportJson() {
+  if (!importJson.value.trim()) {
+    ElMessage.error(t("strategyTemplatePage.message.importRequired"));
+    return;
+  }
+
+  importLoading.value = true;
+  try {
+    const res = await importData(importJson.value);
+    if (Number(res?.code) !== 200) {
+      ElMessage.error(res?.msg || t("strategyTemplatePage.message.importFail"));
+      return;
+    }
+
+    const templateName = res?.data?.template?.name || "";
+    const messageKey =
+      res?.data?.action === "updated"
+        ? "strategyTemplatePage.message.importUpdated"
+        : "strategyTemplatePage.message.importCreated";
+    ElMessage.success(t(messageKey, { name: templateName }));
+    importDialogVisible.value = false;
+    query.page = 1;
+    await fetchData();
+  } catch (error) {
+    ElMessage.error(getImportErrorMessage(error));
+  } finally {
+    importLoading.value = false;
   }
 }
 
@@ -701,6 +818,12 @@ onMounted(fetchData);
       <el-button type="success" @click="openCreateDialog">{{
         t("strategyTemplatePage.button.add")
       }}</el-button>
+      <el-button
+        type="warning"
+        :loading="importLoading"
+        @click="openImportDialog"
+        >{{ t("strategyTemplatePage.button.importJson") }}</el-button
+      >
       <el-button type="primary" :loading="listLoading" @click="fetchData">{{
         t("strategyTemplatePage.button.refresh")
       }}</el-button>
@@ -757,6 +880,17 @@ onMounted(fetchData);
         </template>
       </el-table-column>
       <el-table-column
+        :label="t('strategyTemplatePage.table.json')"
+        align="center"
+        width="100"
+      >
+        <template #default="{ row }">
+          <el-button type="primary" size="small" @click="openJsonDialog(row)">
+            {{ t("strategyTemplatePage.button.viewJson") }}
+          </el-button>
+        </template>
+      </el-table-column>
+      <el-table-column
         :label="t('strategyTemplatePage.table.operation')"
         align="center"
         width="110"
@@ -768,6 +902,30 @@ onMounted(fetchData);
         </template>
       </el-table-column>
     </el-table>
+
+    <div class="mt-3 flex justify-end">
+      <el-pagination
+        :current-page="query.page"
+        :page-size="query.limit"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="total"
+        background
+        layout="total, sizes, prev, pager, next"
+        @current-change="
+          page => {
+            query.page = page;
+            fetchData();
+          }
+        "
+        @size-change="
+          size => {
+            query.limit = size;
+            query.page = 1;
+            fetchData();
+          }
+        "
+      />
+    </div>
 
     <el-dialog
       v-model="createDialogVisible"
@@ -792,6 +950,57 @@ onMounted(fetchData);
           @click="createTemplate"
           >{{ t("strategyTemplatePage.button.confirm") }}</el-button
         >
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="importDialogVisible"
+      :title="t('strategyTemplatePage.dialog.importTitle')"
+      width="80%"
+      destroy-on-close
+    >
+      <div class="import-json-editor">
+        <Codemirror
+          v-model="importJson"
+          :extensions="importJsonEditorExtensions"
+          :basic-setup="codeBasicSetup"
+          :style="{ height: '65vh' }"
+          :indent-with-tab="true"
+          :tab-size="2"
+        />
+      </div>
+      <template #footer>
+        <el-button @click="importDialogVisible = false">{{
+          t("strategyTemplatePage.button.cancel")
+        }}</el-button>
+        <el-button
+          type="primary"
+          :loading="importLoading"
+          @click="submitImportJson"
+          >{{ t("strategyTemplatePage.button.confirm") }}</el-button
+        >
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="jsonDialogVisible"
+      :title="jsonDialogTitle"
+      width="80%"
+      destroy-on-close
+    >
+      <div class="json-preview-editor">
+        <Codemirror
+          :model-value="jsonPreview"
+          :extensions="jsonPreviewEditorExtensions"
+          :basic-setup="codeBasicSetup"
+          :style="{ height: '65vh' }"
+          :tab-size="2"
+        />
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="jsonDialogVisible = false">
+          {{ t("strategyTemplatePage.button.close") }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -1169,5 +1378,27 @@ onMounted(fetchData);
 
 .code-full :deep(.cm-tooltip-autocomplete) {
   z-index: 9999;
+}
+
+.import-json-editor {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+}
+
+.import-json-editor :deep(.cm-editor) {
+  height: 100%;
+}
+
+.json-preview-editor {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+}
+
+.json-preview-editor :deep(.cm-editor) {
+  height: 100%;
 }
 </style>
