@@ -18,7 +18,10 @@ import {
   setFeature,
   testStrategyRule
 } from "../../api/trade";
-import { getList as getStrategyTemplateList } from "../../api/strategyTemplate";
+import {
+  strategyTemplatePopperClass,
+  useStrategyTemplateOptions
+} from "../../composables/useStrategyTemplateOptions";
 import { codeMirrorBasicSetup } from "../../utils/codemirror";
 import { validateTechnologyConfig } from "../../utils/technology";
 
@@ -84,13 +87,6 @@ interface TechnologyItem {
   multiplier?: number | string;
   std_dev_multiplier?: number | string;
   enable: boolean;
-}
-
-interface StrategyTemplateRow {
-  id: number;
-  name: string;
-  strategy: string;
-  technology: string;
 }
 
 function createEmptyTechnology() {
@@ -206,7 +202,13 @@ const strategyDialogVisible = ref(false);
 const strategyDialogTitle = ref("");
 const strategySymbolId = ref<number | null>(null);
 const strategy = ref<StrategyItem[]>([]);
-const strategyTemplates = ref<StrategyTemplateRow[]>([]);
+const {
+  options: strategyTemplates,
+  selectLoading: strategyTemplateLoading,
+  loadFirstPage: loadStrategyTemplates,
+  search: searchStrategyTemplates,
+  onPopupScroll: onStrategyTemplatePopupScroll
+} = useStrategyTemplateOptions();
 const copyTechnology = ref("");
 
 const codeDialogVisible = ref(false);
@@ -673,11 +675,6 @@ async function submitBatchEdit() {
   } finally {
     dialogLoading2.value = false;
   }
-}
-
-async function loadStrategyTemplates() {
-  const res = await getStrategyTemplateList();
-  strategyTemplates.value = res?.data || [];
 }
 
 async function openTechnologyDialog(row: FeatureRow) {
@@ -1297,7 +1294,17 @@ onBeforeUnmount(() => {
           </el-select>
         </el-form-item>
         <el-form-item :label="t('futuresSymbolPage.batch.strategyTemplate')">
-          <el-select v-model="batchInfo.strategyTemplateId" clearable>
+          <el-select
+            v-model="batchInfo.strategyTemplateId"
+            clearable
+            filterable
+            remote
+            remote-show-suffix
+            :remote-method="searchStrategyTemplates"
+            :loading="strategyTemplateLoading"
+            :popper-class="strategyTemplatePopperClass"
+            @popup-scroll="onStrategyTemplatePopupScroll"
+          >
             <el-option
               v-for="item in strategyTemplates"
               :key="item.id"
@@ -1529,9 +1536,16 @@ onBeforeUnmount(() => {
         <el-select
           v-model="batchInfo.strategyTemplateId"
           clearable
+          filterable
+          remote
+          remote-show-suffix
+          :remote-method="searchStrategyTemplates"
+          :loading="strategyTemplateLoading"
+          :popper-class="strategyTemplatePopperClass"
           :placeholder="t('futuresSymbolPage.placeholder.strategyTemplate')"
           style="width: 220px"
           @change="selectStrategyTemplate"
+          @popup-scroll="onStrategyTemplatePopupScroll"
         >
           <el-option
             v-for="item in strategyTemplates"

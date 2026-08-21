@@ -383,6 +383,7 @@ strategyTemplatePage:
   button:
     add: Add Template
     importJson: Import JSON
+    aiGenerate: Generate with AI
     refresh: Refresh
     edit: Edit
     delete: Delete
@@ -422,6 +423,38 @@ strategyTemplatePage:
     importUpdated: Updated template {name} from JSON
     importFail: Failed to import strategy template
     importRequired: Please enter strategy template JSON
+  ai:
+    title: Generate Strategy Template with AI
+    promptPlaceholder: Describe the strategy horizon, trend, entry confirmation, and exit rules
+    promptRequired: Please enter a prompt
+    generate: Generate
+    regenerate: Regenerate from Error
+    generated: JSON generated and validated successfully
+    generatedWithError: JSON generated with validation issues
+    generateFailed: AI generation failed
+    progressFailed: Failed to query AI generation progress
+    taskRequired: AI generation task is missing. Generate again.
+    round: "Agent round: {round}/{maxRounds}"
+    jsonTitle: Generated Strategy Template JSON (Editable)
+    errorTitle: Validation or Import Error
+    stage:
+      queued: Waiting for task
+      initializing_llm: Initializing LLM client
+      building_prompt: Building prompt and constraints
+      agent_round: Agent analyzing and choosing the next action
+      calling_llm: Sending generation request
+      waiting_llm: Waiting for AI response
+      extracting_json: Extracting JSON
+      calling_tool: Calling a system data tool
+      tool_result: Tool data added to context
+      tool_error: Tool call failed; preparing a repair
+      repairing_response: Repairing agent response
+      repairing_json: Repairing JSON from validation feedback
+      validating_json: Validating JSON and expr rules
+      import_failed: Import failed; conversation retained
+      imported: Imported successfully
+      completed: Generation complete
+      failed: Generation failed
   technology:
     name: Name
     klineInterval: Kline Interval

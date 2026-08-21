@@ -383,6 +383,7 @@ strategyTemplatePage:
   button:
     add: 新增模板
     importJson: 导入 JSON
+    aiGenerate: AI 生成模板
     refresh: 刷新
     edit: 编辑
     delete: 删除
@@ -422,6 +423,38 @@ strategyTemplatePage:
     importUpdated: 已从 JSON 更新模板 {name}
     importFail: 导入策略模板失败
     importRequired: 请输入策略模板 JSON
+  ai:
+    title: AI 生成策略模板
+    promptPlaceholder: 请输入策略需求，例如交易周期、趋势条件、入场确认和退出规则
+    promptRequired: 请输入提示词
+    generate: 开始生成
+    regenerate: 根据错误重新生成
+    generated: JSON 已生成并通过框架校验
+    generatedWithError: JSON 已生成，但仍有校验问题
+    generateFailed: AI 生成失败
+    progressFailed: 查询 AI 生成进度失败
+    taskRequired: AI 生成任务不存在，请重新生成
+    round: "Agent 轮次：{round}/{maxRounds}"
+    jsonTitle: 生成的策略模板 JSON（可编辑）
+    errorTitle: 校验或导入错误
+    stage:
+      queued: 等待任务执行
+      initializing_llm: 初始化 LLM 客户端
+      building_prompt: 整理提示词和策略约束
+      agent_round: Agent 分析并决定下一步
+      calling_llm: 向 AI 发送生成请求
+      waiting_llm: 等待 AI 返回生成结果
+      extracting_json: 提取 JSON 内容
+      calling_tool: 调用系统数据工具
+      tool_result: 工具数据已加入上下文
+      tool_error: 工具调用失败，准备修复
+      repairing_response: 修复 Agent 响应
+      repairing_json: 根据校验错误修复 JSON
+      validating_json: 校验 JSON 和 expr 规则
+      import_failed: 导入失败，保留对话上下文
+      imported: 导入成功
+      completed: 生成完成
+      failed: 生成失败
   technology:
     name: 名称
     klineInterval: K线周期

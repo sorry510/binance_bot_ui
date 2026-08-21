@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from "vue-i18n";
 import { Codemirror } from "vue-codemirror";
@@ -13,9 +13,13 @@ import {
   addData,
   delData,
   editData,
+  getAIGenerationTask,
   getList,
+  importAIGeneratedData,
   importData,
-  testStrategyRule
+  startAIGeneration,
+  testStrategyRule,
+  type StrategyTemplateAIGenerationTask
 } from "../../api/strategyTemplate";
 import {
   buildTemplateJsonEditorExtensions,
@@ -143,6 +147,15 @@ const createForm = reactive({ name: "" });
 const importDialogVisible = ref(false);
 const importJson = ref("");
 
+const aiDialogVisible = ref(false);
+const aiPrompt = ref("");
+const aiGeneratedJson = ref("");
+const aiValidationError = ref("");
+const aiImportLoading = ref(false);
+const aiTask = ref<StrategyTemplateAIGenerationTask | null>(null);
+let aiProgressTimer: ReturnType<typeof setTimeout> | undefined;
+let aiProgressPollFailures = 0;
+
 const jsonDialogVisible = ref(false);
 const jsonDialogTitle = ref("");
 const jsonPreview = ref("");
@@ -169,6 +182,12 @@ const jsonPreviewEditorExtensions = [
   EditorState.readOnly.of(true),
   EditorView.editable.of(false)
 ];
+const aiGenerationRunning = computed(() =>
+  ["queued", "running"].includes(aiTask.value?.status || "")
+);
+const aiProgressEvents = computed(() =>
+  [...(aiTask.value?.events || [])].reverse()
+);
 
 const codeEditorExtensions = computed(() => {
   const keywords = new Set<string>([
@@ -516,6 +535,185 @@ function getImportErrorMessage(error: unknown) {
   );
 }
 
+function openAIGenerationDialog() {
+  clearAIProgressTimer();
+  if (!aiTask.value || aiTask.value.imported) {
+    aiPrompt.value = "";
+    aiGeneratedJson.value = "";
+    aiValidationError.value = "";
+    aiTask.value = null;
+    aiProgressPollFailures = 0;
+  }
+  aiDialogVisible.value = true;
+  if (aiGenerationRunning.value) {
+    scheduleAIProgressPoll(0);
+  }
+}
+
+async function generateTemplateWithAI() {
+  const prompt = aiPrompt.value.trim();
+  if (!prompt) {
+    aiValidationError.value = t("strategyTemplatePage.ai.promptRequired");
+    return;
+  }
+
+  clearAIProgressTimer();
+  try {
+    const res = await startAIGeneration({
+      prompt,
+      previousJson: aiGeneratedJson.value || undefined,
+      validationError: aiValidationError.value || undefined,
+      conversationId: aiTask.value?.taskId
+    });
+    if (Number(res?.code) !== 200 || !res?.data?.taskId) {
+      throw new Error(res?.msg || t("strategyTemplatePage.ai.generateFailed"));
+    }
+    aiValidationError.value = "";
+    aiTask.value = res.data as StrategyTemplateAIGenerationTask;
+    aiProgressPollFailures = 0;
+    scheduleAIProgressPoll(0);
+  } catch (error) {
+    aiValidationError.value = getImportErrorMessage(error);
+  }
+}
+
+function scheduleAIProgressPoll(delay: number) {
+  clearAIProgressTimer();
+  aiProgressTimer = setTimeout(() => {
+    void pollAIGenerationProgress();
+  }, delay);
+}
+
+async function pollAIGenerationProgress() {
+  const taskId = aiTask.value?.taskId;
+  if (!taskId) return;
+
+  try {
+    const res = await getAIGenerationTask(taskId);
+    if (Number(res?.code) !== 200 || !res?.data) {
+      throw new Error(res?.msg || t("strategyTemplatePage.ai.progressFailed"));
+    }
+    const task = res.data as StrategyTemplateAIGenerationTask;
+    aiTask.value = task;
+    aiProgressPollFailures = 0;
+
+    if (task.status === "succeeded") {
+      aiGeneratedJson.value = task.json || "";
+      aiValidationError.value = task.validationError || "";
+      if (task.validationError) {
+        ElMessage.warning(t("strategyTemplatePage.ai.generatedWithError"));
+      } else {
+        ElMessage.success(t("strategyTemplatePage.ai.generated"));
+      }
+      return;
+    }
+    if (task.status === "failed") {
+      if (task.json) {
+        aiGeneratedJson.value = task.json;
+      }
+      aiValidationError.value =
+        task.error ||
+        task.validationError ||
+        t("strategyTemplatePage.ai.generateFailed");
+      return;
+    }
+    scheduleAIProgressPoll(1000);
+  } catch (error) {
+    aiProgressPollFailures++;
+    if (aiProgressPollFailures < 3) {
+      scheduleAIProgressPoll(1500);
+      return;
+    }
+    aiValidationError.value = getImportErrorMessage(error);
+    if (aiTask.value) {
+      aiTask.value = {
+        ...aiTask.value,
+        status: "failed",
+        stage: "failed",
+        progress: 100,
+        error: aiValidationError.value
+      };
+    }
+  }
+}
+
+async function importAIGeneratedTemplate() {
+  if (!aiGeneratedJson.value.trim()) {
+    aiValidationError.value = t("strategyTemplatePage.message.importRequired");
+    return;
+  }
+
+  const taskId = aiTask.value?.taskId;
+  if (!taskId) {
+    aiValidationError.value = t("strategyTemplatePage.ai.taskRequired");
+    return;
+  }
+
+  aiImportLoading.value = true;
+  aiValidationError.value = "";
+  try {
+    const res = await importAIGeneratedData(taskId, aiGeneratedJson.value);
+    if (Number(res?.code) !== 200) {
+      aiValidationError.value =
+        res?.msg || t("strategyTemplatePage.message.importFail");
+      await syncAITaskAfterImportFailure(taskId);
+      return;
+    }
+
+    const templateName = res?.data?.template?.name || "";
+    const messageKey =
+      res?.data?.action === "updated"
+        ? "strategyTemplatePage.message.importUpdated"
+        : "strategyTemplatePage.message.importCreated";
+    ElMessage.success(t(messageKey, { name: templateName }));
+    if (aiTask.value) {
+      aiTask.value = { ...aiTask.value, imported: true };
+    }
+    aiDialogVisible.value = false;
+    clearAIProgressTimer();
+    query.page = 1;
+    await fetchData();
+  } catch (error) {
+    aiValidationError.value = getImportErrorMessage(error);
+    await syncAITaskAfterImportFailure(taskId);
+  } finally {
+    aiImportLoading.value = false;
+  }
+}
+
+async function syncAITaskAfterImportFailure(taskId: string) {
+  try {
+    const res = await getAIGenerationTask(taskId);
+    if (Number(res?.code) === 200 && res?.data) {
+      aiTask.value = res.data as StrategyTemplateAIGenerationTask;
+    }
+  } catch {
+    // Keep the import error visible even if progress synchronization fails.
+  }
+}
+
+function aiProgressStageLabel(stage: string) {
+  const key = `strategyTemplatePage.ai.stage.${stage}`;
+  const translated = t(key);
+  return translated === key ? stage : translated;
+}
+
+function formatAIProgressTime(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleTimeString();
+}
+
+function clearAIProgressTimer() {
+  if (aiProgressTimer !== undefined) {
+    clearTimeout(aiProgressTimer);
+    aiProgressTimer = undefined;
+  }
+}
+
+function onAIDialogClosed() {
+  clearAIProgressTimer();
+}
+
 async function submitImportJson() {
   if (!importJson.value.trim()) {
     ElMessage.error(t("strategyTemplatePage.message.importRequired"));
@@ -810,6 +1008,7 @@ async function onTestStrategyRule() {
 }
 
 onMounted(fetchData);
+onBeforeUnmount(clearAIProgressTimer);
 </script>
 
 <template>
@@ -824,6 +1023,9 @@ onMounted(fetchData);
         @click="openImportDialog"
         >{{ t("strategyTemplatePage.button.importJson") }}</el-button
       >
+      <el-button type="primary" @click="openAIGenerationDialog">
+        {{ t("strategyTemplatePage.button.aiGenerate") }}
+      </el-button>
       <el-button type="primary" :loading="listLoading" @click="fetchData">{{
         t("strategyTemplatePage.button.refresh")
       }}</el-button>
@@ -1000,6 +1202,123 @@ onMounted(fetchData);
       <template #footer>
         <el-button type="primary" @click="jsonDialogVisible = false">
           {{ t("strategyTemplatePage.button.close") }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="aiDialogVisible"
+      :title="t('strategyTemplatePage.ai.title')"
+      width="82%"
+      destroy-on-close
+      :close-on-click-modal="!aiGenerationRunning"
+      @closed="onAIDialogClosed"
+    >
+      <div class="ai-generation-dialog">
+        <div class="ai-prompt-row">
+          <el-input
+            v-model="aiPrompt"
+            type="textarea"
+            :rows="5"
+            maxlength="12288"
+            show-word-limit
+            :disabled="aiGenerationRunning"
+            :placeholder="t('strategyTemplatePage.ai.promptPlaceholder')"
+          />
+          <div class="ai-generate-actions">
+            <el-button
+              type="primary"
+              :loading="aiGenerationRunning"
+              @click="generateTemplateWithAI"
+            >
+              {{
+                aiGeneratedJson
+                  ? t("strategyTemplatePage.ai.regenerate")
+                  : t("strategyTemplatePage.ai.generate")
+              }}
+            </el-button>
+          </div>
+        </div>
+
+        <div v-if="aiTask" class="ai-progress-panel">
+          <div v-if="aiTask.maxRounds" class="ai-progress-round">
+            {{
+              t("strategyTemplatePage.ai.round", {
+                round: aiTask.round || 0,
+                maxRounds: aiTask.maxRounds
+              })
+            }}
+          </div>
+          <el-progress
+            :percentage="aiTask.progress || 0"
+            :status="aiTask.status === 'failed' ? 'exception' : undefined"
+          />
+          <el-scrollbar max-height="180px" class="ai-progress-log">
+            <div
+              v-for="(event, index) in aiProgressEvents"
+              :key="`${event.time}-${index}`"
+              class="ai-progress-event"
+            >
+              <span class="ai-progress-time">{{
+                formatAIProgressTime(event.time)
+              }}</span>
+              <span class="ai-progress-stage">{{
+                aiProgressStageLabel(event.stage)
+              }}</span>
+              <span class="ai-progress-percent">{{ event.progress }}%</span>
+              <span class="ai-progress-tool">
+                <el-tag v-if="event.tool" size="small" type="info">
+                  {{ event.tool }}
+                </el-tag>
+                <span v-else class="ai-progress-tool-empty">—</span>
+              </span>
+              <span class="ai-progress-message">{{ event.message }}</span>
+            </div>
+          </el-scrollbar>
+        </div>
+
+        <div v-if="aiGeneratedJson" class="ai-json-section">
+          <div class="ai-section-title">
+            {{ t("strategyTemplatePage.ai.jsonTitle") }}
+          </div>
+          <div class="import-json-editor">
+            <Codemirror
+              v-model="aiGeneratedJson"
+              :extensions="importJsonEditorExtensions"
+              :basic-setup="codeBasicSetup"
+              :style="{ height: '42vh' }"
+              :indent-with-tab="true"
+              :tab-size="2"
+            />
+          </div>
+        </div>
+
+        <el-alert
+          v-if="aiValidationError"
+          class="ai-validation-error"
+          type="error"
+          :closable="false"
+          show-icon
+          :title="t('strategyTemplatePage.ai.errorTitle')"
+        >
+          <template #default>
+            <div class="ai-validation-error-text">
+              {{ aiValidationError }}
+            </div>
+          </template>
+        </el-alert>
+      </div>
+      <template #footer>
+        <el-button :disabled="aiImportLoading" @click="aiDialogVisible = false">
+          {{ t("strategyTemplatePage.button.cancel") }}
+        </el-button>
+        <el-button
+          type="success"
+          :loading="aiImportLoading"
+          :disabled="!aiGeneratedJson || aiGenerationRunning"
+          @click="importAIGeneratedTemplate"
+        >
+          {{ t("strategyTemplatePage.button.importJson") }}
         </el-button>
       </template>
     </el-dialog>
@@ -1400,5 +1719,87 @@ onMounted(fetchData);
 
 .json-preview-editor :deep(.cm-editor) {
   height: 100%;
+}
+
+.ai-generation-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ai-generate-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.ai-progress-panel {
+  padding: 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+}
+
+.ai-progress-round {
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.ai-progress-log {
+  margin-top: 10px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.ai-progress-event {
+  display: grid;
+  grid-template-columns: 90px 150px 52px 205px minmax(0, 1fr);
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--el-border-color-lighter);
+}
+
+.ai-progress-time,
+.ai-progress-percent {
+  color: var(--el-text-color-secondary);
+}
+
+.ai-progress-percent {
+  text-align: right;
+}
+
+.ai-progress-tool {
+  min-width: 0;
+}
+
+.ai-progress-tool :deep(.el-tag) {
+  max-width: 100%;
+  font-family: monospace;
+}
+
+.ai-progress-tool-empty {
+  color: var(--el-text-color-placeholder);
+}
+
+.ai-progress-message {
+  color: var(--el-text-color-regular);
+  word-break: break-word;
+  white-space: normal;
+}
+
+.ai-section-title {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.ai-validation-error {
+  align-items: flex-start;
+}
+
+.ai-validation-error-text {
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 </style>
