@@ -20,7 +20,8 @@ const moduleOptions = [
   "coin_listen",
   "funding_rate",
   "new_coin_rush",
-  "futures_market_listen"
+  "futures_market_listen",
+  "futures_liquidation"
 ];
 
 const list = ref<any[]>([]);

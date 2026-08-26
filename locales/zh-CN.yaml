@@ -139,6 +139,10 @@ dashboard:
     fastMoveRecover: 快速波动恢复阈值(%)
     fastMoveCooldownSec: 快速波动通知冷却时间(秒)
     fastMoveWindows: 快速波动窗口配置
+    liquidationCollectionEnable: 强平订单 WebSocket 采集
+    liquidationAlertWindowSec: BTC 大额强平聚合窗口(秒)
+    liquidationAlertNotionalThreshold: BTC 大额强平告警阈值
+    liquidationAlertCooldownSec: BTC 大额强平告警冷却(秒)
     positionConvert: 仓位收益正负转换通知
     allowLong: 允许做多
     allowShort: 允许做空
@@ -260,6 +264,7 @@ notifyConfigPage:
     funding_rate: 资金费率
     new_coin_rush: 新币抢购
     futures_market_listen: 合约市场波动监听
+    futures_liquidation: BTC 大额强平聚合
   confirm:
     title: 提示
     delete: 确认删除该配置?
@@ -282,6 +287,11 @@ notificationHistoryPage:
   table:
     title: 标题
     content: 内容
+    symbol: 币种
+    liquidationSide: 强平方向
+    aggregateNotional: 累计名义金额
+    orderCount: 订单数
+    aggregateWindow: 聚合窗口
     module: 模块
     readStatus: 状态
     createTime: 通知时间
@@ -290,6 +300,9 @@ notificationHistoryPage:
   readStatus:
     unread: 未读
     read: 已读
+  liquidationSide:
+    long: 多单爆仓
+    short: 空单爆仓
 futuresSymbolPage:
   button:
     add: 新增

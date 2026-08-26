@@ -38,6 +38,10 @@ const config = reactive<Record<string, any>>({
   WsFuturesFastMoveRecover: 0,
   WsFuturesFastMoveCooldownSec: 0,
   WsFuturesFastMoveWindows: "",
+  WsFuturesLiquidationEnable: 0,
+  WsFuturesLiquidationAlertWindowSec: 60,
+  WsFuturesLiquidationAlertNotionalThreshold: 5000000,
+  WsFuturesLiquidationAlertCooldownSec: 300,
   futuresPositionConvertEnable: 0,
   coinAllowLong: 1,
   coinAllowShort: 0,
@@ -373,6 +377,78 @@ onBeforeUnmount(() => {
               class="wide-select"
               @change="
                 value => saveField('ws_futures_fast_move_windows', value)
+              "
+            />
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.liquidationCollectionEnable")
+            }}</span>
+            <el-switch
+              :model-value="config.WsFuturesLiquidationEnable"
+              :active-value="1"
+              :inactive-value="0"
+              @change="
+                value => saveField('ws_futures_liquidation_enable', value)
+              "
+            />
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.liquidationAlertWindowSec")
+            }}</span>
+            <el-input
+              v-model="config.WsFuturesLiquidationAlertWindowSec"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value =>
+                  saveField(
+                    'ws_futures_liquidation_alert_window_sec',
+                    Number(value)
+                  )
+              "
+            />
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.liquidationAlertNotionalThreshold")
+            }}</span>
+            <el-input
+              v-model="config.WsFuturesLiquidationAlertNotionalThreshold"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value =>
+                  saveField(
+                    'ws_futures_liquidation_alert_notional_threshold',
+                    Number(value)
+                  )
+              "
+            />
+            <span class="hint green">USDT</span>
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.liquidationAlertCooldownSec")
+            }}</span>
+            <el-input
+              v-model="config.WsFuturesLiquidationAlertCooldownSec"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value =>
+                  saveField(
+                    'ws_futures_liquidation_alert_cooldown_sec',
+                    Number(value)
+                  )
               "
             />
           </div>

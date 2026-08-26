@@ -6,6 +6,13 @@ export interface WebNotificationItem {
   content: string;
   module: string;
   level: string;
+  event_type?: string;
+  symbol?: string;
+  liquidation_side?: "long" | "short" | string;
+  aggregate_notional?: number;
+  order_count?: number;
+  window_start?: number;
+  window_end?: number;
   is_read: number;
   create_time: number;
   read_time: number;

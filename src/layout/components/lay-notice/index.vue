@@ -71,7 +71,7 @@ function connectWebSocket() {
       ElNotification({
         title: notification.title || t("webNotification.title"),
         message: notification.content,
-        type: "info",
+        type: notification.level === "warning" ? "warning" : "info",
         duration: 6000
       });
     } catch {

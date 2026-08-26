@@ -139,6 +139,10 @@ dashboard:
     fastMoveRecover: Fast move recover threshold (%)
     fastMoveCooldownSec: Fast move notice cooldown (sec)
     fastMoveWindows: Fast move windows config
+    liquidationCollectionEnable: Liquidation order WebSocket collection
+    liquidationAlertWindowSec: BTC liquidation aggregate window (sec)
+    liquidationAlertNotionalThreshold: BTC liquidation alert threshold
+    liquidationAlertCooldownSec: BTC liquidation alert cooldown (sec)
     positionConvert: futures position convert notice
     allowLong: Allow Long
     allowShort: Allow Short
@@ -260,6 +264,7 @@ notifyConfigPage:
     funding_rate: Funding Rate
     new_coin_rush: New Coin Rush
     futures_market_listen: Futures Market Volatility Listener
+    futures_liquidation: BTC Liquidation Aggregate
   confirm:
     title: Confirm
     delete: Confirm deleting this config?
@@ -282,6 +287,11 @@ notificationHistoryPage:
   table:
     title: Title
     content: Content
+    symbol: Symbol
+    liquidationSide: Liquidation side
+    aggregateNotional: Aggregate notional
+    orderCount: Order count
+    aggregateWindow: Aggregate window
     module: Module
     readStatus: Status
     createTime: Notification time
@@ -290,6 +300,9 @@ notificationHistoryPage:
   readStatus:
     unread: Unread
     read: Read
+  liquidationSide:
+    long: Long liquidation
+    short: Short liquidation
 futuresSymbolPage:
   button:
     add: Add

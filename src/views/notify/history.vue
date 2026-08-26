@@ -24,7 +24,8 @@ const moduleOptions = [
   "coin_listen",
   "funding_rate",
   "new_coin_rush",
-  "futures_market_listen"
+  "futures_market_listen",
+  "futures_liquidation"
 ];
 
 const query = reactive({
@@ -44,6 +45,17 @@ function moduleLabel(module: string) {
 
 function formatTime(timestamp?: number) {
   return timestamp ? dayjs(timestamp).format("YYYY-MM-DD HH:mm:ss") : "-";
+}
+
+function formatNotional(notional?: number) {
+  return notional
+    ? `${Number(notional).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT`
+    : "-";
+}
+
+function liquidationSideLabel(side?: string) {
+  if (side !== "long" && side !== "short") return "-";
+  return t(`notificationHistoryPage.liquidationSide.${side}`);
 }
 
 async function fetchData(resetPage = false) {
@@ -168,6 +180,48 @@ onMounted(() => fetchData());
       >
         <template #default="{ row }">
           <span class="whitespace-pre-line">{{ row.content }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="symbol"
+        :label="t('notificationHistoryPage.table.symbol')"
+        min-width="110"
+      >
+        <template #default="{ row }">{{ row.symbol || "-" }}</template>
+      </el-table-column>
+      <el-table-column
+        :label="t('notificationHistoryPage.table.liquidationSide')"
+        min-width="120"
+      >
+        <template #default="{ row }">
+          {{ liquidationSideLabel(row.liquidation_side) }}
+        </template>
+      </el-table-column>
+      <el-table-column
+        :label="t('notificationHistoryPage.table.aggregateNotional')"
+        min-width="170"
+      >
+        <template #default="{ row }">
+          {{ formatNotional(row.aggregate_notional) }}
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="order_count"
+        :label="t('notificationHistoryPage.table.orderCount')"
+        min-width="110"
+      >
+        <template #default="{ row }">{{ row.order_count || "-" }}</template>
+      </el-table-column>
+      <el-table-column
+        :label="t('notificationHistoryPage.table.aggregateWindow')"
+        min-width="330"
+      >
+        <template #default="{ row }">
+          <span v-if="row.window_start || row.window_end">
+            {{ formatTime(row.window_start) }} -
+            {{ formatTime(row.window_end) }}
+          </span>
+          <span v-else>-</span>
         </template>
       </el-table-column>
       <el-table-column
