@@ -10,7 +10,7 @@ export default {
   meta: {
     icon: NotificationIcon,
     title: $t("menus.notification"),
-    rank: 1
+    rank: 1.2
   },
   children: [
     {

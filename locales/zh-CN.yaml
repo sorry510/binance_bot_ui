@@ -80,6 +80,8 @@ menus:
   purePermissionButtonRouter: 路由返回按钮权限
   purePermissionButtonLogin: 登录接口返回按钮权限
   dashboard: 配置中心
+  ai: AI
+  symbolAnalysis: 单币分析
   notification: 通知
   notifyConfig: 通知配置
   notificationHistory: 历史通知
@@ -231,6 +233,86 @@ dashboard:
     progressQueryFail: 查询 AI 分析进度失败
     sendSuccess: 发送成功
     sendFail: 发送失败
+symbolAnalysisPage:
+  title: AI 单币分析
+  button:
+    analyze: 开始分析
+    view: 查看
+  placeholder:
+    symbol: 选择或输入 USDT 合约
+    prompt: 可选：补充你关注的方向，例如“重点判断是否存在做空机会”
+  hint:
+    historyCompare: 系统会自动读取该合约最近的成功分析，并与当前行情对比。
+  direction:
+    long: 做多
+    short: 做空
+    neutral: 观望
+  status:
+    queued: 排队中
+    running: 运行中
+    waiting_llm: 等待 AI
+    waiting_tool: 获取数据
+    validating: 校验中
+    succeeded: 已完成
+    failed: 失败
+    cancelled: 已取消
+  process:
+    title: 分析过程
+    round: "Agent 轮次：{round}/{max}"
+    tokens: Token
+  stage:
+    queued: 任务已进入队列
+    building_input: 构建分析上下文
+    waiting_llm: AI 正在分析
+    retrying_llm: AI 请求失败，正在重试
+    waiting_tool: 正在调用数据工具
+    tool_result: 数据工具返回结果
+    repairing_response: 修复 AI 响应
+    repairing_decision: 修复 Agent 决策协议
+    repairing_required_tools: 补充必需数据工具
+    repairing_final: 修复最终交易计划
+    validating: 校验 TradingPlan
+    completed: 分析完成
+    failed: 分析失败
+    timeout: 分析超时
+    cancelled: 分析已取消
+  plan:
+    title: 当前交易计划
+    symbol: 合约
+    asOf: 分析时间
+    marketCondition: 市场环境
+    confidence: 置信度
+    summary: 总结
+    entryZones: 入场区间
+    stopLoss: 止损
+    takeProfits: 止盈目标
+    longTrigger: 做多触发条件
+    shortTrigger: 做空触发条件
+    invalidations: 失效条件
+    risks: 风险
+    dataMissing: 缺失数据
+    evidence: 分析证据
+    source: 数据来源
+    finding: 结论
+  history:
+    title: 历史分析
+    total: "共 {total} 条"
+    time: 分析时间
+    status: 状态
+    direction: 方向
+    analysisPrice: 当时价格
+    currentPrice: 当前价格
+    priceChange: 后续涨跌
+    operation: 操作
+    empty: 当前合约暂无分析历史
+    detailTitle: 历史分析详情
+    prompt: 当时提示词
+  message:
+    symbolRequired: 请选择或输入合约
+    startFailed: 启动分析失败
+    progressFailed: 查询分析进度失败
+    completed: 分析完成并已保存历史记录
+    failed: 分析失败
 notifyConfigPage:
   button:
     add: 新增通知配置

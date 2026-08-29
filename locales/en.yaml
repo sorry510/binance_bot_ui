@@ -80,6 +80,8 @@ menus:
   purePermissionButtonRouter: Route return button permission
   purePermissionButtonLogin: Login interface return button permission
   dashboard: Dashboard
+  ai: AI
+  symbolAnalysis: Symbol Analysis
   notification: Notifications
   notifyConfig: Notify Config
   notificationHistory: Notification History
@@ -231,6 +233,86 @@ dashboard:
     progressQueryFail: Failed to query AI analysis progress
     sendSuccess: Sent successfully
     sendFail: Send failed
+symbolAnalysisPage:
+  title: AI Symbol Analysis
+  button:
+    analyze: Analyze
+    view: View
+  placeholder:
+    symbol: Select or enter a USDT contract
+    prompt: Optional focus, for example "prioritize short opportunities"
+  hint:
+    historyCompare: Recent successful analyses for this symbol are loaded automatically and compared with current market data.
+  direction:
+    long: Long
+    short: Short
+    neutral: Neutral
+  status:
+    queued: Queued
+    running: Running
+    waiting_llm: Waiting for AI
+    waiting_tool: Loading data
+    validating: Validating
+    succeeded: Completed
+    failed: Failed
+    cancelled: Cancelled
+  process:
+    title: Analysis Process
+    round: "Agent round: {round}/{max}"
+    tokens: Tokens
+  stage:
+    queued: Task queued
+    building_input: Building analysis context
+    waiting_llm: AI is analyzing
+    retrying_llm: AI request failed, retrying
+    waiting_tool: Calling data tool
+    tool_result: Tool result received
+    repairing_response: Repairing AI response
+    repairing_decision: Repairing Agent decision protocol
+    repairing_required_tools: Loading required data
+    repairing_final: Repairing final trading plan
+    validating: Validating TradingPlan
+    completed: Analysis completed
+    failed: Analysis failed
+    timeout: Analysis timed out
+    cancelled: Analysis cancelled
+  plan:
+    title: Current Trading Plan
+    symbol: Symbol
+    asOf: Analysis Time
+    marketCondition: Market Condition
+    confidence: Confidence
+    summary: Summary
+    entryZones: Entry Zones
+    stopLoss: Stop Loss
+    takeProfits: Take Profits
+    longTrigger: Long Trigger
+    shortTrigger: Short Trigger
+    invalidations: Invalidation Conditions
+    risks: Risks
+    dataMissing: Missing Data
+    evidence: Evidence
+    source: Source
+    finding: Finding
+  history:
+    title: Analysis History
+    total: "{total} records"
+    time: Analysis Time
+    status: Status
+    direction: Direction
+    analysisPrice: Analysis Price
+    currentPrice: Current Price
+    priceChange: Price Change
+    operation: Action
+    empty: No analysis history for this symbol
+    detailTitle: Historical Analysis Details
+    prompt: Original Prompt
+  message:
+    symbolRequired: Select or enter a contract
+    startFailed: Failed to start analysis
+    progressFailed: Failed to query analysis progress
+    completed: Analysis completed and saved to history
+    failed: Analysis failed
 notifyConfigPage:
   button:
     add: Add Notify Config
