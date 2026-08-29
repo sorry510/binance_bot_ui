@@ -441,7 +441,7 @@ strategyTemplatePage:
     promptPlaceholder: 请输入策略需求，例如交易周期、趋势条件、入场确认和退出规则
     promptRequired: 请输入提示词
     generate: 开始生成
-    regenerate: 根据错误重新生成
+    regenerate: 重新生成
     generated: JSON 已生成并通过框架校验
     generatedWithError: JSON 已生成，但仍有校验问题
     generateFailed: AI 生成失败

@@ -441,7 +441,7 @@ strategyTemplatePage:
     promptPlaceholder: Describe the strategy horizon, trend, entry confirmation, and exit rules
     promptRequired: Please enter a prompt
     generate: Generate
-    regenerate: Regenerate from Error
+    regenerate: Regenerate
     generated: JSON generated and validated successfully
     generatedWithError: JSON generated with validation issues
     generateFailed: AI generation failed
