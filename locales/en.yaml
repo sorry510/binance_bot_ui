@@ -196,7 +196,7 @@ dashboard:
     alertAIFallback: If AI is disabled, over budget, or fails, deterministic fallback notifications continue without blocking WebSocket processing.
     marketRegimeSchedule: Runs only when automatic market-condition updates are enabled; uses persistent Agent Tasks.
     tradeDisabled: Trade Tools globally disabled
-    skillBudgetCaps: Each Skill also has a stricter tool-call cap; the smaller limit applies.
+    globalAgentBudget: Token and Tool call limits are controlled only by these global settings.
     limitMode: Limit order mode
     marketMode: Market order mode
     testAutoTradeLimit: Non-zero:after n consecutive wins of the test strategy, automatically switch to real trading. After n consecutive losses in real trading, switch back to the test strategy.
@@ -364,7 +364,6 @@ agentSkillPage:
   title: Agent Skill Management
   hint:
     implementation: The database stores Skill registration and governance settings; executable implementations remain in backend code. Deleting a row disables runtime startup until it is recreated.
-    zeroUsesGlobal: 0 uses the global limit
   button:
     add: Add Skill
     edit: Edit
@@ -375,8 +374,6 @@ agentSkillPage:
     displayName: Display Name
     description: Description
     enabled: Enabled
-    maxToolCalls: Max Tool Calls
-    maxTokens: Max Tokens
     operation: Action
   dialog:
     add: Add Agent Skill

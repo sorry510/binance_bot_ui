@@ -1162,7 +1162,9 @@ onBeforeUnmount(() => {
                   saveField('agent_max_tool_calls_per_task', Number(value))
               "
             />
-            <span class="hint">{{ t("dashboard.hint.skillBudgetCaps") }}</span>
+            <span class="hint">{{
+              t("dashboard.hint.globalAgentBudget")
+            }}</span>
           </div>
         </div>
       </el-collapse-item>

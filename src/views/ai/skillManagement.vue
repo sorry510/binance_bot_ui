@@ -24,9 +24,7 @@ const form = reactive({
   name: "",
   display_name: "",
   description: "",
-  enabled: 1,
-  max_tool_calls: 0,
-  max_tokens: 0
+  enabled: 1
 });
 
 const availableImplementations = computed(() => {
@@ -55,9 +53,7 @@ function resetForm() {
     name: "",
     display_name: "",
     description: "",
-    enabled: 1,
-    max_tool_calls: 0,
-    max_tokens: 0
+    enabled: 1
   });
 }
 
@@ -72,9 +68,7 @@ function openEdit(row: AgentSkillConfig) {
     name: row.name,
     display_name: row.display_name,
     description: row.description,
-    enabled: row.enabled,
-    max_tool_calls: row.max_tool_calls,
-    max_tokens: row.max_tokens
+    enabled: row.enabled
   });
   dialogVisible.value = true;
 }
@@ -168,16 +162,6 @@ onMounted(fetchData);
           </template>
         </el-table-column>
         <el-table-column
-          prop="max_tool_calls"
-          :label="t('agentSkillPage.table.maxToolCalls')"
-          width="120"
-        />
-        <el-table-column
-          prop="max_tokens"
-          :label="t('agentSkillPage.table.maxTokens')"
-          width="120"
-        />
-        <el-table-column
           :label="t('agentSkillPage.table.operation')"
           width="150"
           fixed="right"
@@ -230,18 +214,6 @@ onMounted(fetchData);
             :active-value="1"
             :inactive-value="0"
           />
-        </el-form-item>
-        <el-form-item :label="t('agentSkillPage.table.maxToolCalls')">
-          <el-input-number v-model="form.max_tool_calls" :min="0" :max="1000" />
-          <span class="ml-2 text-xs">{{
-            t("agentSkillPage.hint.zeroUsesGlobal")
-          }}</span>
-        </el-form-item>
-        <el-form-item :label="t('agentSkillPage.table.maxTokens')">
-          <el-input-number v-model="form.max_tokens" :min="0" :step="1000" />
-          <span class="ml-2 text-xs">{{
-            t("agentSkillPage.hint.zeroUsesGlobal")
-          }}</span>
         </el-form-item>
       </el-form>
       <template #footer>

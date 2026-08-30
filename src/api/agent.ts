@@ -210,8 +210,6 @@ export interface AgentSkillConfig {
   display_name: string;
   description: string;
   enabled: number;
-  max_tool_calls: number;
-  max_tokens: number;
   created_at: number;
   updated_at: number;
 }
