@@ -12,6 +12,7 @@ export interface StrategyTemplateAIProgressEvent {
 
 export interface StrategyTemplateAIGenerationTask {
   taskId: string;
+  conversationId: string;
   status: "queued" | "running" | "succeeded" | "failed";
   progress: number;
   stage: string;

@@ -22,6 +22,29 @@ export interface MarketConditionUpdateTask {
   completedAt?: string;
 }
 
+export interface AlertPipelineTrace {
+  event_id: string;
+  signal_id: string;
+  task_id?: string;
+  notification_id?: number;
+  symbol: string;
+  type: string;
+  severity: string;
+  action?: string;
+  status: string;
+  fallback: boolean;
+  error?: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AlertPipelineStatus {
+  event_bus: Record<string, number>;
+  signal_engine: Record<string, number>;
+  pipeline: Record<string, number>;
+  traces: AlertPipelineTrace[];
+}
+
 export const getServiceConfig = (params: Query = {}) => {
   return http.get<any, Query>(baseUrlApi("service/config"), { params });
 };
@@ -48,4 +71,8 @@ export const getMarketConditionUpdateTask = (taskId: string) => {
 
 export const getLog = (params: Query = {}) => {
   return http.get<any, Query>(baseUrlApi("pm2-log?key=sorry510"), { params });
+};
+
+export const getAlertPipelineStatus = (params: Query = {}) => {
+  return http.get<any, Query>(baseUrlApi("agents/alerts/status"), { params });
 };

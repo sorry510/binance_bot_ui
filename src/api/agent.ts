@@ -4,6 +4,7 @@ type Query = Record<string, any>;
 
 export interface AgentTaskEvent {
   task_id: string;
+  conversation_id?: string;
   stage: string;
   progress: number;
   round?: number;
@@ -43,9 +44,10 @@ export interface TradingPlanV1 {
   evidence: TradingPlanEvidence[];
 }
 
-export interface AgentTask {
+export interface AgentTask<T = any> {
   id: string;
   skill: string;
+  conversation_id?: string;
   status:
     | "queued"
     | "running"
@@ -54,11 +56,12 @@ export interface AgentTask {
     | "validating"
     | "succeeded"
     | "failed"
-    | "cancelled";
+    | "cancelled"
+    | "interrupted";
   stage: string;
   progress: number;
   input: string;
-  result?: TradingPlanV1;
+  result?: T;
   error?: string;
   round: number;
   max_rounds: number;
@@ -121,4 +124,41 @@ export const getSymbolAnalysisHistory = (params: Query = {}) => {
   return http.get<any, Query>(baseUrlApi("agents/symbol-analysis/history"), {
     params
   });
+};
+
+export interface AgentTaskListResult {
+  page: number;
+  limit: number;
+  total: number;
+  list: AgentTask[];
+}
+
+export interface SchedulerJobStatus {
+  name: string;
+  skill: string;
+  enabled: boolean;
+  interval_seconds: number;
+  concurrency_policy: string;
+  running: boolean;
+  last_task_id?: string;
+  last_status?: string;
+  last_error?: string;
+  run_count: number;
+  skip_count: number;
+  last_run_at?: number;
+  next_run_at?: number;
+}
+
+export const getAgentTasks = (params: Query = {}) => {
+  return http.get<any, Query>(baseUrlApi("agents/tasks"), { params });
+};
+
+export const getSchedulerStatus = () => {
+  return http.get<any, Query>(baseUrlApi("agents/scheduler/status"));
+};
+
+export const triggerSchedulerJob = (name: string) => {
+  return http.post<any, Query>(
+    baseUrlApi(`agents/scheduler/jobs/${encodeURIComponent(name)}/trigger`)
+  );
 };

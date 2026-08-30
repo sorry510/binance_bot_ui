@@ -6,10 +6,12 @@ import { useI18n } from "vue-i18n";
 import { getFeaturesOptions } from "../../api/trade";
 import {
   editData,
+  getAlertPipelineStatus,
   getMarketConditionUpdateTask,
   getServiceConfig,
   testPusher,
   updateMarketCondition,
+  type AlertPipelineStatus,
   type MarketConditionUpdateTask
 } from "../../api/service";
 
@@ -30,6 +32,9 @@ const marketAnalysis = ref<{
 const marketUpdateTask = ref<MarketConditionUpdateTask | null>(null);
 let marketProgressTimer: ReturnType<typeof setTimeout> | undefined;
 let marketProgressPollFailures = 0;
+const alertStatus = ref<AlertPipelineStatus | null>(null);
+const alertStatusLoading = ref(false);
+let alertStatusTimer: ReturnType<typeof setTimeout> | undefined;
 const config = reactive<Record<string, any>>({
   tradeFutureEnable: 0,
   wsFuturesEnable: 0,
@@ -42,6 +47,14 @@ const config = reactive<Record<string, any>>({
   WsFuturesLiquidationAlertWindowSec: 60,
   WsFuturesLiquidationAlertNotionalThreshold: 5000000,
   WsFuturesLiquidationAlertCooldownSec: 300,
+  AgentAlertPipelineEnable: 0,
+  AgentAlertAnalysisEnable: 0,
+  AgentAlertMinSeverity: "medium",
+  AgentAlertCooldownSec: 900,
+  AgentAlertMaxConcurrent: 2,
+  AgentAlertMaxPerMinute: 6,
+  AgentMarketRegimeScheduleEnable: 1,
+  AgentMarketRegimeIntervalMin: 60,
   futuresPositionConvertEnable: 0,
   coinAllowLong: 1,
   coinAllowShort: 0,
@@ -94,6 +107,7 @@ const marketOptions = [
   { value: 10 },
   { value: 11 }
 ];
+const alertSeverityOptions = ["low", "medium", "high", "critical"];
 const currentMarketConditionLabel = computed(() => {
   const value = Number(config.marketCondition);
   if (!marketOptions.some(item => item.value === value)) return String(value);
@@ -125,6 +139,29 @@ async function fetchConfig() {
   } finally {
     loading.value = false;
   }
+}
+
+async function fetchAlertStatus() {
+  alertStatusLoading.value = true;
+  try {
+    const res = await getAlertPipelineStatus({ limit: 10 });
+    if (res?.code === 200 && res?.data) {
+      alertStatus.value = res.data as AlertPipelineStatus;
+    }
+  } finally {
+    alertStatusLoading.value = false;
+  }
+}
+
+function scheduleAlertStatusPoll() {
+  if (alertStatusTimer !== undefined) clearTimeout(alertStatusTimer);
+  alertStatusTimer = setTimeout(async () => {
+    try {
+      await fetchAlertStatus();
+    } finally {
+      scheduleAlertStatusPoll();
+    }
+  }, 5000);
 }
 
 async function saveField(field: string, value: any) {
@@ -260,11 +297,16 @@ function gotoTestStrategyResult() {
 }
 
 onMounted(async () => {
-  await Promise.all([fetchConfig(), fetchSymbols()]);
+  await Promise.all([fetchConfig(), fetchSymbols(), fetchAlertStatus()]);
+  scheduleAlertStatusPoll();
 });
 
 onBeforeUnmount(() => {
   clearMarketProgressTimer();
+  if (alertStatusTimer !== undefined) {
+    clearTimeout(alertStatusTimer);
+    alertStatusTimer = undefined;
+  }
 });
 </script>
 
@@ -274,6 +316,8 @@ onBeforeUnmount(() => {
       v-loading="loading"
       :model-value="[
         'futures',
+        'ai_alert',
+        'ai_scheduler',
         'new_coin_rush',
         'coin_notice',
         'market_listen',
@@ -743,6 +787,298 @@ onBeforeUnmount(() => {
         </div>
       </el-collapse-item>
 
+      <el-collapse-item name="ai_alert">
+        <template #title>
+          <div class="dashboard-text flex items-center gap-3">
+            <span>{{ t("dashboard.section.aiAlert") }}</span>
+            <el-tag
+              :type="config.AgentAlertPipelineEnable === 1 ? 'success' : 'info'"
+              size="small"
+            >
+              {{
+                config.AgentAlertPipelineEnable === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="dashboard-body">
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.alertPipelineEnable")
+            }}</span>
+            <el-switch
+              :model-value="config.AgentAlertPipelineEnable"
+              :active-value="1"
+              :inactive-value="0"
+              @change="value => saveField('agent_alert_pipeline_enable', value)"
+            />
+            <span class="hint">{{ t("dashboard.hint.alertPipeline") }}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.alertAIEnable")
+            }}</span>
+            <el-switch
+              :model-value="config.AgentAlertAnalysisEnable"
+              :active-value="1"
+              :inactive-value="0"
+              :disabled="config.AgentAlertPipelineEnable !== 1"
+              @change="value => saveField('agent_alert_analysis_enable', value)"
+            />
+            <span class="hint">{{ t("dashboard.hint.alertAIFallback") }}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.alertMinSeverity")
+            }}</span>
+            <el-select
+              :model-value="config.AgentAlertMinSeverity"
+              class="compact-select"
+              @change="value => saveField('agent_alert_min_severity', value)"
+            >
+              <el-option
+                v-for="item in alertSeverityOptions"
+                :key="item"
+                :label="t(`dashboard.alertSeverity.${item}`)"
+                :value="item"
+              />
+            </el-select>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.alertCooldownSec")
+            }}</span>
+            <el-input
+              v-model="config.AgentAlertCooldownSec"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value => saveField('agent_alert_cooldown_sec', Number(value))
+              "
+            />
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.alertMaxConcurrent")
+            }}</span>
+            <el-input
+              v-model="config.AgentAlertMaxConcurrent"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value => saveField('agent_alert_max_concurrent', Number(value))
+              "
+            />
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.alertMaxPerMinute")
+            }}</span>
+            <el-input
+              v-model="config.AgentAlertMaxPerMinute"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value => saveField('agent_alert_max_per_minute', Number(value))
+              "
+            />
+          </div>
+
+          <div v-loading="alertStatusLoading" class="alert-status-panel">
+            <div class="alert-status-grid">
+              <el-card shadow="never">
+                <template #header>{{
+                  t("dashboard.alertStatus.eventBus")
+                }}</template>
+                <div>
+                  {{ t("dashboard.alertStatus.published") }}:
+                  {{ alertStatus?.event_bus?.published ?? 0 }}
+                </div>
+                <div>
+                  {{ t("dashboard.alertStatus.dropped") }}:
+                  {{ alertStatus?.event_bus?.dropped ?? 0 }}
+                </div>
+                <div>
+                  {{ t("dashboard.alertStatus.queue") }}:
+                  {{ alertStatus?.event_bus?.queue_depth ?? 0 }}/{{
+                    alertStatus?.event_bus?.queue_capacity ?? 0
+                  }}
+                </div>
+              </el-card>
+              <el-card shadow="never">
+                <template #header>{{
+                  t("dashboard.alertStatus.signalEngine")
+                }}</template>
+                <div>
+                  {{ t("dashboard.alertStatus.events") }}:
+                  {{ alertStatus?.signal_engine?.events ?? 0 }}
+                </div>
+                <div>
+                  FastMove:
+                  {{ alertStatus?.signal_engine?.fast_move_signals ?? 0 }}
+                </div>
+                <div>
+                  Liquidation:
+                  {{ alertStatus?.signal_engine?.liquidation_signals ?? 0 }}
+                </div>
+              </el-card>
+              <el-card shadow="never">
+                <template #header>{{
+                  t("dashboard.alertStatus.pipeline")
+                }}</template>
+                <div>
+                  {{ t("dashboard.alertStatus.received") }}:
+                  {{ alertStatus?.pipeline?.signals_received ?? 0 }}
+                </div>
+                <div>
+                  {{ t("dashboard.alertStatus.aiTasks") }}:
+                  {{ alertStatus?.pipeline?.ai_tasks_started ?? 0 }}
+                </div>
+                <div>
+                  {{ t("dashboard.alertStatus.fallbacks") }}:
+                  {{ alertStatus?.pipeline?.ai_fallbacks ?? 0 }}
+                </div>
+                <div>
+                  {{ t("dashboard.alertStatus.notifications") }}:
+                  {{ alertStatus?.pipeline?.notifications ?? 0 }}
+                </div>
+              </el-card>
+            </div>
+
+            <div class="alert-trace-title">
+              {{ t("dashboard.alertStatus.recentTrace") }}
+            </div>
+            <el-table
+              :data="alertStatus?.traces || []"
+              size="small"
+              max-height="320"
+            >
+              <el-table-column
+                prop="symbol"
+                :label="t('dashboard.alertStatus.symbol')"
+                width="110"
+              />
+              <el-table-column
+                prop="type"
+                :label="t('dashboard.alertStatus.signal')"
+                min-width="150"
+              />
+              <el-table-column
+                prop="severity"
+                :label="t('dashboard.alertStatus.severity')"
+                width="90"
+              />
+              <el-table-column
+                prop="status"
+                :label="t('dashboard.alertStatus.status')"
+                min-width="140"
+              />
+              <el-table-column
+                prop="task_id"
+                :label="t('dashboard.alertStatus.taskId')"
+                min-width="180"
+                show-overflow-tooltip
+              />
+              <el-table-column
+                prop="notification_id"
+                :label="t('dashboard.alertStatus.notificationId')"
+                width="110"
+              />
+              <el-table-column
+                :label="t('dashboard.alertStatus.fallback')"
+                width="90"
+              >
+                <template #default="{ row }">
+                  <el-tag
+                    :type="row.fallback ? 'warning' : 'success'"
+                    size="small"
+                  >
+                    {{
+                      row.fallback
+                        ? t("dashboard.state.yes")
+                        : t("dashboard.state.no")
+                    }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </el-collapse-item>
+
+      <el-collapse-item name="ai_scheduler">
+        <template #title>
+          <div class="dashboard-text flex items-center gap-3">
+            <span>{{ t("dashboard.section.aiScheduler") }}</span>
+            <el-tag
+              :type="
+                config.AgentMarketRegimeScheduleEnable === 1
+                  ? 'success'
+                  : 'info'
+              "
+              size="small"
+            >
+              {{
+                config.AgentMarketRegimeScheduleEnable === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="dashboard-body">
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.marketRegimeScheduleEnable")
+            }}</span>
+            <el-switch
+              :model-value="config.AgentMarketRegimeScheduleEnable"
+              :active-value="1"
+              :inactive-value="0"
+              @change="
+                value => saveField('agent_market_regime_schedule_enable', value)
+              "
+            />
+            <span class="hint">{{
+              t("dashboard.hint.marketRegimeSchedule")
+            }}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.marketRegimeIntervalMin")
+            }}</span>
+            <el-input
+              v-model="config.AgentMarketRegimeIntervalMin"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value =>
+                  saveField('agent_market_regime_interval_min', Number(value))
+              "
+            />
+            <span class="hint">min</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.schedulerTaskCenter")
+            }}</span>
+            <el-button
+              type="primary"
+              size="small"
+              @click="router.push({ name: 'AgentTaskCenter' })"
+            >
+              {{ t("dashboard.button.openTaskCenter") }}
+            </el-button>
+          </div>
+        </div>
+      </el-collapse-item>
+
       <el-collapse-item name="new_coin_rush">
         <template #title>
           <div class="dashboard-text">
@@ -954,9 +1290,37 @@ onBeforeUnmount(() => {
   color: #2e7d32;
 }
 
+.alert-status-panel {
+  margin-top: 20px;
+}
+
+.alert-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.alert-status-grid :deep(.el-card__body) {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--el-text-color-regular);
+}
+
+.alert-trace-title {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
 .external-links {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
+}
+
+@media (width <= 900px) {
+  .alert-status-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

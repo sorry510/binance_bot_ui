@@ -82,6 +82,7 @@ menus:
   dashboard: 配置中心
   ai: AI
   symbolAnalysis: 单币分析
+  agentTaskCenter: 任务中心
   notification: 通知
   notifyConfig: 通知配置
   notificationHistory: 历史通知
@@ -96,7 +97,6 @@ menus:
   spotNotice: 现货提醒
   futuresNotice: 合约提醒
   marketListen: 市场监听
-  marketNoticeLogs: 市场波动日志
   spotListen: 现货监听
   futuresListen: 合约监听
   fundingRate: 资金费率监听
@@ -128,6 +128,8 @@ login:
 dashboard:
   section:
     futures: 合约交易
+    aiAlert: AI 事件报警
+    aiScheduler: AI 调度任务
     newCoinRush: 抢新配置
     coinNotice: 币种提醒
     marketListen: 市场监听
@@ -136,15 +138,24 @@ dashboard:
     externalLinks: 外部链接
   field:
     websocket: WebSocket
-    fastMoveEnable: 快速波动通知开关
+    fastMoveEnable: FastMove Signal 监测开关
     fastMoveThreshold: 快速波动阈值(%)
     fastMoveRecover: 快速波动恢复阈值(%)
     fastMoveCooldownSec: 快速波动通知冷却时间(秒)
     fastMoveWindows: 快速波动窗口配置
     liquidationCollectionEnable: 强平订单 WebSocket 采集
-    liquidationAlertWindowSec: BTC 大额强平聚合窗口(秒)
-    liquidationAlertNotionalThreshold: BTC 大额强平告警阈值
-    liquidationAlertCooldownSec: BTC 大额强平告警冷却(秒)
+    liquidationAlertWindowSec: BTC 强平 Signal 聚合窗口(秒)
+    liquidationAlertNotionalThreshold: BTC 强平 Signal 名义金额阈值
+    liquidationAlertCooldownSec: BTC 强平 Signal 冷却(秒)
+    alertPipelineEnable: Event/Signal 报警链路
+    alertAIEnable: AI Alert 分析
+    alertMinSeverity: 最低报警级别
+    alertCooldownSec: Signal 报警冷却(秒)
+    alertMaxConcurrent: AI Alert 最大并发
+    alertMaxPerMinute: AI Alert 每分钟预算
+    marketRegimeScheduleEnable: 市场趋势 Scheduler
+    marketRegimeIntervalMin: 市场趋势执行周期(分钟)
+    schedulerTaskCenter: 调度与任务历史
     positionConvert: 仓位收益正负转换通知
     allowLong: 允许做多
     allowShort: 允许做空
@@ -169,9 +180,13 @@ dashboard:
     updateNow: 立即更新
     viewTestResult: 查看测试结果
     testPush: 测试推送
+    openTaskCenter: 打开任务中心
   hint:
     autoUpdatePrice: 自动更新价格
-    autoRefresh: 每 60 分钟自动刷新
+    autoRefresh: 由 AI Scheduler 按配置周期自动更新
+    alertPipeline: FastMove 和强平只使用新 Pipeline；关闭时仍计算 Signal，但不发送这两类报警。
+    alertAIFallback: AI 关闭、超预算或失败时自动使用确定性规则通知，不影响 WebSocket。
+    marketRegimeSchedule: 仅在市场趋势自动更新开启时运行；使用统一 Agent Task，重启后仍可查询历史。
     limitMode: 限价单模式
     marketMode: 市价单模式
     testAutoTradeLimit: 非 0 时，测试策略连续盈利 n 次后，自动切换真实交易，真实交易连续亏损后 n 次后，切换回测试策略
@@ -179,6 +194,33 @@ dashboard:
   state:
     on: 开启
     off: 关闭
+    yes: 是
+    no: 否
+  alertSeverity:
+    low: 低
+    medium: 中
+    high: 高
+    critical: 严重
+  alertStatus:
+    eventBus: Event Bus
+    signalEngine: Signal Engine
+    pipeline: Alert Pipeline
+    published: 已发布事件
+    dropped: 丢弃事件
+    queue: 队列
+    events: 已处理事件
+    received: 已接收 Signal
+    aiTasks: AI Task
+    fallbacks: AI Fallback
+    notifications: 通知数
+    recentTrace: 最近 Event → Signal → Task → Notification Trace
+    symbol: 合约
+    signal: Signal
+    severity: 级别
+    status: 状态
+    taskId: Task ID
+    notificationId: 通知 ID
+    fallback: Fallback
   orderType:
     market: MARKET
     limit: LIMIT
@@ -233,6 +275,66 @@ dashboard:
     progressQueryFail: 查询 AI 分析进度失败
     sendSuccess: 发送成功
     sendFail: 发送失败
+agentTaskCenter:
+  scheduler:
+    title: Agent Scheduler
+    name: Job
+    skill: Skill
+    enabled: 启用
+    interval: 周期
+    running: 运行中
+    runs: 执行次数
+    skips: 跳过次数
+    nextRun: 下次执行
+    lastStatus: 上次状态
+  tasks:
+    title: Agent Task 历史
+    total: "共 {total} 条"
+  button:
+    refresh: 刷新
+    trigger: 立即执行
+    search: 查询
+    reset: 重置
+    view: 查看
+  placeholder:
+    skill: Skill
+    status: 状态
+  table:
+    time: 创建时间
+    skill: Skill
+    status: 状态
+    stage: 阶段
+    progress: 进度
+    provider: Provider
+    model: Model
+    tokens: Token
+    conversation: Conversation ID
+    operation: 操作
+  status:
+    queued: 排队中
+    running: 运行中
+    waiting_llm: 等待 AI
+    waiting_tool: 调用工具
+    validating: 校验中
+    succeeded: 已完成
+    failed: 失败
+    cancelled: 已取消
+    interrupted: 进程中断
+  state:
+    yes: 是
+    no: 否
+  detail:
+    title: Agent Task 详情
+    input: 输入
+    result: 结果
+    events: 执行事件
+    round: 轮次
+    tool: Tool
+    message: 信息
+  message:
+    triggered: Scheduler Job 已触发
+    triggerFailed: Scheduler Job 触发失败
+
 symbolAnalysisPage:
   title: AI 单币分析
   button:
@@ -979,42 +1081,6 @@ testOrderPage:
     deleteSuccess: 删除成功
     deleteFilteredSuccess: 已删除 {count} 条测试结果
     searchRequired: 请至少设置一个搜索条件
-marketListenLogPage:
-  button:
-    search: 查询
-    group: 分组
-    reset: 重置
-    ungroup: 取消分组
-  placeholder:
-    symbol: 币种
-    noticeType: 通知类型
-    direction: 方向
-    startTime: 开始时间
-    endTime: 结束时间
-  label:
-    total: 总数
-  noticeType:
-    fast_move: 快速波动
-    price_change: 价格变动
-  direction:
-    up: 上涨
-    down: 下跌
-  table:
-    id: ID
-    symbol: 币种
-    groupCount: 条数
-    latestCreateTime: 最新时间
-    noticeType: 通知类型
-    window: 窗口
-    direction: 方向
-    source: 来源
-    price: 当前价格
-    basePrice: 基准价格
-    changePercent: 变动幅度(%)
-    thresholdPercent: 阈值(%)
-    content: 内容
-    createTime: 创建时间
-    updateTime: 更新时间
 liquidationOrderPage:
   button:
     search: 查询

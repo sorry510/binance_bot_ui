@@ -56,6 +56,16 @@ export default [
           showLink: true,
           showParent: true
         }
+      },
+      {
+        path: "/ai/task-center",
+        name: "AgentTaskCenter",
+        component: () => import("@/views/ai/taskCenter.vue"),
+        meta: {
+          title: "menus.agentTaskCenter",
+          showLink: true,
+          showParent: true
+        }
       }
     ]
   }

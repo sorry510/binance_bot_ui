@@ -82,6 +82,7 @@ menus:
   dashboard: Dashboard
   ai: AI
   symbolAnalysis: Symbol Analysis
+  agentTaskCenter: Task Center
   notification: Notifications
   notifyConfig: Notify Config
   notificationHistory: Notification History
@@ -96,7 +97,6 @@ menus:
   spotNotice: Spot Notice
   futuresNotice: Futures Notice
   marketListen: Market Listen
-  marketNoticeLogs: Market Notice Logs
   spotListen: Spot Listen
   futuresListen: Futures Listen
   fundingRate: Funding Rate Listen
@@ -128,6 +128,8 @@ login:
 dashboard:
   section:
     futures: Futures Trade
+    aiAlert: AI Event Alerts
+    aiScheduler: AI Scheduler
     newCoinRush: New Coin Rush
     coinNotice: Coin Notice
     marketListen: Market Listener
@@ -136,15 +138,24 @@ dashboard:
     externalLinks: External Links
   field:
     websocket: WebSocket
-    fastMoveEnable: Fast move notice switch
+    fastMoveEnable: FastMove Signal monitoring
     fastMoveThreshold: Fast move threshold (%)
     fastMoveRecover: Fast move recover threshold (%)
     fastMoveCooldownSec: Fast move notice cooldown (sec)
     fastMoveWindows: Fast move windows config
     liquidationCollectionEnable: Liquidation order WebSocket collection
-    liquidationAlertWindowSec: BTC liquidation aggregate window (sec)
-    liquidationAlertNotionalThreshold: BTC liquidation alert threshold
-    liquidationAlertCooldownSec: BTC liquidation alert cooldown (sec)
+    liquidationAlertWindowSec: BTC liquidation Signal window (sec)
+    liquidationAlertNotionalThreshold: BTC liquidation Signal notional threshold
+    liquidationAlertCooldownSec: BTC liquidation Signal cooldown (sec)
+    alertPipelineEnable: Event/Signal alert pipeline
+    alertAIEnable: AI alert analysis
+    alertMinSeverity: Minimum alert severity
+    alertCooldownSec: Signal alert cooldown (sec)
+    alertMaxConcurrent: Max concurrent AI alerts
+    alertMaxPerMinute: AI alerts per minute budget
+    marketRegimeScheduleEnable: Market regime Scheduler
+    marketRegimeIntervalMin: Market regime interval (min)
+    schedulerTaskCenter: Scheduler and task history
     positionConvert: futures position convert notice
     allowLong: Allow Long
     allowShort: Allow Short
@@ -169,9 +180,13 @@ dashboard:
     updateNow: Update Now
     viewTestResult: View Test Result
     testPush: Test Push
+    openTaskCenter: Open Task Center
   hint:
     autoUpdatePrice: Auto update price
-    autoRefresh: Auto refresh every 60 minutes
+    autoRefresh: Automatically updated by the AI Scheduler at the configured interval
+    alertPipeline: FastMove and liquidation alerts use only the new Pipeline; when off, Signals are still evaluated but these alerts are not sent.
+    alertAIFallback: If AI is disabled, over budget, or fails, deterministic fallback notifications continue without blocking WebSocket processing.
+    marketRegimeSchedule: Runs only when automatic market-condition updates are enabled; uses persistent Agent Tasks.
     limitMode: Limit order mode
     marketMode: Market order mode
     testAutoTradeLimit: Non-zero:after n consecutive wins of the test strategy, automatically switch to real trading. After n consecutive losses in real trading, switch back to the test strategy.
@@ -179,6 +194,33 @@ dashboard:
   state:
     on: ON
     off: OFF
+    yes: Yes
+    no: No
+  alertSeverity:
+    low: Low
+    medium: Medium
+    high: High
+    critical: Critical
+  alertStatus:
+    eventBus: Event Bus
+    signalEngine: Signal Engine
+    pipeline: Alert Pipeline
+    published: Published events
+    dropped: Dropped events
+    queue: Queue
+    events: Processed events
+    received: Received Signals
+    aiTasks: AI Tasks
+    fallbacks: AI Fallbacks
+    notifications: Notifications
+    recentTrace: Recent Event → Signal → Task → Notification Trace
+    symbol: Symbol
+    signal: Signal
+    severity: Severity
+    status: Status
+    taskId: Task ID
+    notificationId: Notification ID
+    fallback: Fallback
   orderType:
     market: MARKET
     limit: LIMIT
@@ -233,6 +275,66 @@ dashboard:
     progressQueryFail: Failed to query AI analysis progress
     sendSuccess: Sent successfully
     sendFail: Send failed
+agentTaskCenter:
+  scheduler:
+    title: Agent Scheduler
+    name: Job
+    skill: Skill
+    enabled: Enabled
+    interval: Interval
+    running: Running
+    runs: Runs
+    skips: Skips
+    nextRun: Next Run
+    lastStatus: Last Status
+  tasks:
+    title: Agent Task History
+    total: "{total} records"
+  button:
+    refresh: Refresh
+    trigger: Run Now
+    search: Search
+    reset: Reset
+    view: View
+  placeholder:
+    skill: Skill
+    status: Status
+  table:
+    time: Created At
+    skill: Skill
+    status: Status
+    stage: Stage
+    progress: Progress
+    provider: Provider
+    model: Model
+    tokens: Tokens
+    conversation: Conversation ID
+    operation: Action
+  status:
+    queued: Queued
+    running: Running
+    waiting_llm: Waiting for AI
+    waiting_tool: Calling Tool
+    validating: Validating
+    succeeded: Completed
+    failed: Failed
+    cancelled: Cancelled
+    interrupted: Interrupted by Restart
+  state:
+    yes: Yes
+    no: No
+  detail:
+    title: Agent Task Details
+    input: Input
+    result: Result
+    events: Execution Events
+    round: Round
+    tool: Tool
+    message: Message
+  message:
+    triggered: Scheduler job triggered
+    triggerFailed: Failed to trigger scheduler job
+
 symbolAnalysisPage:
   title: AI Symbol Analysis
   button:
@@ -979,42 +1081,6 @@ testOrderPage:
     deleteSuccess: Deleted successfully
     deleteFilteredSuccess: Deleted {count} test results
     searchRequired: Set at least one search condition
-marketListenLogPage:
-  button:
-    search: Search
-    group: Group
-    reset: Reset
-    ungroup: Ungroup
-  placeholder:
-    symbol: Symbol
-    noticeType: Notice Type
-    direction: Direction
-    startTime: Start Time
-    endTime: End Time
-  label:
-    total: Total
-  noticeType:
-    fast_move: Fast Move
-    price_change: Price Change
-  direction:
-    up: Up
-    down: Down
-  table:
-    id: ID
-    symbol: Symbol
-    groupCount: Count
-    latestCreateTime: Latest Time
-    noticeType: Notice Type
-    window: Window
-    direction: Direction
-    source: Source
-    price: Current Price
-    basePrice: Base Price
-    changePercent: Change Percent (%)
-    thresholdPercent: Threshold (%)
-    content: Content
-    createTime: Create Time
-    updateTime: Update Time
 liquidationOrderPage:
   button:
     search: Search

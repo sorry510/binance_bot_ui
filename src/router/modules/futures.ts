@@ -68,15 +68,6 @@ export default [
         }
       },
       {
-        path: "/futures/market-notice-logs",
-        name: "marketNoticeLogs",
-        component: () => import("@/views/logs/futures/marketListen.vue"),
-        meta: {
-          title: "menus.marketNoticeLogs",
-          showLink: true
-        }
-      },
-      {
         path: "/futures/liquidation-orders",
         name: "futuresLiquidationOrders",
         component: () => import("@/views/futures/liquidationOrder.vue"),

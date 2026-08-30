@@ -153,6 +153,12 @@ const aiGeneratedJson = ref("");
 const aiValidationError = ref("");
 const aiImportLoading = ref(false);
 const aiTask = ref<StrategyTemplateAIGenerationTask | null>(null);
+const aiConversationStorageKey = "strategy_builder_conversation_id";
+const aiTaskStorageKey = "strategy_builder_task_id";
+const aiConversationId = ref(
+  localStorage.getItem(aiConversationStorageKey) || ""
+);
+const aiLastTaskId = ref(localStorage.getItem(aiTaskStorageKey) || "");
 let aiProgressTimer: ReturnType<typeof setTimeout> | undefined;
 let aiProgressPollFailures = 0;
 
@@ -563,13 +569,20 @@ async function generateTemplateWithAI() {
       prompt,
       previousJson: aiGeneratedJson.value || undefined,
       validationError: aiValidationError.value || undefined,
-      conversationId: aiTask.value?.taskId
+      conversationId:
+        aiTask.value?.conversationId || aiConversationId.value || undefined
     });
     if (Number(res?.code) !== 200 || !res?.data?.taskId) {
       throw new Error(res?.msg || t("strategyTemplatePage.ai.generateFailed"));
     }
     aiValidationError.value = "";
     aiTask.value = res.data as StrategyTemplateAIGenerationTask;
+    aiConversationId.value = aiTask.value.conversationId || "";
+    if (aiConversationId.value) {
+      localStorage.setItem(aiConversationStorageKey, aiConversationId.value);
+    }
+    aiLastTaskId.value = aiTask.value.taskId;
+    localStorage.setItem(aiTaskStorageKey, aiLastTaskId.value);
     aiProgressPollFailures = 0;
     scheduleAIProgressPoll(0);
   } catch (error) {
@@ -595,6 +608,12 @@ async function pollAIGenerationProgress() {
     }
     const task = res.data as StrategyTemplateAIGenerationTask;
     aiTask.value = task;
+    aiLastTaskId.value = task.taskId;
+    localStorage.setItem(aiTaskStorageKey, task.taskId);
+    if (task.conversationId) {
+      aiConversationId.value = task.conversationId;
+      localStorage.setItem(aiConversationStorageKey, task.conversationId);
+    }
     aiProgressPollFailures = 0;
 
     if (task.status === "succeeded") {
@@ -669,6 +688,10 @@ async function importAIGeneratedTemplate() {
     if (aiTask.value) {
       aiTask.value = { ...aiTask.value, imported: true };
     }
+    aiConversationId.value = "";
+    aiLastTaskId.value = "";
+    localStorage.removeItem(aiConversationStorageKey);
+    localStorage.removeItem(aiTaskStorageKey);
     aiDialogVisible.value = false;
     clearAIProgressTimer();
     query.page = 1;
@@ -678,6 +701,38 @@ async function importAIGeneratedTemplate() {
     await syncAITaskAfterImportFailure(taskId);
   } finally {
     aiImportLoading.value = false;
+  }
+}
+
+async function restoreStoredAITask() {
+  const taskId = aiLastTaskId.value;
+  if (!taskId) return;
+  try {
+    const res = await getAIGenerationTask(taskId);
+    if (Number(res?.code) !== 200 || !res?.data) return;
+    const task = res.data as StrategyTemplateAIGenerationTask;
+    aiTask.value = task;
+    if (task.conversationId) {
+      aiConversationId.value = task.conversationId;
+      localStorage.setItem(aiConversationStorageKey, task.conversationId);
+    }
+    if (task.status === "succeeded") {
+      aiGeneratedJson.value = task.json || "";
+      aiValidationError.value = task.validationError || "";
+    } else if (task.status === "failed") {
+      aiGeneratedJson.value = task.json || "";
+      aiValidationError.value = task.error || task.validationError || "";
+    } else if (["queued", "running"].includes(task.status)) {
+      scheduleAIProgressPoll(0);
+    }
+    if (task.imported) {
+      aiConversationId.value = "";
+      aiLastTaskId.value = "";
+      localStorage.removeItem(aiConversationStorageKey);
+      localStorage.removeItem(aiTaskStorageKey);
+    }
+  } catch {
+    // Keep persisted IDs so a temporary request failure does not lose recovery state.
   }
 }
 
@@ -1007,7 +1062,9 @@ async function onTestStrategyRule() {
   }
 }
 
-onMounted(fetchData);
+onMounted(async () => {
+  await Promise.all([fetchData(), restoreStoredAITask()]);
+});
 onBeforeUnmount(clearAIProgressTimer);
 </script>
 
