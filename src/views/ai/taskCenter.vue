@@ -4,10 +4,12 @@ import dayjs from "dayjs";
 import { ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
 import {
+  getAgentGovernanceStatus,
   getAgentTask,
   getAgentTasks,
   getSchedulerStatus,
   triggerSchedulerJob,
+  type AgentGovernanceStatus,
   type AgentTask,
   type AgentTaskListResult,
   type SchedulerJobStatus
@@ -21,6 +23,8 @@ const schedulerLoading = ref(false);
 const tasks = ref<AgentTask[]>([]);
 const total = ref(0);
 const schedulerJobs = ref<SchedulerJobStatus[]>([]);
+const governance = ref<AgentGovernanceStatus | null>(null);
+const governanceLoading = ref(false);
 const detailVisible = ref(false);
 const detailLoading = ref(false);
 const detail = ref<AgentTask | null>(null);
@@ -93,6 +97,16 @@ async function fetchTasks(reset = false) {
   }
 }
 
+async function fetchGovernance() {
+  governanceLoading.value = true;
+  try {
+    const res = await getAgentGovernanceStatus();
+    governance.value = (res?.data || null) as AgentGovernanceStatus | null;
+  } finally {
+    governanceLoading.value = false;
+  }
+}
+
 async function fetchScheduler() {
   schedulerLoading.value = true;
   try {
@@ -130,7 +144,7 @@ function scheduleRefresh() {
   if (timer !== undefined) clearTimeout(timer);
   timer = setTimeout(async () => {
     try {
-      await Promise.all([fetchScheduler(), fetchTasks()]);
+      await Promise.all([fetchGovernance(), fetchScheduler(), fetchTasks()]);
     } finally {
       scheduleRefresh();
     }
@@ -138,7 +152,7 @@ function scheduleRefresh() {
 }
 
 onMounted(async () => {
-  await Promise.all([fetchTasks(), fetchScheduler()]);
+  await Promise.all([fetchTasks(), fetchScheduler(), fetchGovernance()]);
   scheduleRefresh();
 });
 
@@ -149,6 +163,106 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="task-center p-4">
+    <el-card v-loading="governanceLoading" shadow="never" class="mb-4">
+      <template #header>
+        <div class="flex items-center justify-between">
+          <span>{{ t("agentTaskCenter.governance.title") }}</span>
+          <el-button size="small" @click="fetchGovernance">{{
+            t("agentTaskCenter.button.refresh")
+          }}</el-button>
+        </div>
+      </template>
+      <div class="mb-3 flex flex-wrap gap-2">
+        <el-tag
+          v-for="(enabled, skill) in governance?.governance?.skills || {}"
+          :key="skill"
+          :type="enabled ? 'success' : 'info'"
+          >{{ skill }}:
+          {{
+            enabled
+              ? t("agentTaskCenter.state.yes")
+              : t("agentTaskCenter.state.no")
+          }}</el-tag
+        >
+        <el-tag type="danger"
+          >trade:
+          {{ governance?.governance?.trade_enabled ? "ON" : "OFF" }}</el-tag
+        >
+      </div>
+      <el-descriptions :column="4" border size="small">
+        <el-descriptions-item :label="t('agentTaskCenter.governance.minute')">
+          {{ governance?.governance?.admission?.recent_minute || 0 }}/{{
+            governance?.governance?.admission?.limits?.per_minute || 0
+          }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="t('agentTaskCenter.governance.hour')">
+          {{ governance?.governance?.admission?.recent_hour || 0 }}/{{
+            governance?.governance?.admission?.limits?.per_hour || 0
+          }}
+        </el-descriptions-item>
+        <el-descriptions-item
+          :label="t('agentTaskCenter.governance.accepted')"
+          >{{
+            governance?.governance?.admission?.accepted || 0
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="t('agentTaskCenter.governance.rejected')"
+          >{{
+            governance?.governance?.admission?.rejected || 0
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item :label="t('agentTaskCenter.governance.tasks')">{{
+          governance?.metrics?.global?.tasks_started || 0
+        }}</el-descriptions-item>
+        <el-descriptions-item
+          :label="t('agentTaskCenter.governance.success')"
+          >{{
+            governance?.metrics?.global?.tasks_succeeded || 0
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item :label="t('agentTaskCenter.governance.failed')">{{
+          governance?.metrics?.global?.tasks_failed || 0
+        }}</el-descriptions-item>
+        <el-descriptions-item :label="t('agentTaskCenter.governance.active')">{{
+          governance?.metrics?.global?.active_tasks || 0
+        }}</el-descriptions-item>
+        <el-descriptions-item :label="t('agentTaskCenter.governance.llmErrors')"
+          >{{ governance?.metrics?.global?.llm_errors || 0 }}/{{
+            governance?.metrics?.global?.llm_calls || 0
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="t('agentTaskCenter.governance.toolErrors')"
+          >{{ governance?.metrics?.global?.tool_errors || 0 }}/{{
+            governance?.metrics?.global?.tool_calls || 0
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="t('agentTaskCenter.governance.repairs')"
+          >{{ governance?.metrics?.global?.repairs || 0 }}</el-descriptions-item
+        >
+        <el-descriptions-item :label="t('agentTaskCenter.governance.tokens')">{{
+          governance?.metrics?.global?.total_tokens || 0
+        }}</el-descriptions-item>
+        <el-descriptions-item label="P50"
+          >{{
+            governance?.metrics?.global?.p50_duration_ms || 0
+          }}
+          ms</el-descriptions-item
+        >
+        <el-descriptions-item label="P95"
+          >{{
+            governance?.metrics?.global?.p95_duration_ms || 0
+          }}
+          ms</el-descriptions-item
+        >
+        <el-descriptions-item :label="t('agentTaskCenter.governance.rounds')">{{
+          Number(governance?.metrics?.global?.average_rounds || 0).toFixed(2)
+        }}</el-descriptions-item>
+      </el-descriptions>
+    </el-card>
+
     <el-card v-loading="schedulerLoading" shadow="never" class="mb-4">
       <template #header>
         <div class="flex items-center justify-between">

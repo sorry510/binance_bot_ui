@@ -162,3 +162,81 @@ export const triggerSchedulerJob = (name: string) => {
     baseUrlApi(`agents/scheduler/jobs/${encodeURIComponent(name)}/trigger`)
   );
 };
+
+export interface AgentRuntimeMetrics {
+  tasks_started: number;
+  tasks_succeeded: number;
+  tasks_failed: number;
+  tasks_cancelled: number;
+  active_tasks: number;
+  llm_calls: number;
+  llm_errors: number;
+  tool_calls: number;
+  tool_errors: number;
+  validation_errors: number;
+  repairs: number;
+  total_tokens: number;
+  average_rounds: number;
+  p50_duration_ms: number;
+  p95_duration_ms: number;
+}
+
+export interface AgentGovernanceStatus {
+  governance: {
+    skills: Record<string, boolean>;
+    admission: {
+      limits: { per_minute: number; per_hour: number };
+      recent_minute: number;
+      recent_hour: number;
+      accepted: number;
+      rejected: number;
+    };
+    default_budget: { max_tool_calls: number; max_total_tokens: number };
+    trade_enabled: boolean;
+  };
+  metrics: {
+    global: AgentRuntimeMetrics;
+    skills: Record<string, AgentRuntimeMetrics>;
+  };
+}
+
+export const getAgentGovernanceStatus = () => {
+  return http.get<any, Query>(baseUrlApi("agents/governance/status"));
+};
+
+export interface AgentSkillConfig {
+  id: number;
+  name: string;
+  display_name: string;
+  description: string;
+  enabled: number;
+  max_tool_calls: number;
+  max_tokens: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AgentSkillImplementation {
+  name: string;
+  display_name: string;
+  description: string;
+}
+export const getAgentSkills = () => {
+  return http.get<any, Query>(baseUrlApi("agents/skills"));
+};
+
+export const getAgentSkillImplementations = () => {
+  return http.get<any, Query>(baseUrlApi("agents/skills/implementations"));
+};
+
+export const createAgentSkill = (data: Record<string, any>) => {
+  return http.post<any, typeof data>(baseUrlApi("agents/skills"), { data });
+};
+
+export const updateAgentSkill = (id: number, data: Record<string, any>) => {
+  return http.request<any>("put", baseUrlApi(`agents/skills/${id}`), { data });
+};
+
+export const deleteAgentSkill = (id: number) => {
+  return http.request<any>("delete", baseUrlApi(`agents/skills/${id}`));
+};

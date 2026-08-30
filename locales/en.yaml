@@ -82,6 +82,7 @@ menus:
   dashboard: Dashboard
   ai: AI
   symbolAnalysis: Symbol Analysis
+  agentSkillManagement: Skill Management
   agentTaskCenter: Task Center
   notification: Notifications
   notifyConfig: Notify Config
@@ -130,6 +131,7 @@ dashboard:
     futures: Futures Trade
     aiAlert: AI Event Alerts
     aiScheduler: AI Scheduler
+    aiGovernance: AI Governance & Budgets
     newCoinRush: New Coin Rush
     coinNotice: Coin Notice
     marketListen: Market Listener
@@ -156,6 +158,11 @@ dashboard:
     marketRegimeScheduleEnable: Market regime Scheduler
     marketRegimeIntervalMin: Market regime interval (min)
     schedulerTaskCenter: Scheduler and task history
+    skillManagement: Skill Management
+    agentStartsPerMinute: Agent starts per minute
+    agentStartsPerHour: Agent starts per hour
+    agentMaxTokens: Max tokens per task
+    agentMaxToolCalls: Max tool calls per task
     positionConvert: futures position convert notice
     allowLong: Allow Long
     allowShort: Allow Short
@@ -180,6 +187,7 @@ dashboard:
     updateNow: Update Now
     viewTestResult: View Test Result
     testPush: Test Push
+    openSkillManagement: Open Skill Management
     openTaskCenter: Open Task Center
   hint:
     autoUpdatePrice: Auto update price
@@ -187,6 +195,8 @@ dashboard:
     alertPipeline: FastMove and liquidation alerts use only the new Pipeline; when off, Signals are still evaluated but these alerts are not sent.
     alertAIFallback: If AI is disabled, over budget, or fails, deterministic fallback notifications continue without blocking WebSocket processing.
     marketRegimeSchedule: Runs only when automatic market-condition updates are enabled; uses persistent Agent Tasks.
+    tradeDisabled: Trade Tools globally disabled
+    skillBudgetCaps: Each Skill also has a stricter tool-call cap; the smaller limit applies.
     limitMode: Limit order mode
     marketMode: Market order mode
     testAutoTradeLimit: Non-zero:after n consecutive wins of the test strategy, automatically switch to real trading. After n consecutive losses in real trading, switch back to the test strategy.
@@ -276,6 +286,21 @@ dashboard:
     sendSuccess: Sent successfully
     sendFail: Send failed
 agentTaskCenter:
+  governance:
+    title: Agent Governance & Runtime Metrics
+    minute: Starts this minute
+    hour: Starts this hour
+    accepted: Accepted
+    rejected: Rejected
+    tasks: Tasks
+    success: Succeeded
+    failed: Failed
+    active: Active Tasks
+    llmErrors: LLM errors/calls
+    toolErrors: Tool errors/calls
+    repairs: Repairs
+    tokens: Total Tokens
+    rounds: Average Rounds
   scheduler:
     title: Agent Scheduler
     name: Job
@@ -334,6 +359,37 @@ agentTaskCenter:
   message:
     triggered: Scheduler job triggered
     triggerFailed: Failed to trigger scheduler job
+
+agentSkillPage:
+  title: Agent Skill Management
+  hint:
+    implementation: The database stores Skill registration and governance settings; executable implementations remain in backend code. Deleting a row disables runtime startup until it is recreated.
+    zeroUsesGlobal: 0 uses the global limit
+  button:
+    add: Add Skill
+    edit: Edit
+    delete: Delete
+    cancel: Cancel
+    save: Save
+  table:
+    displayName: Display Name
+    description: Description
+    enabled: Enabled
+    maxToolCalls: Max Tool Calls
+    maxTokens: Max Tokens
+    operation: Action
+  dialog:
+    add: Add Agent Skill
+    edit: Edit Agent Skill
+  confirm:
+    title: Confirm
+    delete: Delete Skill {name}? Runtime will reject this Skill until it is recreated.
+  message:
+    nameRequired: Select a Skill implementation
+    saved: Skill saved
+    saveFailed: Failed to save Skill
+    deleted: Skill deleted
+    deleteFailed: Failed to delete Skill
 
 symbolAnalysisPage:
   title: AI Symbol Analysis

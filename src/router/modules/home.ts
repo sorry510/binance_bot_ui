@@ -66,6 +66,16 @@ export default [
           showLink: true,
           showParent: true
         }
+      },
+      {
+        path: "/ai/skills",
+        name: "AgentSkillManagement",
+        component: () => import("@/views/ai/skillManagement.vue"),
+        meta: {
+          title: "menus.agentSkillManagement",
+          showLink: true,
+          showParent: true
+        }
       }
     ]
   }

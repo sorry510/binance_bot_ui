@@ -55,6 +55,10 @@ const config = reactive<Record<string, any>>({
   AgentAlertMaxPerMinute: 6,
   AgentMarketRegimeScheduleEnable: 1,
   AgentMarketRegimeIntervalMin: 60,
+  AgentMaxStartsPerMinute: 30,
+  AgentMaxStartsPerHour: 300,
+  AgentMaxTokensPerTask: 120000,
+  AgentMaxToolCallsPerTask: 12,
   futuresPositionConvertEnable: 0,
   coinAllowLong: 1,
   coinAllowShort: 0,
@@ -318,6 +322,7 @@ onBeforeUnmount(() => {
         'futures',
         'ai_alert',
         'ai_scheduler',
+        'ai_governance',
         'new_coin_rush',
         'coin_notice',
         'market_listen',
@@ -1075,6 +1080,89 @@ onBeforeUnmount(() => {
             >
               {{ t("dashboard.button.openTaskCenter") }}
             </el-button>
+          </div>
+        </div>
+      </el-collapse-item>
+
+      <el-collapse-item name="ai_governance">
+        <template #title>
+          <div class="dashboard-text flex items-center gap-3">
+            <span>{{ t("dashboard.section.aiGovernance") }}</span>
+            <el-tag type="warning" size="small">
+              {{ t("dashboard.hint.tradeDisabled") }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="dashboard-body">
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.skillManagement")
+            }}</span>
+            <el-button
+              type="primary"
+              size="small"
+              @click="router.push({ name: 'AgentSkillManagement' })"
+            >
+              {{ t("dashboard.button.openSkillManagement") }}
+            </el-button>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.agentStartsPerMinute")
+            }}</span>
+            <el-input
+              v-model="config.AgentMaxStartsPerMinute"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value => saveField('agent_max_starts_per_minute', Number(value))
+              "
+            />
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.agentStartsPerHour")
+            }}</span>
+            <el-input
+              v-model="config.AgentMaxStartsPerHour"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value => saveField('agent_max_starts_per_hour', Number(value))
+              "
+            />
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.agentMaxTokens")
+            }}</span>
+            <el-input
+              v-model="config.AgentMaxTokensPerTask"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value => saveField('agent_max_tokens_per_task', Number(value))
+              "
+            />
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.agentMaxToolCalls")
+            }}</span>
+            <el-input
+              v-model="config.AgentMaxToolCallsPerTask"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value =>
+                  saveField('agent_max_tool_calls_per_task', Number(value))
+              "
+            />
+            <span class="hint">{{ t("dashboard.hint.skillBudgetCaps") }}</span>
           </div>
         </div>
       </el-collapse-item>
