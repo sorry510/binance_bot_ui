@@ -76,6 +76,16 @@ export default [
           showLink: true,
           showParent: true
         }
+      },
+      {
+        path: "/ai/llm-config",
+        name: "LLMConfigManagement",
+        component: () => import("@/views/ai/llmConfig.vue"),
+        meta: {
+          title: "menus.llmConfig",
+          showLink: true,
+          showParent: true
+        }
       }
     ]
   }

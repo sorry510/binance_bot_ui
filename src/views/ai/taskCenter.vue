@@ -84,36 +84,40 @@ function prettyJSON(value: unknown) {
   }
 }
 
-async function fetchTasks(reset = false) {
+function formatRate(value?: number) {
+  return `${(Number(value || 0) * 100).toFixed(1)}%`;
+}
+
+async function fetchTasks(reset = false, showLoading = true) {
   if (reset) query.page = 1;
-  loading.value = true;
+  if (showLoading) loading.value = true;
   try {
     const res = await getAgentTasks({ ...query });
     const data = (res?.data || {}) as AgentTaskListResult;
     tasks.value = data.list || [];
     total.value = Number(data.total || 0);
   } finally {
-    loading.value = false;
+    if (showLoading) loading.value = false;
   }
 }
 
-async function fetchGovernance() {
-  governanceLoading.value = true;
+async function fetchGovernance(showLoading = true) {
+  if (showLoading) governanceLoading.value = true;
   try {
     const res = await getAgentGovernanceStatus();
     governance.value = (res?.data || null) as AgentGovernanceStatus | null;
   } finally {
-    governanceLoading.value = false;
+    if (showLoading) governanceLoading.value = false;
   }
 }
 
-async function fetchScheduler() {
-  schedulerLoading.value = true;
+async function fetchScheduler(showLoading = true) {
+  if (showLoading) schedulerLoading.value = true;
   try {
     const res = await getSchedulerStatus();
     schedulerJobs.value = (res?.data || []) as SchedulerJobStatus[];
   } finally {
-    schedulerLoading.value = false;
+    if (showLoading) schedulerLoading.value = false;
   }
 }
 
@@ -144,7 +148,12 @@ function scheduleRefresh() {
   if (timer !== undefined) clearTimeout(timer);
   timer = setTimeout(async () => {
     try {
-      await Promise.all([fetchGovernance(), fetchScheduler(), fetchTasks()]);
+      // Periodic refresh is intentionally silent so current data stays visible.
+      await Promise.all([
+        fetchGovernance(false),
+        fetchScheduler(false),
+        fetchTasks(false, false)
+      ]);
     } finally {
       scheduleRefresh();
     }
@@ -167,7 +176,7 @@ onBeforeUnmount(() => {
       <template #header>
         <div class="flex items-center justify-between">
           <span>{{ t("agentTaskCenter.governance.title") }}</span>
-          <el-button size="small" @click="fetchGovernance">{{
+          <el-button size="small" @click="fetchGovernance()">{{
             t("agentTaskCenter.button.refresh")
           }}</el-button>
         </div>
@@ -242,6 +251,12 @@ onBeforeUnmount(() => {
           :label="t('agentTaskCenter.governance.repairs')"
           >{{ governance?.metrics?.global?.repairs || 0 }}</el-descriptions-item
         >
+        <el-descriptions-item
+          :label="t('agentTaskCenter.governance.validationErrors')"
+          >{{
+            governance?.metrics?.global?.validation_errors || 0
+          }}</el-descriptions-item
+        >
         <el-descriptions-item :label="t('agentTaskCenter.governance.tokens')">{{
           governance?.metrics?.global?.total_tokens || 0
         }}</el-descriptions-item>
@@ -260,14 +275,100 @@ onBeforeUnmount(() => {
         <el-descriptions-item :label="t('agentTaskCenter.governance.rounds')">{{
           Number(governance?.metrics?.global?.average_rounds || 0).toFixed(2)
         }}</el-descriptions-item>
+        <el-descriptions-item
+          :label="t('agentTaskCenter.governance.successRate')"
+          >{{
+            formatRate(governance?.metrics?.global?.task_success_rate)
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="t('agentTaskCenter.governance.llmErrorRate')"
+          >{{
+            formatRate(governance?.metrics?.global?.llm_error_rate)
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="t('agentTaskCenter.governance.toolErrorRate')"
+          >{{
+            formatRate(governance?.metrics?.global?.tool_error_rate)
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="t('agentTaskCenter.governance.alertNotifyRate')"
+          >{{
+            formatRate(governance?.alert_pipeline?.signal_notify_rate)
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="t('agentTaskCenter.governance.alertFallbackRate')"
+          >{{
+            formatRate(governance?.alert_pipeline?.ai_fallback_rate)
+          }}</el-descriptions-item
+        >
       </el-descriptions>
+
+      <div class="detail-title mt-4">
+        {{ t("agentTaskCenter.governance.perSkill") }}
+      </div>
+      <el-table
+        :data="
+          Object.entries(governance?.metrics?.skills || {}).map(
+            ([skill, metrics]) => ({ skill, ...metrics })
+          )
+        "
+        size="small"
+        class="mt-2"
+      >
+        <el-table-column prop="skill" label="Skill" min-width="150" />
+        <el-table-column
+          :label="t('agentTaskCenter.governance.tasks')"
+          width="90"
+        >
+          <template #default="{ row }">{{ row.tasks_started || 0 }}</template>
+        </el-table-column>
+        <el-table-column
+          :label="t('agentTaskCenter.governance.successRate')"
+          width="110"
+        >
+          <template #default="{ row }">{{
+            formatRate(row.task_success_rate)
+          }}</template>
+        </el-table-column>
+        <el-table-column
+          :label="t('agentTaskCenter.governance.llmErrorRate')"
+          width="110"
+        >
+          <template #default="{ row }">{{
+            formatRate(row.llm_error_rate)
+          }}</template>
+        </el-table-column>
+        <el-table-column
+          :label="t('agentTaskCenter.governance.toolErrorRate')"
+          width="110"
+        >
+          <template #default="{ row }">{{
+            formatRate(row.tool_error_rate)
+          }}</template>
+        </el-table-column>
+        <el-table-column
+          :label="t('agentTaskCenter.governance.tokens')"
+          width="120"
+        >
+          <template #default="{ row }">{{ row.total_tokens || 0 }}</template>
+        </el-table-column>
+        <el-table-column label="P95" width="110">
+          <template #default="{ row }"
+            >{{ row.p95_duration_ms || 0 }} ms</template
+          >
+        </el-table-column>
+      </el-table>
     </el-card>
 
     <el-card v-loading="schedulerLoading" shadow="never" class="mb-4">
       <template #header>
         <div class="flex items-center justify-between">
           <span>{{ t("agentTaskCenter.scheduler.title") }}</span>
-          <el-button size="small" @click="fetchScheduler">
+          <el-button size="small" @click="fetchScheduler()">
             {{ t("agentTaskCenter.button.refresh") }}
           </el-button>
         </div>

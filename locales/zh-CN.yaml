@@ -84,6 +84,7 @@ menus:
   symbolAnalysis: 单币分析
   agentSkillManagement: Skill 管理
   agentTaskCenter: 任务中心
+  llmConfig: LLM 配置
   notification: 通知
   notifyConfig: 通知配置
   notificationHistory: 历史通知
@@ -299,8 +300,15 @@ agentTaskCenter:
     llmErrors: LLM 错误/调用
     toolErrors: Tool 错误/调用
     repairs: Repair 次数
+    validationErrors: Validator 错误
     tokens: 总 Token
     rounds: 平均轮次
+    successRate: Task 成功率
+    llmErrorRate: LLM 错误率
+    toolErrorRate: Tool 错误率
+    alertNotifyRate: Signal→Notify 转化率
+    alertFallbackRate: Alert Fallback 率
+    perSkill: 各 Skill 运行指标
   scheduler:
     title: Agent Scheduler
     name: Job
@@ -387,6 +395,72 @@ agentSkillPage:
     saveFailed: Skill 保存失败
     deleted: Skill 已删除
     deleteFailed: Skill 删除失败
+
+llmConfigPage:
+  title: LLM 模型配置
+  subtitle: Agent 新任务会读取当前启用的数据库模型配置，切换后无需重启服务。
+  hint:
+    database: LLM 配置只存储在数据库中；API Key 不会回传明文。Token 和 Tool 上限继续由全局 Agent 治理控制。
+    apiKeyKeep: 当前已保存密钥，留空不会修改：
+    enabled: 开启后会自动关闭其他当前模型。
+  button:
+    add: 新增模型
+    refresh: 刷新
+    activate: 设为当前
+    test: 测试连接
+    edit: 编辑
+    delete: 删除
+    cancel: 取消
+    save: 保存
+  table:
+    name: 配置名称
+    provider: Provider
+    model: 模型
+    apiUrl: API 地址
+    apiKey: API Key
+    enabled: 当前状态
+    operation: 操作
+  field:
+    provider: Provider 模板
+    name: 配置名称
+    apiUrl: API 地址
+    apiKey: API 密钥
+    model: 模型名称
+    apiVersion: API Version
+    timeout: 请求超时
+    temperature: Temperature
+    enabled: 设为当前模型
+  placeholder:
+    name: 例如 DeepSeek 主模型
+    apiUrl: 完整的 HTTP API 地址
+    apiKey: 输入 API Key
+    apiKeyKeep: 留空则保留已有 API Key
+    model: 例如 deepseek-chat
+  dialog:
+    add: 新增 LLM 配置
+    edit: 编辑 LLM 配置
+  state:
+    current: 当前
+    inactive: 未启用
+    notConfigured: 未配置
+  confirm:
+    title: 提示
+    delete: 确认删除模型配置 {name}？
+  message:
+    loadFailed: 加载 LLM 配置失败
+    nameRequired: 请输入配置名称
+    providerRequired: 请选择 Provider
+    apiUrlRequired: 请输入 API 地址
+    apiKeyRequired: 当前 Provider 需要 API Key
+    modelRequired: 请输入模型名称
+    saved: LLM 配置已保存
+    saveFailed: 保存 LLM 配置失败
+    testSuccess: 连接测试成功
+    testFailed: 连接测试失败
+    activated: 已切换当前 LLM 模型
+    activateFailed: 切换模型失败
+    deleted: LLM 配置已删除
+    deleteFailed: 删除 LLM 配置失败
 
 symbolAnalysisPage:
   title: AI 单币分析

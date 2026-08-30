@@ -84,6 +84,7 @@ menus:
   symbolAnalysis: Symbol Analysis
   agentSkillManagement: Skill Management
   agentTaskCenter: Task Center
+  llmConfig: LLM Config
   notification: Notifications
   notifyConfig: Notify Config
   notificationHistory: Notification History
@@ -299,8 +300,15 @@ agentTaskCenter:
     llmErrors: LLM errors/calls
     toolErrors: Tool errors/calls
     repairs: Repairs
+    validationErrors: Validator Errors
     tokens: Total Tokens
     rounds: Average Rounds
+    successRate: Task Success Rate
+    llmErrorRate: LLM Error Rate
+    toolErrorRate: Tool Error Rate
+    alertNotifyRate: Signal→Notify Rate
+    alertFallbackRate: Alert Fallback Rate
+    perSkill: Per-Skill Runtime Metrics
   scheduler:
     title: Agent Scheduler
     name: Job
@@ -387,6 +395,72 @@ agentSkillPage:
     saveFailed: Failed to save Skill
     deleted: Skill deleted
     deleteFailed: Failed to delete Skill
+
+llmConfigPage:
+  title: LLM Model Configuration
+  subtitle: New Agent tasks use the active database model configuration. Switching models does not require a service restart.
+  hint:
+    database: LLM settings are stored only in the database. API keys are never returned in plaintext. Token and Tool limits remain under global Agent governance.
+    apiKeyKeep: "A key is already saved. Leave this blank to keep it:"
+    enabled: Enabling this configuration automatically disables the previous active model.
+  button:
+    add: Add Model
+    refresh: Refresh
+    activate: Set Active
+    test: Test Connection
+    edit: Edit
+    delete: Delete
+    cancel: Cancel
+    save: Save
+  table:
+    name: Configuration Name
+    provider: Provider
+    model: Model
+    apiUrl: API URL
+    apiKey: API Key
+    enabled: Status
+    operation: Action
+  field:
+    provider: Provider Template
+    name: Configuration Name
+    apiUrl: API URL
+    apiKey: API Key
+    model: Model Name
+    apiVersion: API Version
+    timeout: Request Timeout
+    temperature: Temperature
+    enabled: Set as Active Model
+  placeholder:
+    name: Example DeepSeek Primary
+    apiUrl: Full HTTP API URL
+    apiKey: Enter API Key
+    apiKeyKeep: Leave blank to keep the existing API key
+    model: Example deepseek-chat
+  dialog:
+    add: Add LLM Configuration
+    edit: Edit LLM Configuration
+  state:
+    current: Active
+    inactive: Inactive
+    notConfigured: Not Configured
+  confirm:
+    title: Confirm
+    delete: Delete LLM configuration {name}?
+  message:
+    loadFailed: Failed to load LLM configurations
+    nameRequired: Enter a configuration name
+    providerRequired: Select a Provider
+    apiUrlRequired: Enter an API URL
+    apiKeyRequired: This Provider requires an API Key
+    modelRequired: Enter a model name
+    saved: LLM configuration saved
+    saveFailed: Failed to save LLM configuration
+    testSuccess: Connection test succeeded
+    testFailed: Connection test failed
+    activated: Active LLM model switched
+    activateFailed: Failed to switch model
+    deleted: LLM configuration deleted
+    deleteFailed: Failed to delete LLM configuration
 
 symbolAnalysisPage:
   title: AI Symbol Analysis

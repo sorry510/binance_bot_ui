@@ -177,6 +177,9 @@ export interface AgentRuntimeMetrics {
   repairs: number;
   total_tokens: number;
   average_rounds: number;
+  task_success_rate: number;
+  llm_error_rate: number;
+  tool_error_rate: number;
   p50_duration_ms: number;
   p95_duration_ms: number;
 }
@@ -197,6 +200,15 @@ export interface AgentGovernanceStatus {
   metrics: {
     global: AgentRuntimeMetrics;
     skills: Record<string, AgentRuntimeMetrics>;
+  };
+  alert_pipeline: {
+    signals_received: number;
+    eligible_signals: number;
+    ai_tasks_started: number;
+    ai_fallbacks: number;
+    notifications: number;
+    signal_notify_rate: number;
+    ai_fallback_rate: number;
   };
 }
 
