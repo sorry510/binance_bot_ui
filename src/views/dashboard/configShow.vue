@@ -72,6 +72,7 @@ const config = reactive<Record<string, any>>({
   coinOrderType: "",
   tradeFutureTest: 0,
   FutureTestAutoTradeCountLimit: 0,
+  FutureTestFeeRate: 0.0005,
   noticeCoinEnable: 0,
   listenCoinEnable: 0,
   listenFundingRate: 0,
@@ -112,6 +113,12 @@ const marketOptions = [
   { value: 11 }
 ];
 const alertSeverityOptions = ["low", "medium", "high", "critical"];
+function translateDynamic(prefix: string, value?: string) {
+  if (!value) return "-";
+  const key = `${prefix}.${value}`;
+  const translated = t(key);
+  return translated === key ? value : translated;
+}
 const currentMarketConditionLabel = computed(() => {
   const value = Number(config.marketCondition);
   if (!marketOptions.some(item => item.value === value)) return String(value);
@@ -789,6 +796,24 @@ onBeforeUnmount(() => {
               t("dashboard.hint.testAutoTradeLimit")
             }}</span>
           </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.testFeeRate")
+            }}</span>
+            <el-input-number
+              v-model="config.FutureTestFeeRate"
+              :min="0"
+              :max="0.1"
+              :step="0.0001"
+              :precision="6"
+              controls-position="right"
+              class="compact-input"
+              @change="
+                value => saveField('future_test_fee_rate', Number(value || 0))
+              "
+            />
+            <span class="hint">{{ t("dashboard.hint.testFeeRate") }}</span>
+          </div>
         </div>
       </el-collapse-item>
 
@@ -924,11 +949,11 @@ onBeforeUnmount(() => {
                   {{ alertStatus?.signal_engine?.events ?? 0 }}
                 </div>
                 <div>
-                  FastMove:
+                  {{ t("dashboard.signalType.fast_move") }}:
                   {{ alertStatus?.signal_engine?.fast_move_signals ?? 0 }}
                 </div>
                 <div>
-                  Liquidation:
+                  {{ t("dashboard.signalType.liquidation_spike") }}:
                   {{ alertStatus?.signal_engine?.liquidation_signals ?? 0 }}
                 </div>
               </el-card>
@@ -969,20 +994,31 @@ onBeforeUnmount(() => {
                 width="110"
               />
               <el-table-column
-                prop="type"
                 :label="t('dashboard.alertStatus.signal')"
                 min-width="150"
-              />
+              >
+                <template #default="{ row }">
+                  {{ translateDynamic("dashboard.signalType", row.type) }}
+                </template>
+              </el-table-column>
               <el-table-column
-                prop="severity"
                 :label="t('dashboard.alertStatus.severity')"
                 width="90"
-              />
+              >
+                <template #default="{ row }">
+                  {{
+                    translateDynamic("dashboard.alertSeverity", row.severity)
+                  }}
+                </template>
+              </el-table-column>
               <el-table-column
-                prop="status"
                 :label="t('dashboard.alertStatus.status')"
                 min-width="140"
-              />
+              >
+                <template #default="{ row }">
+                  {{ translateDynamic("dashboard.traceStatus", row.status) }}
+                </template>
+              </el-table-column>
               <el-table-column
                 prop="task_id"
                 :label="t('dashboard.alertStatus.taskId')"
@@ -1067,7 +1103,7 @@ onBeforeUnmount(() => {
                   saveField('agent_market_regime_interval_min', Number(value))
               "
             />
-            <span class="hint">min</span>
+            <span class="hint">{{ t("dashboard.unit.minute") }}</span>
           </div>
           <div class="field-row">
             <span class="field-label">{{

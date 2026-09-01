@@ -50,10 +50,19 @@ const editingRow = computed(() =>
 );
 
 function providerLabel(provider: string) {
-  return (
+  const fallback =
     presets.value.find(item => item.provider === provider)?.display_name ||
-    provider
-  );
+    provider;
+  const key = `llmConfigPage.provider.${provider}.name`;
+  const translated = t(key);
+  return translated === key ? fallback : translated;
+}
+function providerDescription(provider: string) {
+  const fallback =
+    presets.value.find(item => item.provider === provider)?.description || "";
+  const key = `llmConfigPage.provider.${provider}.description`;
+  const translated = t(key);
+  return translated === key ? fallback : translated;
 }
 function applyPreset(provider: string, force = false) {
   const preset = presets.value.find(item => item.provider === provider);
@@ -378,7 +387,7 @@ onMounted(fetchData);
             <el-option
               v-for="item in presets"
               :key="item.provider"
-              :label="item.display_name"
+              :label="providerLabel(item.provider)"
               :value="item.provider"
             />
           </el-select>
@@ -435,7 +444,9 @@ onMounted(fetchData);
             :step="5"
             controls-position="right"
           />
-          <span class="ml-2 text-xs text-gray-500">s</span>
+          <span class="ml-2 text-xs text-gray-500">{{
+            t("llmConfigPage.unit.second")
+          }}</span>
         </el-form-item>
         <el-form-item :label="t('llmConfigPage.field.temperature')">
           <el-input-number
@@ -459,7 +470,7 @@ onMounted(fetchData);
         </el-form-item>
         <el-alert
           v-if="selectedPreset?.description"
-          :title="selectedPreset.description"
+          :title="providerDescription(selectedPreset.provider)"
           type="info"
           :closable="false"
           show-icon

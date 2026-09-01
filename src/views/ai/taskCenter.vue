@@ -88,6 +88,13 @@ function formatRate(value?: number) {
   return `${(Number(value || 0) * 100).toFixed(1)}%`;
 }
 
+function translateDynamic(prefix: string, value?: string) {
+  if (!value) return "-";
+  const key = `${prefix}.${value}`;
+  const translated = t(key);
+  return translated === key ? value : translated;
+}
+
 async function fetchTasks(reset = false, showLoading = true) {
   if (reset) query.page = 1;
   if (showLoading) loading.value = true;
@@ -193,10 +200,14 @@ onBeforeUnmount(() => {
               : t("agentTaskCenter.state.no")
           }}</el-tag
         >
-        <el-tag type="danger"
-          >trade:
-          {{ governance?.governance?.trade_enabled ? "ON" : "OFF" }}</el-tag
-        >
+        <el-tag type="danger">
+          {{ t("agentTaskCenter.governance.trade") }}:
+          {{
+            governance?.governance?.trade_enabled
+              ? t("dashboard.state.on")
+              : t("dashboard.state.off")
+          }}
+        </el-tag>
       </div>
       <el-descriptions :column="4" border size="small">
         <el-descriptions-item :label="t('agentTaskCenter.governance.minute')">
@@ -261,16 +272,12 @@ onBeforeUnmount(() => {
           governance?.metrics?.global?.total_tokens || 0
         }}</el-descriptions-item>
         <el-descriptions-item label="P50"
-          >{{
-            governance?.metrics?.global?.p50_duration_ms || 0
-          }}
-          ms</el-descriptions-item
+          >{{ governance?.metrics?.global?.p50_duration_ms || 0 }}
+          {{ t("agentTaskCenter.unit.millisecond") }}</el-descriptions-item
         >
         <el-descriptions-item label="P95"
-          >{{
-            governance?.metrics?.global?.p95_duration_ms || 0
-          }}
-          ms</el-descriptions-item
+          >{{ governance?.metrics?.global?.p95_duration_ms || 0 }}
+          {{ t("agentTaskCenter.unit.millisecond") }}</el-descriptions-item
         >
         <el-descriptions-item :label="t('agentTaskCenter.governance.rounds')">{{
           Number(governance?.metrics?.global?.average_rounds || 0).toFixed(2)
@@ -319,7 +326,11 @@ onBeforeUnmount(() => {
         size="small"
         class="mt-2"
       >
-        <el-table-column prop="skill" label="Skill" min-width="150" />
+        <el-table-column
+          prop="skill"
+          :label="t('agentTaskCenter.table.skill')"
+          min-width="150"
+        />
         <el-table-column
           :label="t('agentTaskCenter.governance.tasks')"
           width="90"
@@ -358,7 +369,8 @@ onBeforeUnmount(() => {
         </el-table-column>
         <el-table-column label="P95" width="110">
           <template #default="{ row }"
-            >{{ row.p95_duration_ms || 0 }} ms</template
+            >{{ row.p95_duration_ms || 0 }}
+            {{ t("agentTaskCenter.unit.millisecond") }}</template
           >
         </el-table-column>
       </el-table>
@@ -403,7 +415,8 @@ onBeforeUnmount(() => {
           width="120"
         >
           <template #default="{ row }"
-            >{{ Math.round(row.interval_seconds / 60) }} min</template
+            >{{ Math.round(row.interval_seconds / 60) }}
+            {{ t("agentTaskCenter.unit.minute") }}</template
           >
         </el-table-column>
         <el-table-column
@@ -448,7 +461,12 @@ onBeforeUnmount(() => {
               :type="statusType(row.last_status)"
               size="small"
             >
-              {{ row.last_status }}
+              {{
+                translateDynamic(
+                  "agentTaskCenter.schedulerStatus",
+                  row.last_status
+                )
+              }}
             </el-tag>
             <span v-else>-</span>
           </template>
@@ -542,10 +560,13 @@ onBeforeUnmount(() => {
           </template>
         </el-table-column>
         <el-table-column
-          prop="stage"
           :label="t('agentTaskCenter.table.stage')"
           min-width="150"
-        />
+        >
+          <template #default="{ row }">
+            {{ translateDynamic("agentTaskCenter.stage", row.stage) }}
+          </template>
+        </el-table-column>
         <el-table-column
           prop="progress"
           :label="t('agentTaskCenter.table.progress')"
@@ -604,17 +625,17 @@ onBeforeUnmount(() => {
     >
       <div v-loading="detailLoading">
         <el-descriptions v-if="detail" :column="2" border class="mb-4">
-          <el-descriptions-item label="Task ID">{{
+          <el-descriptions-item :label="t('agentTaskCenter.table.taskId')">{{
             detail.id
           }}</el-descriptions-item>
           <el-descriptions-item :label="t('agentTaskCenter.table.skill')">{{
             detail.skill
           }}</el-descriptions-item>
           <el-descriptions-item :label="t('agentTaskCenter.table.status')">{{
-            detail.status
+            translateDynamic("agentTaskCenter.status", detail.status)
           }}</el-descriptions-item>
           <el-descriptions-item :label="t('agentTaskCenter.table.stage')">{{
-            detail.stage
+            translateDynamic("agentTaskCenter.stage", detail.stage)
           }}</el-descriptions-item>
           <el-descriptions-item :label="t('agentTaskCenter.table.provider')">{{
             detail.provider || "-"
@@ -634,10 +655,13 @@ onBeforeUnmount(() => {
             <template #default="{ row }">{{ formatTime(row.time) }}</template>
           </el-table-column>
           <el-table-column
-            prop="stage"
             :label="t('agentTaskCenter.table.stage')"
             width="160"
-          />
+          >
+            <template #default="{ row }">
+              {{ translateDynamic("agentTaskCenter.stage", row.stage) }}
+            </template>
+          </el-table-column>
           <el-table-column
             prop="round"
             :label="t('agentTaskCenter.detail.round')"

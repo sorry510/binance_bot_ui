@@ -271,6 +271,21 @@ onMounted(fetchData);
         :label="t('testOrderPage.table.nowPrice')"
         min-width="100"
       />
+      <el-table-column
+        :label="t('testOrderPage.table.grossProfit')"
+        min-width="100"
+      >
+        <template #default="{ row }">
+          <span :class="profitClass(row.gross_profit)">
+            {{ row.gross_profit }}
+          </span>
+        </template>
+      </el-table-column>
+      <el-table-column :label="t('testOrderPage.table.fee')" min-width="100">
+        <template #default="{ row }">
+          {{ row.total_fee }}
+        </template>
+      </el-table-column>
       <el-table-column :label="t('testOrderPage.table.profit')" min-width="100">
         <template #default="{ row }">
           <span :class="profitClass(row.close_profit)">

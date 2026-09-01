@@ -33,6 +33,16 @@ const availableImplementations = computed(() => {
   return implementations.value.filter(item => !configured.has(item.name));
 });
 
+function implementationText(
+  name: string,
+  field: "displayName" | "description",
+  fallback: string
+) {
+  const key = `agentSkillPage.implementation.${name}.${field}`;
+  const translated = t(key);
+  return translated === key ? fallback : translated;
+}
+
 async function fetchData() {
   loading.value = true;
   try {
@@ -138,18 +148,28 @@ onMounted(fetchData);
         class="mb-4"
       />
       <el-table v-loading="loading" :data="skills" size="small">
-        <el-table-column prop="name" label="Skill" min-width="180" />
         <el-table-column
-          prop="display_name"
-          :label="t('agentSkillPage.table.displayName')"
-          min-width="140"
+          prop="name"
+          :label="t('agentSkillPage.table.skill')"
+          min-width="180"
         />
         <el-table-column
-          prop="description"
+          :label="t('agentSkillPage.table.displayName')"
+          min-width="140"
+        >
+          <template #default="{ row }">
+            {{ implementationText(row.name, "displayName", row.display_name) }}
+          </template>
+        </el-table-column>
+        <el-table-column
           :label="t('agentSkillPage.table.description')"
           min-width="260"
           show-overflow-tooltip
-        />
+        >
+          <template #default="{ row }">
+            {{ implementationText(row.name, "description", row.description) }}
+          </template>
+        </el-table-column>
         <el-table-column :label="t('agentSkillPage.table.enabled')" width="90">
           <template #default="{ row }">
             <el-tag :type="row.enabled === 1 ? 'success' : 'info'" size="small">
@@ -187,7 +207,7 @@ onMounted(fetchData);
       width="620px"
     >
       <el-form label-width="150px">
-        <el-form-item label="Skill implementation">
+        <el-form-item :label="t('agentSkillPage.field.implementation')">
           <el-select
             v-model="form.name"
             class="w-full"
@@ -197,7 +217,11 @@ onMounted(fetchData);
             <el-option
               v-for="item in availableImplementations"
               :key="item.name"
-              :label="`${item.display_name} (${item.name})`"
+              :label="`${implementationText(
+                item.name,
+                'displayName',
+                item.display_name
+              )} (${item.name})`"
               :value="item.name"
             />
           </el-select>

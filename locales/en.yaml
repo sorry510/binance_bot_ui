@@ -181,6 +181,7 @@ dashboard:
     orderType: Order Type
     testStrategy: Test Strategy
     testAutoTradeLimit: Future test auto trade count limit
+    testFeeRate: Test strategy fee rate per side
     spotNewEnable: Spot New Listing
     futureNewEnable: Futures New Listing
     pushTest: Push Test
@@ -201,6 +202,7 @@ dashboard:
     limitMode: Limit order mode
     marketMode: Market order mode
     testAutoTradeLimit: Non-zero:after n consecutive wins of the test strategy, automatically switch to real trading. After n consecutive losses in real trading, switch back to the test strategy.
+    testFeeRate: For example, 0.0005 = 0.05%. New test trades snapshot this rate; legacy rows keep zero fees.
     noExternalLinks: No external links
   state:
     on: ON
@@ -232,6 +234,30 @@ dashboard:
     taskId: Task ID
     notificationId: Notification ID
     fallback: Fallback
+  signalType:
+    fast_move: Fast Move
+    volume_spike: Volume Spike
+    oi_spike: Open Interest Spike
+    liquidation_spike: Liquidation Spike
+    funding_extreme: Extreme Funding Rate
+    breakout: Breakout
+    breakdown: Breakdown
+    short_squeeze_candidate: Short Squeeze Candidate
+    long_squeeze_candidate: Long Squeeze Candidate
+  traceStatus:
+    received: Received
+    shadow: Shadow Mode
+    below_severity: Below Severity
+    cooldown: Cooling Down
+    ai_running: AI Running
+    ai_notify: AI Recommends Notification
+    ai_ignore: AI Recommends Ignore
+    fallback_notify: Preparing Fallback Notification
+    notify_failed: Notification Failed
+    fallback_notified: Fallback Notification Sent
+    notified: Notified
+  unit:
+    minute: min
   orderType:
     market: MARKET
     limit: LIMIT
@@ -309,6 +335,7 @@ agentTaskCenter:
     alertNotifyRate: Signal→Notify Rate
     alertFallbackRate: Alert Fallback Rate
     perSkill: Per-Skill Runtime Metrics
+    trade: Trade
   scheduler:
     title: Agent Scheduler
     name: Job
@@ -333,6 +360,7 @@ agentTaskCenter:
     skill: Skill
     status: Status
   table:
+    taskId: Task ID
     time: Created At
     skill: Skill
     status: Status
@@ -367,6 +395,49 @@ agentTaskCenter:
   message:
     triggered: Scheduler job triggered
     triggerFailed: Failed to trigger scheduler job
+  unit:
+    minute: min
+    millisecond: ms
+  schedulerStatus:
+    queued: Queued
+    running: Running
+    waiting_llm: Waiting for AI
+    waiting_tool: Calling Tool
+    validating: Validating
+    succeeded: Completed
+    failed: Failed
+    cancelled: Cancelled
+    interrupted: Interrupted
+    error: Error
+    skipped: Skipped
+  stage:
+    queued: Queued
+    building_input: Building Input
+    waiting_llm: Waiting for AI
+    retrying_llm: Retrying AI Request
+    waiting_tool: Waiting for Tool
+    tool_result: Tool Result
+    repairing_response: Repairing AI Response
+    repairing_decision: Repairing Agent Decision
+    repairing_required_tools: Adding Required Tools
+    repairing_final: Repairing Final Result
+    validating: Validating
+    completed: Completed
+    failed: Failed
+    interrupted: Interrupted
+    timeout: Timed Out
+    cancelled: Cancelled
+    build_input_failed: Failed to Build Input
+    context_too_large: Context Too Large
+    llm_failed: AI Call Failed
+    token_budget_exceeded: Token Budget Exceeded
+    agent_error: Agent Execution Error
+    tool_limit_exceeded: Tool Call Limit Exceeded
+    tool_not_allowed: Tool Not Allowed
+    tool_not_registered: Tool Not Registered
+    tool_permission_denied: Tool Permission Denied
+    tool_result_failed: Tool Result Processing Failed
+    max_rounds: Maximum Rounds Reached
 
 agentSkillPage:
   title: Agent Skill Management
@@ -379,6 +450,7 @@ agentSkillPage:
     cancel: Cancel
     save: Save
   table:
+    skill: Skill
     displayName: Display Name
     description: Description
     enabled: Enabled
@@ -386,6 +458,8 @@ agentSkillPage:
   dialog:
     add: Add Agent Skill
     edit: Edit Agent Skill
+  field:
+    implementation: Skill Implementation
   confirm:
     title: Confirm
     delete: Delete Skill {name}? Runtime will reject this Skill until it is recreated.
@@ -395,6 +469,19 @@ agentSkillPage:
     saveFailed: Failed to save Skill
     deleted: Skill deleted
     deleteFailed: Failed to delete Skill
+  implementation:
+    alert_analysis:
+      displayName: Event Alert Analysis
+      description: Uses AI to verify anomalies prefiltered by the Signal Engine.
+    market_regime:
+      displayName: Market Regime Analysis
+      description: Identifies the market regime from a deterministic market snapshot.
+    strategy_builder:
+      displayName: Strategy Generation
+      description: Generates and repairs strategy-template JSON through multiple rounds.
+    symbol_analysis:
+      displayName: Symbol Analysis
+      description: Analyzes a USDT perpetual contract and returns a structured trading plan.
 
 llmConfigPage:
   title: LLM Model Configuration
@@ -461,6 +548,33 @@ llmConfigPage:
     activateFailed: Failed to switch model
     deleted: LLM configuration deleted
     deleteFailed: Failed to delete LLM configuration
+  unit:
+    second: s
+  provider:
+    openai:
+      name: OpenAI
+      description: OpenAI Chat Completions API
+    anthropic:
+      name: Anthropic / Claude
+      description: Anthropic Messages API
+    deepseek:
+      name: DeepSeek
+      description: DeepSeek OpenAI-compatible API
+    glm:
+      name: GLM / Zhipu
+      description: Zhipu GLM OpenAI-compatible API
+    moonshot:
+      name: Moonshot / Kimi
+      description: Moonshot OpenAI-compatible API
+    ollama:
+      name: Ollama
+      description: Local Ollama OpenAI-compatible API
+    gemini:
+      name: Gemini
+      description: Google Gemini OpenAI-compatible API
+    openai_compatible:
+      name: Custom OpenAI-Compatible
+      description: Custom OpenAI-compatible Chat Completions endpoint
 
 symbolAnalysisPage:
   title: AI Symbol Analysis
@@ -505,6 +619,17 @@ symbolAnalysisPage:
     failed: Analysis failed
     timeout: Analysis timed out
     cancelled: Analysis cancelled
+    build_input_failed: Failed to build analysis context
+    context_too_large: Analysis context is too large
+    llm_failed: AI call failed
+    token_budget_exceeded: Token budget exceeded
+    agent_error: Agent execution error
+    tool_limit_exceeded: Tool call limit exceeded
+    tool_not_allowed: Tool not allowed
+    tool_not_registered: Tool not registered
+    tool_permission_denied: Tool permission denied
+    tool_result_failed: Tool result processing failed
+    max_rounds: Maximum rounds reached
   plan:
     title: Current Trading Plan
     symbol: Symbol
@@ -1194,6 +1319,8 @@ testOrderPage:
     leverage: Leverage
     openPrice: Open Price
     nowPrice: Current Price
+    grossProfit: Gross Profit
+    fee: Fee
     profit: Profit
     profitRate: Profit Rate
     closePrice: Close Price
