@@ -356,6 +356,8 @@ agentTaskCenter:
     search: Search
     reset: Reset
     view: View
+    cancel: Cancel Task
+    resume: Resume Task
   placeholder:
     skill: Skill
     status: Status
@@ -392,9 +394,26 @@ agentTaskCenter:
     round: Round
     tool: Tool
     message: Message
+    runtimeVersion: Runtime Version
+    executionMode: Execution Mode
+    resumeCount: Resume Count
+    modelConfigId: Model Config ID
+    plan: Execution Plan
+    steps: Execution Steps
+    stepId: Step ID
+    stepType: Step Type
+    attempt: Attempts
+    checkpoint: Checkpoint
+    output: Output Summary
   message:
     triggered: Scheduler job triggered
     triggerFailed: Failed to trigger scheduler job
+    cancelTitle: Cancel Agent Task
+    cancelConfirm: Cancel this running agent task?
+    cancelAccepted: Cancel request accepted
+    cancelFailed: Failed to cancel task
+    resumeAccepted: Resume request accepted
+    resumeFailed: Failed to resume task
   unit:
     minute: min
     millisecond: ms
@@ -413,10 +432,15 @@ agentTaskCenter:
   stage:
     queued: Queued
     building_input: Building Input
+    input_built: Input Built
+    planning: Building Execution Plan
+    plan_ready: Execution Plan Ready
+    resuming: Resuming from Checkpoint
     waiting_llm: Waiting for AI
     retrying_llm: Retrying AI Request
     waiting_tool: Waiting for Tool
     tool_result: Tool Result
+    tool_checkpoint: Safe Tool Checkpoint
     repairing_response: Repairing AI Response
     repairing_decision: Repairing Agent Decision
     repairing_required_tools: Adding Required Tools
@@ -437,6 +461,11 @@ agentTaskCenter:
     tool_not_registered: Tool Not Registered
     tool_permission_denied: Tool Permission Denied
     tool_result_failed: Tool Result Processing Failed
+    checkpoint_failed: Checkpoint Save Failed
+    execution_mode_unavailable: Execution Mode Unavailable
+    execution_mode_invalid: Invalid Execution Mode
+    planning_failed: Planning Failed
+    invalid_plan: Invalid Execution Plan
     max_rounds: Maximum Rounds Reached
 
 agentSkillPage:

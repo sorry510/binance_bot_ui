@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import dayjs from "dayjs";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from "vue-i18n";
 import {
+  cancelAgentTask,
   getAgentGovernanceStatus,
   getAgentTask,
   getAgentTasks,
   getSchedulerStatus,
+  resumeAgentTask,
   triggerSchedulerJob,
   type AgentGovernanceStatus,
   type AgentTask,
@@ -28,6 +30,7 @@ const governanceLoading = ref(false);
 const detailVisible = ref(false);
 const detailLoading = ref(false);
 const detail = ref<AgentTask | null>(null);
+const actionTaskId = ref("");
 let timer: ReturnType<typeof setTimeout> | undefined;
 
 const query = reactive({
@@ -95,6 +98,22 @@ function translateDynamic(prefix: string, value?: string) {
   return translated === key ? value : translated;
 }
 
+function canCancelTask(row?: AgentTask | null) {
+  return [
+    "queued",
+    "running",
+    "waiting_llm",
+    "waiting_tool",
+    "validating"
+  ].includes(row?.status || "");
+}
+
+function canResumeTask(row?: AgentTask | null) {
+  if (!row?.runtime_version?.startsWith("2.")) return false;
+  if (row.status === "cancelled" || row.status === "interrupted") return true;
+  return row.status === "failed" && row.stage === "timeout";
+}
+
 async function fetchTasks(reset = false, showLoading = true) {
   if (reset) query.page = 1;
   if (showLoading) loading.value = true;
@@ -148,6 +167,50 @@ async function openDetail(row: AgentTask) {
     detail.value = (res?.data || null) as AgentTask | null;
   } finally {
     detailLoading.value = false;
+  }
+}
+
+async function refreshTaskAfterAction(taskId: string) {
+  await fetchTasks(false, false);
+  if (detailVisible.value && detail.value?.id === taskId) {
+    const res = await getAgentTask(taskId);
+    detail.value = (res?.data || null) as AgentTask | null;
+  }
+}
+
+async function cancelTask(row: AgentTask) {
+  try {
+    await ElMessageBox.confirm(
+      t("agentTaskCenter.message.cancelConfirm"),
+      t("agentTaskCenter.message.cancelTitle"),
+      { type: "warning" }
+    );
+    actionTaskId.value = row.id;
+    await cancelAgentTask(row.id);
+    ElMessage.success(t("agentTaskCenter.message.cancelAccepted"));
+    await refreshTaskAfterAction(row.id);
+  } catch (error: any) {
+    if (error === "cancel" || error === "close") return;
+    ElMessage.error(
+      error?.message || t("agentTaskCenter.message.cancelFailed")
+    );
+  } finally {
+    actionTaskId.value = "";
+  }
+}
+
+async function resumeTask(row: AgentTask) {
+  actionTaskId.value = row.id;
+  try {
+    await resumeAgentTask(row.id);
+    ElMessage.success(t("agentTaskCenter.message.resumeAccepted"));
+    await refreshTaskAfterAction(row.id);
+  } catch (error: any) {
+    ElMessage.error(
+      error?.message || t("agentTaskCenter.message.resumeFailed")
+    );
+  } finally {
+    actionTaskId.value = "";
   }
 }
 
@@ -596,13 +659,33 @@ onBeforeUnmount(() => {
         />
         <el-table-column
           :label="t('agentTaskCenter.table.operation')"
-          width="90"
+          width="210"
           fixed="right"
         >
           <template #default="{ row }">
             <el-button size="small" @click="openDetail(row)">{{
               t("agentTaskCenter.button.view")
             }}</el-button>
+            <el-button
+              v-if="canCancelTask(row)"
+              size="small"
+              type="danger"
+              plain
+              :loading="actionTaskId === row.id"
+              @click="cancelTask(row)"
+            >
+              {{ t("agentTaskCenter.button.cancel") }}
+            </el-button>
+            <el-button
+              v-else-if="canResumeTask(row)"
+              size="small"
+              type="primary"
+              plain
+              :loading="actionTaskId === row.id"
+              @click="resumeTask(row)"
+            >
+              {{ t("agentTaskCenter.button.resume") }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -643,17 +726,120 @@ onBeforeUnmount(() => {
           <el-descriptions-item :label="t('agentTaskCenter.table.model')">{{
             detail.model || "-"
           }}</el-descriptions-item>
+          <el-descriptions-item
+            :label="t('agentTaskCenter.detail.runtimeVersion')"
+            >{{ detail.runtime_version || "-" }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :label="t('agentTaskCenter.detail.executionMode')"
+            >{{ detail.execution_mode || "-" }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :label="t('agentTaskCenter.detail.resumeCount')"
+            >{{ detail.resume_count || 0 }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :label="t('agentTaskCenter.detail.modelConfigId')"
+            >{{ detail.model_config_id || "-" }}</el-descriptions-item
+          >
         </el-descriptions>
+        <div
+          v-if="detail && (canCancelTask(detail) || canResumeTask(detail))"
+          class="mb-4"
+        >
+          <el-button
+            v-if="canCancelTask(detail)"
+            type="danger"
+            plain
+            :loading="actionTaskId === detail.id"
+            @click="cancelTask(detail)"
+          >
+            {{ t("agentTaskCenter.button.cancel") }}
+          </el-button>
+          <el-button
+            v-else-if="canResumeTask(detail)"
+            type="primary"
+            plain
+            :loading="actionTaskId === detail.id"
+            @click="resumeTask(detail)"
+          >
+            {{ t("agentTaskCenter.button.resume") }}
+          </el-button>
+        </div>
         <div class="detail-title">{{ t("agentTaskCenter.detail.input") }}</div>
         <pre class="json-box">{{ prettyJSON(detail?.input) }}</pre>
         <div class="detail-title">{{ t("agentTaskCenter.detail.result") }}</div>
         <pre class="json-box">{{ prettyJSON(detail?.result) }}</pre>
         <div v-if="detail?.error" class="detail-error">{{ detail.error }}</div>
+        <template v-if="detail?.plan">
+          <div class="detail-title">{{ t("agentTaskCenter.detail.plan") }}</div>
+          <pre class="json-box">{{ prettyJSON(detail.plan) }}</pre>
+        </template>
+        <div class="detail-title">{{ t("agentTaskCenter.detail.steps") }}</div>
+        <el-table
+          :data="detail?.steps || []"
+          size="small"
+          max-height="300"
+          class="mb-4"
+        >
+          <el-table-column
+            prop="step_id"
+            :label="t('agentTaskCenter.detail.stepId')"
+            width="105"
+          />
+          <el-table-column
+            prop="type"
+            :label="t('agentTaskCenter.detail.stepType')"
+            width="120"
+          />
+          <el-table-column
+            prop="status"
+            :label="t('agentTaskCenter.table.status')"
+            width="105"
+          />
+          <el-table-column
+            prop="attempt"
+            :label="t('agentTaskCenter.detail.attempt')"
+            width="75"
+          />
+          <el-table-column
+            :label="t('agentTaskCenter.detail.checkpoint')"
+            width="95"
+          >
+            <template #default="{ row }">
+              <el-tag
+                :type="row.checkpoint ? 'success' : 'info'"
+                size="small"
+                >{{
+                  row.checkpoint
+                    ? t("agentTaskCenter.state.yes")
+                    : t("agentTaskCenter.state.no")
+                }}</el-tag
+              >
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="output_summary"
+            :label="t('agentTaskCenter.detail.output')"
+            min-width="200"
+            show-overflow-tooltip
+          />
+        </el-table>
         <div class="detail-title">{{ t("agentTaskCenter.detail.events") }}</div>
         <el-table :data="detail?.events || []" size="small" max-height="360">
           <el-table-column :label="t('agentTaskCenter.table.time')" width="170">
             <template #default="{ row }">{{ formatTime(row.time) }}</template>
           </el-table-column>
+          <el-table-column
+            prop="step_id"
+            :label="t('agentTaskCenter.detail.stepId')"
+            width="105"
+          />
+          <el-table-column
+            prop="step_type"
+            :label="t('agentTaskCenter.detail.stepType')"
+            width="120"
+          />
           <el-table-column
             :label="t('agentTaskCenter.table.stage')"
             width="160"

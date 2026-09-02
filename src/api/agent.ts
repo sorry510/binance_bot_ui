@@ -5,6 +5,8 @@ type Query = Record<string, any>;
 export interface AgentTaskEvent {
   task_id: string;
   conversation_id?: string;
+  step_id?: string;
+  step_type?: string;
   stage: string;
   progress: number;
   round?: number;
@@ -12,8 +14,25 @@ export interface AgentTaskEvent {
   skill?: string;
   tool?: string;
   status?: string;
+  error_type?: string;
+  checkpoint?: boolean;
   duration_ms?: number;
   time: string;
+}
+
+export interface AgentExecutionStep {
+  step_id: string;
+  type: string;
+  status: string;
+  attempt: number;
+  depends_on?: string[];
+  input_summary?: string;
+  output_summary?: string;
+  started_at?: string;
+  completed_at?: string;
+  error_type?: string;
+  error?: string;
+  checkpoint?: boolean;
 }
 
 export interface TradingPlanPriceZone {
@@ -67,6 +86,19 @@ export interface AgentTask<T = any> {
   max_rounds: number;
   provider?: string;
   model?: string;
+  execution_mode?: string;
+  plan?: Record<string, any>;
+  steps?: AgentExecutionStep[];
+  resume_count?: number;
+  runtime_version?: string;
+  skill_version?: string;
+  prompt_version?: string;
+  prompt_hash?: string;
+  model_config_id?: number;
+  input_contract_version?: string;
+  output_contract_version?: string;
+  skill_source?: string;
+  skill_source_version?: string;
   usage?: {
     input_tokens?: number;
     output_tokens?: number;
@@ -117,6 +149,18 @@ export const startAgentTask = (data: {
 export const getAgentTask = (taskId: string) => {
   return http.get<any, Query>(
     baseUrlApi(`agents/tasks/${encodeURIComponent(taskId)}`)
+  );
+};
+
+export const cancelAgentTask = (taskId: string) => {
+  return http.post<any, Query>(
+    baseUrlApi(`agents/tasks/${encodeURIComponent(taskId)}/cancel`)
+  );
+};
+
+export const resumeAgentTask = (taskId: string) => {
+  return http.post<any, Query>(
+    baseUrlApi(`agents/tasks/${encodeURIComponent(taskId)}/resume`)
   );
 };
 

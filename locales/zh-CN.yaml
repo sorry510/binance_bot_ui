@@ -356,6 +356,8 @@ agentTaskCenter:
     search: 查询
     reset: 重置
     view: 查看
+    cancel: 取消任务
+    resume: 恢复任务
   placeholder:
     skill: Skill
     status: 状态
@@ -392,9 +394,26 @@ agentTaskCenter:
     round: 轮次
     tool: Tool
     message: 信息
+    runtimeVersion: Runtime 版本
+    executionMode: 执行模式
+    resumeCount: 恢复次数
+    modelConfigId: 模型配置 ID
+    plan: 执行计划
+    steps: 执行步骤
+    stepId: Step ID
+    stepType: Step 类型
+    attempt: 尝试次数
+    checkpoint: Checkpoint
+    output: 输出摘要
   message:
     triggered: 调度任务已触发
     triggerFailed: 调度任务触发失败
+    cancelTitle: 取消智能体任务
+    cancelConfirm: 确认取消这个正在运行的智能体任务吗？
+    cancelAccepted: 已提交取消请求
+    cancelFailed: 取消任务失败
+    resumeAccepted: 已提交恢复请求
+    resumeFailed: 恢复任务失败
   unit:
     minute: 分钟
     millisecond: 毫秒
@@ -413,10 +432,15 @@ agentTaskCenter:
   stage:
     queued: 已排队
     building_input: 构建输入
+    input_built: 输入构建完成
+    planning: 生成执行计划
+    plan_ready: 执行计划已就绪
+    resuming: 从 Checkpoint 恢复
     waiting_llm: 等待 AI
     retrying_llm: 重试 AI 请求
     waiting_tool: 等待 Tool
     tool_result: Tool 返回结果
+    tool_checkpoint: Tool 安全恢复点
     repairing_response: 修复 AI 响应
     repairing_decision: 修复智能体决策
     repairing_required_tools: 补充必需 Tool
@@ -437,6 +461,11 @@ agentTaskCenter:
     tool_not_registered: Tool 未注册
     tool_permission_denied: Tool 权限不足
     tool_result_failed: Tool 结果处理失败
+    checkpoint_failed: Checkpoint 保存失败
+    execution_mode_unavailable: 执行模式不可用
+    execution_mode_invalid: 执行模式无效
+    planning_failed: 执行计划生成失败
+    invalid_plan: 执行计划无效
     max_rounds: 达到最大轮次
 
 agentSkillPage:
