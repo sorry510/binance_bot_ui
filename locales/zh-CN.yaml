@@ -405,6 +405,17 @@ agentTaskCenter:
     attempt: 尝试次数
     checkpoint: Checkpoint
     output: 输出摘要
+    contextTrace: Context 构建
+    contextBudget: Token 预算
+    contextBlocks: Context Block
+    trimmedBlocks: 裁剪 Block
+    staleEvidence: 过期 Evidence
+    evidence: 结构化 Evidence
+    evidenceId: Evidence ID
+    evidenceSource: 数据来源
+    freshness: 新鲜度
+    asOf: 数据时间
+    contentHash: Content Hash
   message:
     triggered: 调度任务已触发
     triggerFailed: 调度任务触发失败
@@ -433,6 +444,8 @@ agentTaskCenter:
     queued: 已排队
     building_input: 构建输入
     input_built: 输入构建完成
+    context_trimmed: 上下文已按预算裁剪
+    context_resource_failed: Context Resource 加载失败
     planning: 生成执行计划
     plan_ready: 执行计划已就绪
     resuming: 从 Checkpoint 恢复
@@ -635,6 +648,10 @@ symbolAnalysisPage:
   stage:
     queued: 任务已进入队列
     building_input: 构建分析上下文
+    input_built: 输入构建完成
+    context_trimmed: 上下文已按预算裁剪
+    tool_checkpoint: Tool 安全恢复点
+    context_resource_failed: Context Resource 加载失败
     waiting_llm: AI 正在分析
     retrying_llm: AI 请求失败，正在重试
     waiting_tool: 正在调用数据 Tool

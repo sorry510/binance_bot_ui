@@ -20,6 +20,43 @@ export interface AgentTaskEvent {
   time: string;
 }
 
+export interface AgentContextTrimRecord {
+  block_id: string;
+  type: string;
+  source: string;
+  estimated_tokens: number;
+  reason: string;
+}
+
+export interface AgentContextBuildTrace {
+  budget_tokens: number;
+  budget_bytes: number;
+  system_tokens: number;
+  selected_tokens: number;
+  selected_bytes: number;
+  input_blocks: number;
+  selected_blocks: number;
+  trimmed_blocks: number;
+  selected_block_ids?: string[];
+  trimmed?: AgentContextTrimRecord[];
+  stale_evidence_ids?: string[];
+  built_at: string;
+}
+
+export interface AgentStructuredEvidence {
+  id: string;
+  source_type: string;
+  source: string;
+  as_of?: string;
+  observed_at: string;
+  content_hash: string;
+  freshness: "fresh" | "stale" | "missing" | "unknown";
+  freshness_age_ms?: number;
+  stale_reason?: string;
+  key_fields?: Record<string, string>;
+  data_missing?: string[];
+}
+
 export interface AgentExecutionStep {
   step_id: string;
   type: string;
@@ -33,6 +70,8 @@ export interface AgentExecutionStep {
   error_type?: string;
   error?: string;
   checkpoint?: boolean;
+  context_trace?: AgentContextBuildTrace;
+  evidence?: AgentStructuredEvidence[];
 }
 
 export interface TradingPlanPriceZone {

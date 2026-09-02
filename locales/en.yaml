@@ -405,6 +405,17 @@ agentTaskCenter:
     attempt: Attempts
     checkpoint: Checkpoint
     output: Output Summary
+    contextTrace: Context Build
+    contextBudget: Token Budget
+    contextBlocks: Context Blocks
+    trimmedBlocks: Trimmed Blocks
+    staleEvidence: Stale Evidence
+    evidence: Structured Evidence
+    evidenceId: Evidence ID
+    evidenceSource: Source
+    freshness: Freshness
+    asOf: Data Time
+    contentHash: Content Hash
   message:
     triggered: Scheduler job triggered
     triggerFailed: Failed to trigger scheduler job
@@ -433,6 +444,8 @@ agentTaskCenter:
     queued: Queued
     building_input: Building Input
     input_built: Input Built
+    context_trimmed: Context Trimmed to Budget
+    context_resource_failed: Context Resource Load Failed
     planning: Building Execution Plan
     plan_ready: Execution Plan Ready
     resuming: Resuming from Checkpoint
@@ -635,6 +648,10 @@ symbolAnalysisPage:
   stage:
     queued: Task queued
     building_input: Building analysis context
+    input_built: Input Built
+    context_trimmed: Context Trimmed to Budget
+    tool_checkpoint: Safe Tool Checkpoint
+    context_resource_failed: Context Resource Load Failed
     waiting_llm: AI is analyzing
     retrying_llm: AI request failed, retrying
     waiting_tool: Calling data tool

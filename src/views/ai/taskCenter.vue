@@ -72,6 +72,13 @@ function statusType(status?: string) {
   return "info";
 }
 
+function freshnessType(value?: string) {
+  if (value === "fresh") return "success";
+  if (value === "stale") return "warning";
+  if (value === "missing") return "danger";
+  return "info";
+}
+
 function formatTime(value?: string | number) {
   if (!value) return "-";
   return dayjs(value).format("YYYY-MM-DD HH:mm:ss");
@@ -782,6 +789,94 @@ onBeforeUnmount(() => {
           max-height="300"
           class="mb-4"
         >
+          <el-table-column type="expand" width="48">
+            <template #default="{ row }">
+              <div class="step-audit-box">
+                <template v-if="row.context_trace">
+                  <div class="detail-title mb-2">
+                    {{ t("agentTaskCenter.detail.contextTrace") }}
+                  </div>
+                  <el-descriptions :column="4" border size="small" class="mb-3">
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.contextBudget')"
+                    >
+                      {{ row.context_trace.selected_tokens || 0 }}/{{
+                        row.context_trace.budget_tokens || 0
+                      }}
+                    </el-descriptions-item>
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.contextBlocks')"
+                    >
+                      {{ row.context_trace.selected_blocks || 0 }}/{{
+                        row.context_trace.input_blocks || 0
+                      }}
+                    </el-descriptions-item>
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.trimmedBlocks')"
+                    >
+                      {{ row.context_trace.trimmed_blocks || 0 }}
+                    </el-descriptions-item>
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.staleEvidence')"
+                    >
+                      {{ row.context_trace.stale_evidence_ids?.length || 0 }}
+                    </el-descriptions-item>
+                  </el-descriptions>
+                  <pre
+                    v-if="row.context_trace.trimmed?.length"
+                    class="json-box compact-json"
+                    >{{ prettyJSON(row.context_trace.trimmed) }}</pre
+                  >
+                </template>
+                <template v-if="row.evidence?.length">
+                  <div class="detail-title mb-2">
+                    {{ t("agentTaskCenter.detail.evidence") }}
+                  </div>
+                  <el-table :data="row.evidence" size="small" border>
+                    <el-table-column
+                      prop="id"
+                      :label="t('agentTaskCenter.detail.evidenceId')"
+                      min-width="190"
+                    />
+                    <el-table-column
+                      prop="source"
+                      :label="t('agentTaskCenter.detail.evidenceSource')"
+                      min-width="180"
+                    />
+                    <el-table-column
+                      :label="t('agentTaskCenter.detail.freshness')"
+                      width="110"
+                    >
+                      <template #default="scope">
+                        <el-tag
+                          :type="freshnessType(scope.row.freshness)"
+                          size="small"
+                          >{{ scope.row.freshness }}</el-tag
+                        >
+                      </template>
+                    </el-table-column>
+                    <el-table-column
+                      :label="t('agentTaskCenter.detail.asOf')"
+                      width="175"
+                    >
+                      <template #default="scope">{{
+                        formatTime(scope.row.as_of)
+                      }}</template>
+                    </el-table-column>
+                    <el-table-column
+                      prop="content_hash"
+                      :label="t('agentTaskCenter.detail.contentHash')"
+                      min-width="220"
+                      show-overflow-tooltip
+                    />
+                  </el-table>
+                </template>
+                <span v-if="!row.context_trace && !row.evidence?.length"
+                  >-</span
+                >
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column
             prop="step_id"
             :label="t('agentTaskCenter.detail.stepId')"
@@ -886,6 +981,14 @@ onBeforeUnmount(() => {
 
 .detail-title {
   font-weight: 600;
+}
+
+.step-audit-box {
+  padding: 12px 18px;
+}
+
+.compact-json {
+  max-height: 180px;
 }
 
 .detail-error {
