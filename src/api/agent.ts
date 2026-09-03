@@ -57,6 +57,26 @@ export interface AgentStructuredEvidence {
   data_missing?: string[];
 }
 
+export interface AgentToolTrace {
+  canonical_name: string;
+  source_type: "native" | "mcp" | string;
+  risk: "read" | "write" | "trade" | string;
+  idempotent: boolean;
+  timeout_ms?: number;
+  cache_ttl_ms?: number;
+  arguments_hash?: string;
+  call_index?: number;
+  call_budget?: number;
+  duration_ms: number;
+  cache_hit: boolean;
+  partial: boolean;
+  error_type?: string;
+  raw_size: number;
+  content_hash?: string;
+  as_of?: string;
+  warnings?: string[];
+}
+
 export interface AgentExecutionStep {
   step_id: string;
   type: string;
@@ -72,6 +92,7 @@ export interface AgentExecutionStep {
   checkpoint?: boolean;
   context_trace?: AgentContextBuildTrace;
   evidence?: AgentStructuredEvidence[];
+  tool_trace?: AgentToolTrace;
 }
 
 export interface TradingPlanPriceZone {

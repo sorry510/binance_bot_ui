@@ -792,6 +792,73 @@ onBeforeUnmount(() => {
           <el-table-column type="expand" width="48">
             <template #default="{ row }">
               <div class="step-audit-box">
+                <template v-if="row.tool_trace">
+                  <div class="detail-title mb-2">
+                    {{ t("agentTaskCenter.detail.toolRuntimeTrace") }}
+                  </div>
+                  <el-descriptions :column="4" border size="small" class="mb-3">
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.tool')"
+                      >{{ row.tool_trace.canonical_name }}</el-descriptions-item
+                    >
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.toolSourceType')"
+                      >{{ row.tool_trace.source_type }}</el-descriptions-item
+                    >
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.toolRisk')"
+                      >{{ row.tool_trace.risk }}</el-descriptions-item
+                    >
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.toolBudget')"
+                    >
+                      {{ row.tool_trace.call_index || 0 }}/{{
+                        row.tool_trace.call_budget || 0
+                      }}
+                    </el-descriptions-item>
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.cacheHit')"
+                    >
+                      <el-tag
+                        :type="row.tool_trace.cache_hit ? 'success' : 'info'"
+                        size="small"
+                        >{{
+                          row.tool_trace.cache_hit
+                            ? t("agentTaskCenter.state.yes")
+                            : t("agentTaskCenter.state.no")
+                        }}</el-tag
+                      >
+                    </el-descriptions-item>
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.partial')"
+                    >
+                      <el-tag
+                        :type="row.tool_trace.partial ? 'warning' : 'info'"
+                        size="small"
+                        >{{
+                          row.tool_trace.partial
+                            ? t("agentTaskCenter.state.yes")
+                            : t("agentTaskCenter.state.no")
+                        }}</el-tag
+                      >
+                    </el-descriptions-item>
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.errorType')"
+                      >{{
+                        row.tool_trace.error_type || "-"
+                      }}</el-descriptions-item
+                    >
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.rawSize')"
+                      >{{ row.tool_trace.raw_size || 0 }}</el-descriptions-item
+                    >
+                  </el-descriptions>
+                  <pre
+                    v-if="row.tool_trace.warnings?.length"
+                    class="json-box compact-json"
+                    >{{ prettyJSON(row.tool_trace.warnings) }}</pre
+                  >
+                </template>
                 <template v-if="row.context_trace">
                   <div class="detail-title mb-2">
                     {{ t("agentTaskCenter.detail.contextTrace") }}
@@ -871,7 +938,12 @@ onBeforeUnmount(() => {
                     />
                   </el-table>
                 </template>
-                <span v-if="!row.context_trace && !row.evidence?.length"
+                <span
+                  v-if="
+                    !row.tool_trace &&
+                    !row.context_trace &&
+                    !row.evidence?.length
+                  "
                   >-</span
                 >
               </div>

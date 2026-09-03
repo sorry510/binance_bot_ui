@@ -405,6 +405,14 @@ agentTaskCenter:
     attempt: Attempts
     checkpoint: Checkpoint
     output: Output Summary
+    toolRuntimeTrace: Tool Runtime Trace
+    toolSourceType: Tool Source
+    toolRisk: Risk
+    toolBudget: Tool Budget
+    cacheHit: Cache Hit
+    partial: Partial
+    errorType: Error Type
+    rawSize: Raw Size
     contextTrace: Context Build
     contextBudget: Token Budget
     contextBlocks: Context Blocks
