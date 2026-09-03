@@ -398,6 +398,8 @@ agentTaskCenter:
     executionMode: Execution Mode
     resumeCount: Resume Count
     modelConfigId: Model Config ID
+    toolCatalogHash: Tool Catalog Hash
+    skillPackageHash: Skill Package Hash
     plan: Execution Plan
     steps: Execution Steps
     stepId: Step ID

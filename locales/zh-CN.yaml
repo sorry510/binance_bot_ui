@@ -398,6 +398,8 @@ agentTaskCenter:
     executionMode: 执行模式
     resumeCount: 恢复次数
     modelConfigId: 模型配置 ID
+    toolCatalogHash: Tool Catalog Hash
+    skillPackageHash: Skill Package Hash
     plan: 执行计划
     steps: 执行步骤
     stepId: Step ID

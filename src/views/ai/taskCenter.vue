@@ -749,6 +749,14 @@ onBeforeUnmount(() => {
             :label="t('agentTaskCenter.detail.modelConfigId')"
             >{{ detail.model_config_id || "-" }}</el-descriptions-item
           >
+          <el-descriptions-item
+            :label="t('agentTaskCenter.detail.toolCatalogHash')"
+            >{{ detail.tool_catalog_hash || "-" }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :label="t('agentTaskCenter.detail.skillPackageHash')"
+            >{{ detail.skill_package_hash || "-" }}</el-descriptions-item
+          >
         </el-descriptions>
         <div
           v-if="detail && (canCancelTask(detail) || canResumeTask(detail))"

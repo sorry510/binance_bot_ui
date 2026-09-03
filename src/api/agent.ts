@@ -159,6 +159,8 @@ export interface AgentTask<T = any> {
   output_contract_version?: string;
   skill_source?: string;
   skill_source_version?: string;
+  tool_catalog_hash?: string;
+  skill_package_hash?: string;
   usage?: {
     input_tokens?: number;
     output_tokens?: number;
