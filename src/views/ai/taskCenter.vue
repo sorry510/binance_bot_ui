@@ -751,12 +751,18 @@ onBeforeUnmount(() => {
           >
           <el-descriptions-item
             :label="t('agentTaskCenter.detail.toolCatalogHash')"
-            >{{ detail.tool_catalog_hash || "-" }}</el-descriptions-item
           >
+            <span class="hash-value">{{
+              detail.tool_catalog_hash || "-"
+            }}</span>
+          </el-descriptions-item>
           <el-descriptions-item
             :label="t('agentTaskCenter.detail.skillPackageHash')"
-            >{{ detail.skill_package_hash || "-" }}</el-descriptions-item
           >
+            <span class="hash-value">{{
+              detail.skill_package_hash || "-"
+            }}</span>
+          </el-descriptions-item>
         </el-descriptions>
         <div
           v-if="detail && (canCancelTask(detail) || canResumeTask(detail))"
@@ -860,6 +866,34 @@ onBeforeUnmount(() => {
                       :label="t('agentTaskCenter.detail.rawSize')"
                       >{{ row.tool_trace.raw_size || 0 }}</el-descriptions-item
                     >
+                    <el-descriptions-item
+                      v-if="row.tool_trace.provider_ref"
+                      :label="t('agentTaskCenter.detail.providerRef')"
+                    >
+                      {{ row.tool_trace.provider_ref }}
+                    </el-descriptions-item>
+                    <el-descriptions-item
+                      v-if="row.tool_trace.protocol_version"
+                      :label="t('agentTaskCenter.detail.protocolVersion')"
+                    >
+                      {{ row.tool_trace.protocol_version }}
+                    </el-descriptions-item>
+                    <el-descriptions-item
+                      v-if="row.tool_trace.catalog_hash"
+                      :label="t('agentTaskCenter.detail.catalogHash')"
+                    >
+                      <span class="hash-value">{{
+                        row.tool_trace.catalog_hash
+                      }}</span>
+                    </el-descriptions-item>
+                    <el-descriptions-item
+                      v-if="row.tool_trace.schema_hash"
+                      :label="t('agentTaskCenter.detail.schemaHash')"
+                    >
+                      <span class="hash-value">{{
+                        row.tool_trace.schema_hash
+                      }}</span>
+                    </el-descriptions-item>
                   </el-descriptions>
                   <pre
                     v-if="row.tool_trace.warnings?.length"
@@ -1061,6 +1095,14 @@ onBeforeUnmount(() => {
 
 .detail-title {
   font-weight: 600;
+}
+
+.hash-value {
+  display: block;
+  max-width: 100%;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .step-audit-box {

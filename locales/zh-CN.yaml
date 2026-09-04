@@ -85,6 +85,7 @@ menus:
   agentSkillManagement: Skill 管理
   agentTaskCenter: 任务中心
   llmConfig: 大语言模型配置
+  agentMCPManagement: MCP 管理
   notification: 通知
   notifyConfig: 通知配置
   notificationHistory: 历史通知
@@ -415,6 +416,10 @@ agentTaskCenter:
     partial: Partial
     errorType: Error Type
     rawSize: Raw Size
+    providerRef: MCP Provider
+    protocolVersion: MCP 协议版本
+    catalogHash: MCP Catalog Hash
+    schemaHash: MCP Schema Hash
     contextTrace: Context 构建
     contextBudget: Token 预算
     contextBlocks: Context Block
@@ -1419,3 +1424,93 @@ liquidationOrderPage:
 trade:
   ISOLATED: "逐仓"
   CROSSED: "全仓"
+
+agentMCPPage:
+  title: 第三方 MCP 管理
+  subtitle: 管理 Agent 主动连接的第三方 Streamable HTTP MCP Server；本页不配置本项目自身的 MCP Server。
+  hint:
+    security: 新发现的 Tool 默认不可调用。远端 annotation 仅作参考，Risk、启用状态和 Skill 授权必须由本系统管理员明确配置。
+    secretRef: 只填写受管凭据引用，例如 env:MCP_TOKEN；页面和 API 不返回凭据明文。编辑时留空会保留已有引用。
+    allowPrivate: 仅可信内网 MCP 使用；开启后允许 HTTP、localhost 和私网地址。
+  button:
+    add: 新增 MCP Server
+    catalog: 能力目录
+    test: 测试连接
+    refresh: 刷新能力目录
+    edit: 编辑
+    delete: 删除
+    save: 保存
+    cancel: 取消
+    close: 关闭
+    permission: Skill 授权
+  table:
+    name: Server 名称
+    endpoint: Endpoint
+    status: 状态
+    enabled: 启用
+    protocol: 协议版本
+    serverVersion: Server 版本
+    secret: 凭据
+    operation: 操作
+  field:
+    name: Server 名称
+    endpoint: Endpoint
+    authType: 鉴权类型
+    secretRef: 凭据引用
+    customHeader: 自定义 Header
+    enabled: 启用
+    allowPrivate: 允许私网
+  placeholder:
+    secretRef: 例如 env:MCP_TOKEN
+  state:
+    configured: 已配置
+    none: 未配置
+  dialog:
+    add: 新增第三方 MCP Server
+    edit: 编辑第三方 MCP Server
+  catalog:
+    title: "{name} 能力目录"
+    tools: Tools
+    resources: Resources
+    prompts: Prompts
+  tool:
+    name: Canonical Tool
+    status: 治理状态
+    risk: Risk
+    enabled: 启用
+    timeout: Timeout(ms)
+    cache: Cache TTL(ms)
+    idempotent: 幂等
+    maxResultBytes: 最大结果(bytes)
+    operation: 操作
+  resource:
+    name: Resource
+    uri: URI
+    mime: MIME Type
+  prompt:
+    name: Prompt
+    description: 描述
+  permission:
+    title: "Skill 授权：{name}"
+    hint: Tool 必须同时满足全局 Tool 启用、Skill 授权和 Runtime Risk Policy。Resource/Prompt 的自动加载仅影响 Context，不扩大 Tool 权限。
+    skill: Skill
+    enabled: 授权
+    autoLoad: 自动加载
+  confirm:
+    title: 提示
+    delete: "确认删除 MCP Server {name}？相关能力目录和 Skill 授权会一并删除。"
+  message:
+    loadFailed: 加载 MCP Server 失败
+    catalogFailed: 加载 MCP 能力目录失败
+    required: Server 名称和 Endpoint 不能为空
+    saved: MCP Server 已保存
+    saveFailed: 保存 MCP Server 失败
+    deleted: MCP Server 已删除
+    deleteFailed: 删除 MCP Server 失败
+    testSuccess: MCP 连接测试成功
+    testFailed: MCP 连接测试失败
+    refreshed: MCP 能力目录已刷新
+    refreshFailed: 刷新 MCP 能力目录失败
+    toolSaved: MCP Tool 治理配置已保存
+    toolSaveFailed: 保存 MCP Tool 配置失败
+    permissionSaveFailed: 保存 Skill MCP 授权失败

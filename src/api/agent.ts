@@ -75,6 +75,10 @@ export interface AgentToolTrace {
   content_hash?: string;
   as_of?: string;
   warnings?: string[];
+  provider_ref?: string;
+  protocol_version?: string;
+  catalog_hash?: string;
+  schema_hash?: string;
 }
 
 export interface AgentExecutionStep {
@@ -355,4 +359,136 @@ export const updateAgentSkill = (id: number, data: Record<string, any>) => {
 
 export const deleteAgentSkill = (id: number) => {
   return http.request<any>("delete", baseUrlApi(`agents/skills/${id}`));
+};
+
+export interface AgentMCPServer {
+  id: number;
+  name: string;
+  endpoint: string;
+  enabled: number;
+  auth_type: "none" | "bearer" | "oauth2" | "custom_header" | string;
+  custom_header?: string;
+  allow_private: number;
+  protocol_version?: string;
+  server_name?: string;
+  server_version?: string;
+  status: string;
+  last_success_at?: number;
+  last_error_at?: number;
+  last_error?: string;
+  catalog_hash?: string;
+  created_at: number;
+  updated_at: number;
+  has_secret: boolean;
+}
+
+export interface AgentMCPTool {
+  id: number;
+  server_id: number;
+  remote_name: string;
+  canonical_name: string;
+  description?: string;
+  input_schema?: string;
+  output_schema?: string;
+  schema_hash: string;
+  catalog_hash: string;
+  status: string;
+  risk: "read" | "write" | "trade" | string;
+  enabled: number;
+  read_only_hint: boolean;
+  idempotent_hint: boolean;
+  idempotent: boolean;
+  timeout_ms: number;
+  cache_ttl_ms: number;
+  max_result_bytes: number;
+}
+export interface AgentMCPResource {
+  id: number;
+  server_id: number;
+  uri: string;
+  name: string;
+  title?: string;
+  description?: string;
+  mime_type?: string;
+  size?: number;
+  last_modified?: string;
+  catalog_hash: string;
+}
+
+export interface AgentMCPPrompt {
+  id: number;
+  server_id: number;
+  remote_name: string;
+  title?: string;
+  description?: string;
+  arguments_json?: string;
+  catalog_hash: string;
+}
+
+export interface AgentMCPPermission {
+  id: number;
+  skill_name: string;
+  server_id: number;
+  capability_type: "tool" | "resource" | "prompt" | string;
+  capability_id: number;
+  enabled: number;
+  auto_load: number;
+}
+
+export interface AgentMCPCatalog {
+  server: AgentMCPServer;
+  tools: AgentMCPTool[];
+  resources: AgentMCPResource[];
+  prompts: AgentMCPPrompt[];
+  permissions: AgentMCPPermission[];
+}
+export const getAgentMCPServers = () => {
+  return http.get<any, Query>(baseUrlApi("agents/mcp/servers"));
+};
+
+export const createAgentMCPServer = (data: Record<string, any>) => {
+  return http.post<any, typeof data>(baseUrlApi("agents/mcp/servers"), {
+    data
+  });
+};
+
+export const updateAgentMCPServer = (id: number, data: Record<string, any>) => {
+  return http.request<any>("put", baseUrlApi(`agents/mcp/servers/${id}`), {
+    data
+  });
+};
+
+export const deleteAgentMCPServer = (id: number) => {
+  return http.request<any>("delete", baseUrlApi(`agents/mcp/servers/${id}`));
+};
+
+export const getAgentMCPCatalog = (id: number) => {
+  return http.get<any, Query>(baseUrlApi(`agents/mcp/servers/${id}/catalog`));
+};
+
+export const testAgentMCPServer = (id: number) => {
+  return http.post<any, Query>(
+    baseUrlApi(`agents/mcp/servers/${id}/test`),
+    undefined,
+    { timeout: 30000 }
+  );
+};
+
+export const refreshAgentMCPCatalog = (id: number) => {
+  return http.post<any, Query>(
+    baseUrlApi(`agents/mcp/servers/${id}/refresh`),
+    undefined,
+    { timeout: 90000 }
+  );
+};
+export const updateAgentMCPTool = (id: number, data: Record<string, any>) => {
+  return http.request<any>("put", baseUrlApi(`agents/mcp/tools/${id}`), {
+    data
+  });
+};
+
+export const saveAgentMCPPermission = (data: Record<string, any>) => {
+  return http.post<any, typeof data>(baseUrlApi("agents/mcp/permissions"), {
+    data
+  });
 };

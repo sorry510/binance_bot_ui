@@ -86,6 +86,16 @@ export default [
           showLink: true,
           showParent: true
         }
+      },
+      {
+        path: "/ai/mcp",
+        name: "AgentMCPManagement",
+        component: () => import("@/views/ai/mcpManagement.vue"),
+        meta: {
+          title: "menus.agentMCPManagement",
+          showLink: true,
+          showParent: true
+        }
       }
     ]
   }

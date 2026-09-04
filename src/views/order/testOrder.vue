@@ -276,8 +276,8 @@ onMounted(fetchData);
         min-width="100"
       >
         <template #default="{ row }">
-          <span :class="profitClass(row.gross_profit)">
-            {{ row.gross_profit }}
+          <span :class="profitClass(row.close_profit)">
+            {{ row.close_profit }}
           </span>
         </template>
       </el-table-column>
@@ -288,8 +288,8 @@ onMounted(fetchData);
       </el-table-column>
       <el-table-column :label="t('testOrderPage.table.profit')" min-width="100">
         <template #default="{ row }">
-          <span :class="profitClass(row.close_profit)">
-            {{ row.close_profit }}
+          <span :class="profitClass(row.gross_profit)">
+            {{ row.gross_profit }}
           </span>
         </template>
       </el-table-column>
