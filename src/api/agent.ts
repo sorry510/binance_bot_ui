@@ -377,6 +377,9 @@ export interface AgentMCPServer {
   last_error_at?: number;
   last_error?: string;
   catalog_hash?: string;
+  oauth_status?: string;
+  oauth_issuer?: string;
+  oauth_expires_at?: number;
   created_at: number;
   updated_at: number;
   has_secret: boolean;
@@ -479,6 +482,21 @@ export const refreshAgentMCPCatalog = (id: number) => {
     baseUrlApi(`agents/mcp/servers/${id}/refresh`),
     undefined,
     { timeout: 90000 }
+  );
+};
+
+export interface AgentMCPOAuthStartResult {
+  authorization_url: string;
+  callback_url: string;
+  client_metadata_url: string;
+  expires_at: number;
+}
+
+export const startAgentMCPOAuth = (id: number) => {
+  return http.post<any, Query>(
+    baseUrlApi(`agents/mcp/servers/${id}/oauth/start`),
+    undefined,
+    { timeout: 30000 }
   );
 };
 export const updateAgentMCPTool = (id: number, data: Record<string, any>) => {

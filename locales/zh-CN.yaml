@@ -1430,7 +1430,8 @@ agentMCPPage:
   subtitle: 管理 Agent 主动连接的第三方 Streamable HTTP MCP Server；本页不配置本项目自身的 MCP Server。
   hint:
     security: 新发现的 Tool 默认不可调用。远端 annotation 仅作参考，Risk、启用状态和 Skill 授权必须由本系统管理员明确配置。
-    secretRef: 只填写受管凭据引用，例如 env:MCP_TOKEN；页面和 API 不返回凭据明文。编辑时留空会保留已有引用。
+    secretRef: Bearer/自定义 Header 只填写受管凭据引用，例如 env:MCP_TOKEN；页面和 API 不返回凭据明文。编辑时留空会保留已有引用。
+    oauth2: OAuth2 Server 保存后请使用操作栏的“授权”完成浏览器 OAuth/PKCE 授权；OAuth Token 会加密存储，不需要手工填写 SecretRef。
     allowPrivate: 仅可信内网 MCP 使用；开启后允许 HTTP、localhost 和私网地址。
   button:
     add: 新增 MCP Server
@@ -1443,6 +1444,8 @@ agentMCPPage:
     cancel: 取消
     close: 关闭
     permission: Skill 授权
+    authorize: 授权
+    reauthorize: 重新授权
   table:
     name: Server 名称
     endpoint: Endpoint
@@ -1451,6 +1454,7 @@ agentMCPPage:
     protocol: 协议版本
     serverVersion: Server 版本
     secret: 凭据
+    oauthStatus: OAuth 状态
     operation: 操作
   field:
     name: Server 名称
@@ -1465,6 +1469,10 @@ agentMCPPage:
   state:
     configured: 已配置
     none: 未配置
+    oauthAuthorized: 已授权
+    oauthPending: 等待授权
+    oauthRequired: 需要授权
+    oauthConfigured: 已配置 Token
   dialog:
     add: 新增第三方 MCP Server
     edit: 编辑第三方 MCP Server
@@ -1514,3 +1522,7 @@ agentMCPPage:
     toolSaved: MCP Tool 治理配置已保存
     toolSaveFailed: 保存 MCP Tool 配置失败
     permissionSaveFailed: 保存 Skill MCP 授权失败
+    oauthStartFailed: 启动 MCP OAuth 授权失败
+    oauthCompleted: MCP OAuth 授权完成
+    oauthFailed: MCP OAuth 授权未完成或失败
+    popupBlocked: 浏览器阻止了 OAuth 授权窗口，请允许弹窗后重试

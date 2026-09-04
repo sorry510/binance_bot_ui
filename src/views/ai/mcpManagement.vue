@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from "vue-i18n";
 import {
@@ -10,6 +10,7 @@ import {
   getAgentSkills,
   refreshAgentMCPCatalog,
   saveAgentMCPPermission,
+  startAgentMCPOAuth,
   testAgentMCPServer,
   updateAgentMCPServer,
   updateAgentMCPTool,
@@ -31,6 +32,9 @@ const catalog = ref<AgentMCPCatalog | null>(null);
 const activeTab = ref("tools");
 const serverDialog = ref(false);
 const editingServerId = ref<number | null>(null);
+const oauthWindow = ref<Window | null>(null);
+const oauthStartingId = ref<number | null>(null);
+let oauthPollTimer: number | null = null;
 const serverForm = reactive({
   name: "",
   endpoint: "",
@@ -160,6 +164,67 @@ async function removeServer(row: AgentMCPServer) {
   }
 }
 
+async function authorizeServer(row: AgentMCPServer) {
+  const popup = window.open(
+    "about:blank",
+    "mcp-oauth",
+    "popup=yes,width=720,height=760"
+  );
+  if (!popup) {
+    ElMessage.error(t("agentMCPPage.message.popupBlocked"));
+    return;
+  }
+  popup.opener = null;
+  oauthWindow.value = popup;
+  oauthStartingId.value = row.id;
+  try {
+    const res = await startAgentMCPOAuth(row.id);
+    const authorizationUrl = res?.data?.authorization_url as string | undefined;
+    if (!authorizationUrl) {
+      throw new Error(t("agentMCPPage.message.oauthStartFailed"));
+    }
+    popup.location.href = authorizationUrl;
+    if (oauthPollTimer !== null) window.clearInterval(oauthPollTimer);
+    oauthPollTimer = window.setInterval(async () => {
+      if (!popup.closed) return;
+      if (oauthPollTimer !== null) window.clearInterval(oauthPollTimer);
+      oauthPollTimer = null;
+      oauthWindow.value = null;
+      await fetchServers();
+      const updated = servers.value.find(item => item.id === row.id);
+      if (updated?.oauth_status === "authorized") {
+        ElMessage.success(t("agentMCPPage.message.oauthCompleted"));
+        if (selectedServerId.value === row.id) await loadCatalog(row.id);
+      } else if (updated?.oauth_status !== "authorization_pending") {
+        ElMessage.error(t("agentMCPPage.message.oauthFailed"));
+      }
+    }, 700);
+  } catch (error: any) {
+    popup.close();
+    oauthWindow.value = null;
+    ElMessage.error(
+      error?.message || t("agentMCPPage.message.oauthStartFailed")
+    );
+  } finally {
+    oauthStartingId.value = null;
+  }
+}
+
+function oauthStatusText(status?: string) {
+  switch (status) {
+    case "authorized":
+      return t("agentMCPPage.state.oauthAuthorized");
+    case "authorization_pending":
+      return t("agentMCPPage.state.oauthPending");
+    case "authorization_required":
+      return t("agentMCPPage.state.oauthRequired");
+    case "configured":
+      return t("agentMCPPage.state.oauthConfigured");
+    default:
+      return t("agentMCPPage.state.none");
+  }
+}
+
 async function testServer(row: AgentMCPServer) {
   try {
     await testAgentMCPServer(row.id);
@@ -258,6 +323,9 @@ function statusType(status: string) {
 }
 
 onMounted(fetchServers);
+onBeforeUnmount(() => {
+  if (oauthPollTimer !== null) window.clearInterval(oauthPollTimer);
+});
 </script>
 <template>
   <div class="p-4">
@@ -331,8 +399,23 @@ onMounted(fetchServers);
           </template>
         </el-table-column>
         <el-table-column
+          :label="t('agentMCPPage.table.oauthStatus')"
+          width="120"
+        >
+          <template #default="{ row }">
+            <el-tag
+              v-if="row.auth_type === 'oauth2'"
+              :type="row.oauth_status === 'authorized' ? 'success' : 'warning'"
+              size="small"
+            >
+              {{ oauthStatusText(row.oauth_status) }}
+            </el-tag>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column
           :label="t('agentMCPPage.table.operation')"
-          width="360"
+          width="450"
           fixed="right"
         >
           <template #default="{ row }">
@@ -345,6 +428,18 @@ onMounted(fetchServers);
             <el-button size="small" @click="refreshCatalog(row)">{{
               t("agentMCPPage.button.refresh")
             }}</el-button>
+            <el-button
+              v-if="row.auth_type === 'oauth2'"
+              size="small"
+              type="warning"
+              :loading="oauthStartingId === row.id"
+              @click="authorizeServer(row)"
+              >{{
+                row.oauth_status === "authorized"
+                  ? t("agentMCPPage.button.reauthorize")
+                  : t("agentMCPPage.button.authorize")
+              }}</el-button
+            >
             <el-button size="small" @click="openEditServer(row)">{{
               t("agentMCPPage.button.edit")
             }}</el-button>
@@ -563,7 +658,10 @@ onMounted(fetchServers);
           </el-select>
         </el-form-item>
         <el-form-item
-          v-if="serverForm.auth_type !== 'none'"
+          v-if="
+            serverForm.auth_type === 'bearer' ||
+            serverForm.auth_type === 'custom_header'
+          "
           :label="t('agentMCPPage.field.secretRef')"
         >
           <el-input
@@ -574,6 +672,13 @@ onMounted(fetchServers);
             {{ t("agentMCPPage.hint.secretRef") }}
           </div>
         </el-form-item>
+        <el-alert
+          v-if="serverForm.auth_type === 'oauth2'"
+          :title="t('agentMCPPage.hint.oauth2')"
+          type="info"
+          :closable="false"
+          class="mb-4"
+        />
         <el-form-item
           v-if="serverForm.auth_type === 'custom_header'"
           :label="t('agentMCPPage.field.customHeader')"

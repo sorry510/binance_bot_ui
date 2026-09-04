@@ -1430,7 +1430,8 @@ agentMCPPage:
   subtitle: Manage third-party Streamable HTTP MCP Servers used by the Agent host. This page does not configure this application's own MCP Server.
   hint:
     security: Newly discovered Tools are disabled by default. Remote annotations are hints only; Risk, enablement, and Skill grants require explicit local administration.
-    secretRef: Enter only a managed credential reference such as env:MCP_TOKEN. Credential values are never returned by the UI or API. Leave blank while editing to keep the current reference.
+    secretRef: For Bearer/custom-header auth, enter only a managed credential reference such as env:MCP_TOKEN. Credential values are never returned by the UI or API. Leave blank while editing to keep the current reference.
+    oauth2: After saving an OAuth2 Server, use Authorize in the action column to complete browser OAuth/PKCE. OAuth tokens are encrypted at rest; no SecretRef is required.
     allowPrivate: For trusted private MCP Servers only. Enables HTTP, localhost, and private network addresses.
   button:
     add: Add MCP Server
@@ -1443,6 +1444,8 @@ agentMCPPage:
     cancel: Cancel
     close: Close
     permission: Skill Grants
+    authorize: Authorize
+    reauthorize: Reauthorize
   table:
     name: Server Name
     endpoint: Endpoint
@@ -1451,6 +1454,7 @@ agentMCPPage:
     protocol: Protocol
     serverVersion: Server Version
     secret: Credential
+    oauthStatus: OAuth Status
     operation: Action
   field:
     name: Server Name
@@ -1465,6 +1469,10 @@ agentMCPPage:
   state:
     configured: Configured
     none: Not Configured
+    oauthAuthorized: Authorized
+    oauthPending: Awaiting Authorization
+    oauthRequired: Authorization Required
+    oauthConfigured: Token Configured
   dialog:
     add: Add Third-party MCP Server
     edit: Edit Third-party MCP Server
@@ -1514,3 +1522,7 @@ agentMCPPage:
     toolSaved: MCP Tool governance saved
     toolSaveFailed: Failed to save MCP Tool governance
     permissionSaveFailed: Failed to save Skill MCP grant
+    oauthStartFailed: Failed to start MCP OAuth authorization
+    oauthCompleted: MCP OAuth authorization completed
+    oauthFailed: MCP OAuth authorization was not completed or failed
+    popupBlocked: The browser blocked the OAuth popup. Allow popups and retry.
