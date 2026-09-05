@@ -57,7 +57,7 @@ const config = reactive<Record<string, any>>({
   AgentMarketRegimeIntervalMin: 60,
   AgentMaxStartsPerMinute: 30,
   AgentMaxStartsPerHour: 300,
-  AgentMaxTokensPerTask: 120000,
+  AgentMaxTokensPerTask: 240000,
   AgentMaxToolCallsPerTask: 12,
   futuresPositionConvertEnable: 0,
   coinAllowLong: 1,
@@ -980,8 +980,16 @@ onBeforeUnmount(() => {
               </el-card>
             </div>
 
-            <div class="alert-trace-title">
-              {{ t("dashboard.alertStatus.recentTrace") }}
+            <div class="alert-trace-title flex items-center justify-between">
+              <span>{{ t("dashboard.alertStatus.recentTrace") }}</span>
+              <el-button
+                size="small"
+                text
+                type="primary"
+                @click="router.push('/ai/alert-pipeline-history')"
+              >
+                {{ t("dashboard.alertStatus.viewAll") }}
+              </el-button>
             </div>
             <el-table
               :data="alertStatus?.traces || []"

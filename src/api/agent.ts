@@ -2,6 +2,46 @@ import { http, baseUrlApi } from "@/utils/http";
 
 type Query = Record<string, any>;
 
+const AGENT_API_TIMEOUT = 30000;
+
+export interface AgentChatConversation {
+  id: string;
+  skill: string;
+  title: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentChatConversationList {
+  page: number;
+  limit: number;
+  total: number;
+  list: AgentChatConversation[];
+}
+
+export interface AgentChatMessage {
+  id: number;
+  conversation_id: string;
+  task_id?: string;
+  skill?: string;
+  sequence: number;
+  role: string;
+  content: string;
+  created_at: number;
+  task_status?: string;
+  task_stage?: string;
+  task_error?: string;
+}
+
+export interface AgentChatSkill {
+  name: string;
+  display_name: string;
+  description: string;
+  type: string;
+  version: string;
+}
+
 export interface AgentTaskEvent {
   task_id: string;
   conversation_id?: string;
@@ -38,6 +78,8 @@ export interface AgentContextBuildTrace {
   selected_blocks: number;
   trimmed_blocks: number;
   selected_block_ids?: string[];
+  selected_memory_ids?: string[];
+  trimmed_memory_ids?: string[];
   trimmed?: AgentContextTrimRecord[];
   stale_evidence_ids?: string[];
   built_at: string;
@@ -159,6 +201,10 @@ export interface AgentTask<T = any> {
   prompt_version?: string;
   prompt_hash?: string;
   model_config_id?: number;
+  final_model_config_id?: number;
+  route_candidates?: Array<Record<string, any>>;
+  route_reason?: string;
+  route_fallback?: Array<Record<string, any>>;
   input_contract_version?: string;
   output_contract_version?: string;
   skill_source?: string;
@@ -205,16 +251,70 @@ export interface SymbolAnalysisHistoryResult {
   list: SymbolAnalysisHistoryItem[];
 }
 
+export const getAgentChatConversations = (params: Query = {}) =>
+  http.get<any, Query>(baseUrlApi("agents/chat/conversations"), { params });
+
+export const createAgentChatConversation = () =>
+  http.post<any, Query>(baseUrlApi("agents/chat/conversations"));
+
+export const updateAgentChatConversation = (
+  conversationId: string,
+  title: string
+) =>
+  http.request<any>(
+    "put",
+    baseUrlApi(
+      `agents/chat/conversations/${encodeURIComponent(conversationId)}`
+    ),
+    { data: { title } }
+  );
+
+export const deleteAgentChatConversation = (conversationId: string) =>
+  http.request<any>(
+    "delete",
+    baseUrlApi(
+      `agents/chat/conversations/${encodeURIComponent(conversationId)}`
+    )
+  );
+
+export const getAgentChatMessages = (conversationId: string) =>
+  http.get<any, Query>(
+    baseUrlApi(
+      `agents/chat/conversations/${encodeURIComponent(conversationId)}/messages`
+    )
+  );
+
+export const sendAgentChatMessage = (
+  conversationId: string,
+  data: { skill: string; content: string }
+) =>
+  http.post<any, typeof data>(
+    baseUrlApi(
+      `agents/chat/conversations/${encodeURIComponent(conversationId)}/messages`
+    ),
+    { data },
+    { timeout: AGENT_API_TIMEOUT }
+  );
+
+export const getAgentChatSkills = () =>
+  http.get<any, Query>(baseUrlApi("agents/chat/skills"));
+
 export const startAgentTask = (data: {
   skill: string;
   input: Record<string, any>;
 }) => {
-  return http.post<any, typeof data>(baseUrlApi("agents/tasks"), { data });
+  return http.post<any, typeof data>(
+    baseUrlApi("agents/tasks"),
+    { data },
+    { timeout: AGENT_API_TIMEOUT }
+  );
 };
 
 export const getAgentTask = (taskId: string) => {
   return http.get<any, Query>(
-    baseUrlApi(`agents/tasks/${encodeURIComponent(taskId)}`)
+    baseUrlApi(`agents/tasks/${encodeURIComponent(taskId)}`),
+    undefined,
+    { timeout: AGENT_API_TIMEOUT }
   );
 };
 
@@ -231,9 +331,11 @@ export const resumeAgentTask = (taskId: string) => {
 };
 
 export const getSymbolAnalysisHistory = (params: Query = {}) => {
-  return http.get<any, Query>(baseUrlApi("agents/symbol-analysis/history"), {
-    params
-  });
+  return http.get<any, Query>(
+    baseUrlApi("agents/symbol-analysis/history"),
+    { params },
+    { timeout: AGENT_API_TIMEOUT }
+  );
 };
 
 export interface AgentTaskListResult {
@@ -260,16 +362,73 @@ export interface SchedulerJobStatus {
 }
 
 export const getAgentTasks = (params: Query = {}) => {
-  return http.get<any, Query>(baseUrlApi("agents/tasks"), { params });
+  return http.get<any, Query>(
+    baseUrlApi("agents/tasks"),
+    { params },
+    { timeout: AGENT_API_TIMEOUT }
+  );
 };
 
 export const getSchedulerStatus = () => {
-  return http.get<any, Query>(baseUrlApi("agents/scheduler/status"));
+  return http.get<any, Query>(
+    baseUrlApi("agents/scheduler/status"),
+    undefined,
+    { timeout: AGENT_API_TIMEOUT }
+  );
 };
 
 export const triggerSchedulerJob = (name: string) => {
   return http.post<any, Query>(
     baseUrlApi(`agents/scheduler/jobs/${encodeURIComponent(name)}/trigger`)
+  );
+};
+
+export interface AlertPipelineTraceNotification {
+  id: number;
+  title: string;
+  content: string;
+  module: string;
+  level: string;
+  event_type?: string;
+  event_id?: string;
+  signal_id?: string;
+  task_id?: string;
+  symbol?: string;
+  create_time: number;
+}
+
+export interface AlertPipelineAuditItem {
+  event_id: string;
+  signal_id: string;
+  task_id?: string;
+  notification_id?: number;
+  symbol: string;
+  type: string;
+  severity: string;
+  action?: string;
+  status: string;
+  fallback: boolean;
+  error?: string;
+  created_at: number;
+  updated_at: number;
+  task_status?: string;
+  task_stage?: string;
+  task_error?: string;
+  notification?: AlertPipelineTraceNotification;
+}
+
+export interface AlertPipelineAuditResult {
+  page: number;
+  limit: number;
+  total: number;
+  list: AlertPipelineAuditItem[];
+}
+
+export const getAlertPipelineTraces = (params: Query = {}) => {
+  return http.get<any, Query>(
+    baseUrlApi("agents/alerts/traces"),
+    { params },
+    { timeout: AGENT_API_TIMEOUT }
   );
 };
 
@@ -323,7 +482,11 @@ export interface AgentGovernanceStatus {
 }
 
 export const getAgentGovernanceStatus = () => {
-  return http.get<any, Query>(baseUrlApi("agents/governance/status"));
+  return http.get<any, Query>(
+    baseUrlApi("agents/governance/status"),
+    undefined,
+    { timeout: AGENT_API_TIMEOUT }
+  );
 };
 
 export interface AgentSkillConfig {
@@ -331,6 +494,8 @@ export interface AgentSkillConfig {
   name: string;
   display_name: string;
   description: string;
+  type: "native" | "portable" | string;
+  active_version_id: number;
   enabled: number;
   created_at: number;
   updated_at: number;
@@ -361,9 +526,88 @@ export const deleteAgentSkill = (id: number) => {
   return http.request<any>("delete", baseUrlApi(`agents/skills/${id}`));
 };
 
+export interface AgentSkillVersion {
+  id: number;
+  skill_id: number;
+  name: string;
+  package_hash: string;
+  version?: string;
+  description: string;
+  license?: string;
+  compatibility?: string;
+  metadata_json?: string;
+  requested_tools_json?: string;
+  validation_status: string;
+  validation_json?: string;
+  source: string;
+  source_ref?: string;
+  package_path: string;
+  file_count: number;
+  total_bytes: number;
+  created_at: number;
+}
+
+export interface AgentSkillPermission {
+  id: number;
+  skill_id: number;
+  version_id: number;
+  requested_name: string;
+  resolved_name?: string;
+  risk?: string;
+  status: string;
+  granted: number;
+  reason?: string;
+}
+
+export interface AgentSkillVersionDetail {
+  version: AgentSkillVersion;
+  permissions: AgentSkillPermission[];
+  files: string[];
+}
+
+export const importAgentSkillFile = (file: File, activate = false) => {
+  const data = new FormData();
+  data.append("file", file);
+  data.append("activate", activate ? "1" : "0");
+  return http.request<any>("post", baseUrlApi("agents/skills/import"), {
+    data,
+    timeout: 120000
+  } as any);
+};
+
+export const importAgentSkillDirectory = (path: string, activate = false) => {
+  return http.post<any, { path: string; activate: boolean }>(
+    baseUrlApi("agents/skills/import-directory"),
+    { data: { path, activate } },
+    { timeout: 120000 }
+  );
+};
+
+export const getAgentSkillVersions = (skillId: number) =>
+  http.get<any, Query>(baseUrlApi(`agents/skills/${skillId}/versions`));
+
+export const getAgentSkillVersionDetail = (versionId: number) =>
+  http.get<any, Query>(baseUrlApi(`agents/skills/versions/${versionId}`));
+
+export const getAgentSkillVersionFile = (versionId: number, path: string) =>
+  http.get<any, Query>(baseUrlApi(`agents/skills/versions/${versionId}/file`), {
+    params: { path }
+  });
+
+export const activateAgentSkillVersion = (versionId: number) =>
+  http.post<any, Query>(
+    baseUrlApi(`agents/skills/versions/${versionId}/activate`)
+  );
+
+export const updateAgentSkillPermission = (id: number, granted: number) =>
+  http.request<any>("put", baseUrlApi(`agents/skills/permissions/${id}`), {
+    data: { granted }
+  });
+
 export interface AgentMCPServer {
   id: number;
   name: string;
+  description?: string;
   endpoint: string;
   enabled: number;
   auth_type: "none" | "bearer" | "oauth2" | "custom_header" | string;
@@ -473,7 +717,7 @@ export const testAgentMCPServer = (id: number) => {
   return http.post<any, Query>(
     baseUrlApi(`agents/mcp/servers/${id}/test`),
     undefined,
-    { timeout: 30000 }
+    { timeout: 45000 }
   );
 };
 
@@ -481,7 +725,7 @@ export const refreshAgentMCPCatalog = (id: number) => {
   return http.post<any, Query>(
     baseUrlApi(`agents/mcp/servers/${id}/refresh`),
     undefined,
-    { timeout: 90000 }
+    { timeout: 120000 }
   );
 };
 
@@ -496,7 +740,7 @@ export const startAgentMCPOAuth = (id: number) => {
   return http.post<any, Query>(
     baseUrlApi(`agents/mcp/servers/${id}/oauth/start`),
     undefined,
-    { timeout: 30000 }
+    { timeout: 45000 }
   );
 };
 export const updateAgentMCPTool = (id: number, data: Record<string, any>) => {
@@ -510,3 +754,69 @@ export const saveAgentMCPPermission = (data: Record<string, any>) => {
     data
   });
 };
+
+export interface AgentMemoryScope {
+  user?: string;
+  skill?: string;
+  symbol?: string;
+  strategy?: string;
+}
+
+export interface AgentMemory {
+  id: number;
+  type:
+    | "user_preference"
+    | "strategy_fact"
+    | "market_hypothesis"
+    | "task_summary"
+    | "lesson"
+    | string;
+  scope: AgentMemoryScope;
+  source_task_id?: string;
+  confidence: number;
+  status: "candidate" | "active" | "disabled" | "expired" | string;
+  content: string;
+  content_hash: string;
+  created_at: string;
+  updated_at: string;
+  expires_at?: string;
+}
+
+export interface AgentMemoryListResult {
+  page: number;
+  limit: number;
+  total: number;
+  list: AgentMemory[];
+}
+
+export interface AgentMemoryInput {
+  type: string;
+  scope: AgentMemoryScope;
+  confidence: number;
+  content: string;
+  expires_at?: number;
+  candidate?: boolean;
+}
+
+export const getAgentMemories = (params: Query = {}) =>
+  http.get<any, Query>(baseUrlApi("agents/memories"), { params });
+
+export const createAgentMemory = (data: AgentMemoryInput) =>
+  http.post<any, AgentMemoryInput>(baseUrlApi("agents/memories"), { data });
+
+export const updateAgentMemory = (
+  id: number,
+  data: Omit<AgentMemoryInput, "type" | "candidate">
+) => http.request<any>("put", baseUrlApi(`agents/memories/${id}`), { data });
+
+export const deleteAgentMemory = (id: number) =>
+  http.request<any>("delete", baseUrlApi(`agents/memories/${id}`));
+
+export const disableAgentMemory = (id: number) =>
+  http.post<any, Query>(baseUrlApi(`agents/memories/${id}/disable`));
+
+export const enableAgentMemory = (id: number) =>
+  http.post<any, Query>(baseUrlApi(`agents/memories/${id}/enable`));
+
+export const approveAgentMemory = (id: number) =>
+  http.post<any, Query>(baseUrlApi(`agents/memories/${id}/approve`));

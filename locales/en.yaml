@@ -81,11 +81,14 @@ menus:
   purePermissionButtonLogin: Login interface return button permission
   dashboard: Dashboard
   ai: AI
+  agentChat: Chat
   symbolAnalysis: Symbol Analysis
   agentSkillManagement: Skill Management
   agentTaskCenter: Task Center
+  agentMemoryManagement: Memory Management
   llmConfig: LLM Config
   agentMCPManagement: MCP Management
+  alertPipelineHistory: Alert Pipeline History
   notification: Notifications
   notifyConfig: Notify Config
   notificationHistory: Notification History
@@ -228,6 +231,7 @@ dashboard:
     fallbacks: AI Fallbacks
     notifications: Notifications
     recentTrace: Recent Event → Signal → Task → Notification Trace
+    viewAll: View All
     symbol: Symbol
     signal: Signal
     severity: Severity
@@ -399,6 +403,10 @@ agentTaskCenter:
     executionMode: Execution Mode
     resumeCount: Resume Count
     modelConfigId: Model Config ID
+    finalModelConfigId: Final Model Config ID
+    routeReason: Route Reason
+    routeCandidates: Router Candidates
+    routeFallback: Fallback Trace
     toolCatalogHash: Tool Catalog Hash
     skillPackageHash: Skill Package Hash
     plan: Execution Plan
@@ -425,6 +433,8 @@ agentTaskCenter:
     contextBlocks: Context Blocks
     trimmedBlocks: Trimmed Blocks
     staleEvidence: Stale Evidence
+    memorySelected: Selected Memory
+    memoryTrimmed: Trimmed Memory
     evidence: Structured Evidence
     evidenceId: Evidence ID
     evidenceSource: Source
@@ -440,6 +450,7 @@ agentTaskCenter:
     cancelFailed: Failed to cancel task
     resumeAccepted: Resume request accepted
     resumeFailed: Failed to resume task
+    loadFailed: Failed to load task details
   unit:
     minute: min
     millisecond: ms
@@ -499,31 +510,80 @@ agentTaskCenter:
 agentSkillPage:
   title: Agent Skill Management
   hint:
-    implementation: The database stores Skill registration and governance settings; executable implementations remain in backend code. Deleting a row disables runtime startup until it is recreated.
+    implementation: Native Skills are implemented in Go; Portable Skills come from standard Agent Skills packages. Both use the same Runtime, Tool permissions, Tasks, and audit trail.
+    portable: Only Agent Skills compliant ZIP files or a single SKILL.md are accepted. Package scripts cannot execute by default; allowed-tools are author requests and are never granted automatically.
+    file: A ZIP may contain skill-name/SKILL.md or SKILL.md at its root. A single-file upload must be named SKILL.md.
+    directory: Enter only a relative path below the configured agent_skills.import_dir. Arbitrary server absolute paths are not allowed.
+    allowedTools: allowed-tools are requested pre-approvals, not system grants. A Tool enters the runtime allowlist only after an administrator explicitly grants it; high-risk Tools remain subject to global Runtime Policy.
   button:
-    add: Add Skill
+    add: Add Native Skill
+    import: Import Standard Skill
+    chooseFile: Choose File
+    versions: Versions
+    activate: Activate / Roll Back
+    view: View
     edit: Edit
     delete: Delete
     cancel: Cancel
     save: Save
   table:
     skill: Skill
+    type: Type
     displayName: Display Name
     description: Description
+    activeRevision: Active Revision
     enabled: Enabled
+    version: Version
+    packageHash: Package Hash
+    validation: Validation
+    source: Source
+    size: Size
+    requestedTool: Requested Tool
+    resolvedTool: Resolved Tool
+    status: Status
+    reason: Reason
+    granted: Granted
+    file: File
     operation: Action
   dialog:
-    add: Add Agent Skill
+    add: Add Native Skill
     edit: Edit Agent Skill
+    import: Import Standard Agent Skill
+    versions: "Versions: {name}"
   field:
     implementation: Skill Implementation
+    importMode: Import Mode
+    file: Skill File
+    directory: Server Directory
+    activate: Activate After Import
+  placeholder:
+    directory: Example team/market-summary
+  importMode:
+    upload: Upload ZIP / SKILL.md
+    directory: Server Directory
+  type:
+    native: Native
+    portable: Portable
+  state:
+    active: Active
+  section:
+    permissions: Requested / Granted Tools
+    files: Package Files
   confirm:
     title: Confirm
     delete: Delete Skill {name}? Runtime will reject this Skill until it is recreated.
   message:
     nameRequired: Select a Skill implementation
+    fileRequired: Choose a ZIP or SKILL.md file
+    directoryRequired: Enter a relative server directory
     saved: Skill saved
     saveFailed: Failed to save Skill
+    imported: Standard Skill imported
+    importFailed: Failed to import standard Skill
+    activated: Revision activated
+    activateFailed: Failed to activate revision
+    permissionFailed: Failed to update Tool grant
+    fileLoadFailed: Failed to read Skill file
     deleted: Skill deleted
     deleteFailed: Failed to delete Skill
   implementation:
@@ -544,7 +604,7 @@ llmConfigPage:
   title: LLM Model Configuration
   subtitle: New Agent tasks use the active database model configuration. Switching models does not require a service restart.
   hint:
-    database: LLM settings are stored only in the database. API keys are never returned in plaintext. Token and Tool limits remain under global Agent governance.
+    database: LLM settings are stored in the database. API keys are masked by default and plaintext is fetched only when explicitly revealed in the edit dialog. Token and Tool limits remain under global Agent governance.
     apiKeyKeep: "A key is already saved. Leave this blank to keep it:"
     enabled: Enabling this configuration automatically disables the previous active model.
   button:
@@ -556,6 +616,9 @@ llmConfigPage:
     delete: Delete
     cancel: Cancel
     save: Save
+    showApiKey: Show API Key
+    hideApiKey: Hide API Key
+    saveRouter: Save Router
   table:
     name: Configuration Name
     provider: Provider
@@ -564,6 +627,9 @@ llmConfigPage:
     apiKey: API Key
     enabled: Status
     operation: Action
+    routing: Routing
+    capabilities: Capabilities
+    health: Health
   field:
     provider: Provider Template
     name: Configuration Name
@@ -574,6 +640,15 @@ llmConfigPage:
     timeout: Request Timeout
     temperature: Temperature
     enabled: Set as Active Model
+    routerCandidate: Router Candidate
+    structuredOutput: Structured Output
+    reasoning: Reasoning
+    longContext: Long Context
+    nativeToolCalling: Native Tool Calling
+    jsonReliability: JSON Reliability
+    maxContextTokens: Max Context Tokens
+    costClass: Cost Class
+    latencyClass: Latency Class
   placeholder:
     name: Example DeepSeek Primary
     apiUrl: Full HTTP API URL
@@ -587,6 +662,8 @@ llmConfigPage:
     current: Active
     inactive: Inactive
     notConfigured: Not Configured
+    primary: Primary
+    candidate: Candidate
   confirm:
     title: Confirm
     delete: Delete LLM configuration {name}?
@@ -605,6 +682,30 @@ llmConfigPage:
     activateFailed: Failed to switch model
     deleted: LLM configuration deleted
     deleteFailed: Failed to delete LLM configuration
+    apiKeyLoadFailed: Failed to load API Key
+    routerSaved: Model Router settings saved
+    routerSaveFailed: Failed to save Model Router settings
+  router:
+    title: Model Router
+    enabled: Enable Router
+    fallback: Allow Fallback
+    failureThreshold: Circuit Failure Threshold
+    cooldown: Circuit Cooldown
+    hint: When Router is off, tasks strictly use the active primary model. When enabled, the primary and explicit Router candidates are selected by Skill capability requirements and health.
+  capability:
+    title: Model Capability Profile
+    reasoning: Reasoning
+    longContext: Long Context
+    nativeTools: Native Tools
+  health:
+    unknown: No Samples
+    closed: Healthy
+    open: Circuit Open
+    half_open: Half Open
+  class:
+    low: Low
+    medium: Medium
+    high: High
   unit:
     second: s
   provider:
@@ -1425,6 +1526,44 @@ trade:
   ISOLATED: "Isolated"
   CROSSED: "Crossed"
 
+alertPipelineHistory:
+  title: Alert Pipeline History
+  subtitle: Persistent Event → Signal → Agent Task → Notification audit history with pagination and filters.
+  total: "{total} records"
+  hint:
+    delivery: A Notification ID means the local notification record was created and external delivery was started. DingTalk HTTP delivery receipts are not persisted yet, so compare this list with messages actually received in DingTalk. Persistent history starts after this feature is deployed.
+  button:
+    search: Search
+    reset: Reset
+  placeholder:
+    symbol: Symbol
+    type: Signal Type
+    severity: Severity
+    status: Pipeline Status
+    fallback: Fallback
+    notification: Notification
+    startTime: Start Time
+    endTime: End Time
+  state:
+    yes: Yes
+    no: No
+    hasNotification: Has Notification
+    noNotification: No Notification
+  table:
+    time: Time
+    symbol: Symbol
+    signal: Signal
+    severity: Severity
+    status: Status
+    fallback: Fallback
+    eventId: Event ID
+    signalId: Signal ID
+    taskId: Task ID
+    taskStatus: Task Status/Stage
+    notificationId: Notification ID
+    notification: Local Notification
+    error: Error
+
 agentMCPPage:
   title: Third-party MCP Management
   subtitle: Manage third-party Streamable HTTP MCP Servers used by the Agent host. This page does not configure this application's own MCP Server.
@@ -1433,6 +1572,7 @@ agentMCPPage:
     secretRef: For Bearer/custom-header auth, enter only a managed credential reference such as env:MCP_TOKEN. Credential values are never returned by the UI or API. Leave blank while editing to keep the current reference.
     oauth2: After saving an OAuth2 Server, use Authorize in the action column to complete browser OAuth/PKCE. OAuth tokens are encrypted at rest; no SecretRef is required.
     allowPrivate: For trusted private MCP Servers only. Enables HTTP, localhost, and private network addresses.
+    canonicalName: The Server Name is part of each MCP Tool canonical name. Renaming it changes canonical names after Catalog refresh; historical task names are not rewritten.
   button:
     add: Add MCP Server
     catalog: Catalog
@@ -1448,6 +1588,7 @@ agentMCPPage:
     reauthorize: Reauthorize
   table:
     name: Server Name
+    description: Description
     endpoint: Endpoint
     status: Status
     enabled: Enabled
@@ -1458,6 +1599,7 @@ agentMCPPage:
     operation: Action
   field:
     name: Server Name
+    description: MCP Description
     endpoint: Endpoint
     authType: Auth Type
     secretRef: Credential Reference
@@ -1465,6 +1607,7 @@ agentMCPPage:
     enabled: Enabled
     allowPrivate: Allow Private Network
   placeholder:
+    description: "Example: crypto news, derivatives anomalies, and liquidation data"
     secretRef: Example env:MCP_TOKEN
   state:
     configured: Configured
@@ -1526,3 +1669,119 @@ agentMCPPage:
     oauthCompleted: MCP OAuth authorization completed
     oauthFailed: MCP OAuth authorization was not completed or failed
     popupBlocked: The browser blocked the OAuth popup. Allow popups and retry.
+
+agentChat:
+  newConversation: New chat
+  subtitle: Select a Skill, or type / to switch Skills
+  button:
+    newConversation: New chat
+    send: Send
+    taskDetail: View task
+    rename: Edit
+    delete: Delete
+  placeholder:
+    message: Type a message; use / to select a Skill. Enter to send, Shift+Enter for newline
+    title: Enter a conversation title
+  message:
+    renameTitle: Edit conversation title
+    renamePrompt: Change the title shown in conversation history
+    titleRequired: Conversation title is required
+    renameFailed: Failed to rename conversation
+    renamed: Conversation title updated
+    deleteTitle: Delete conversation
+    deleteConfirm: Delete “{title}”? Conversation messages will be removed, while Agent task history will be kept.
+    deleteFailed: Failed to delete conversation
+    deleted: Conversation deleted
+    deleteRunning: This conversation still has a running task. Wait for it to finish or cancel it before deleting.
+  hint:
+    slash: Type / to open available Skills
+  skillMenu:
+    title: Select Skill
+  empty:
+    conversation: No conversations
+    message: Select a Skill to start chatting
+    skill: No matching Skill
+  role:
+    user: You
+    assistant: Agent
+  status:
+    queued: Queued
+    running: Running
+    waiting_llm: Thinking
+    waiting_tool: Calling tool
+    validating: Validating
+    succeeded: Completed
+    failed: Failed
+    cancelled: Cancelled
+    interrupted: Interrupted
+
+agentMemoryPage:
+  title: Long-term Memory
+  subtitle: Manage user preferences, strategy facts, market hypotheses, task summaries, and lessons retained across tasks. Conversation and Memory have independent lifecycles.
+  type:
+    user_preference: User Preference
+    strategy_fact: Strategy Fact
+    market_hypothesis: Market Hypothesis
+    task_summary: Task Summary
+    lesson: Lesson
+  status:
+    candidate: Candidate
+    active: Active
+    disabled: Disabled
+    expired: Expired
+  scope:
+    global: Global
+  filter:
+    expired: Expired
+  placeholder:
+    type: Memory type
+    status: Status
+    skill: Skill
+    symbol: Symbol
+    strategy: Strategy
+  table:
+    type: Type
+    status: Status
+    scope: Scope
+    content: Content
+    confidence: Confidence
+    sourceTask: Source Task
+    expiresAt: Expires At
+    updatedAt: Updated At
+    operation: Actions
+  form:
+    type: Type
+    content: Content
+    confidence: Confidence
+    scope: Scope
+    user: User
+    skill: Skill
+    symbol: Symbol
+    strategy: Strategy
+    expiresAt: Expires At
+    candidate: Save as candidate
+  dialog:
+    create: Add Memory
+    edit: Edit Memory
+  button:
+    refresh: Refresh
+    add: Add
+    search: Search
+    edit: Edit
+    approve: Approve
+    disable: Disable
+    enable: Enable
+    delete: Delete
+    cancel: Cancel
+    save: Save
+  message:
+    contentRequired: Memory content is required
+    saved: Memory saved
+    saveFailed: Failed to save Memory
+    statusUpdated: Memory status updated
+    statusFailed: Failed to update Memory status
+    deleted: Memory deleted
+    deleteFailed: Failed to delete Memory
+  confirm:
+    title: Confirm
+    delete: Permanently delete this Memory?

@@ -2,6 +2,8 @@ import { http, baseUrlApi } from "@/utils/http";
 
 type Query = Record<string, any>;
 
+const AI_API_TIMEOUT = 30000;
+
 export interface MarketConditionResult {
   marketCondition: number;
   name: string;
@@ -58,14 +60,18 @@ export const testPusher = (params: Query = {}) => {
 };
 
 export const updateMarketCondition = (params: Query = {}) => {
-  return http.post<any, Query>(baseUrlApi("update-market-condition"), {
-    params
-  });
+  return http.post<any, Query>(
+    baseUrlApi("update-market-condition"),
+    { params },
+    { timeout: AI_API_TIMEOUT }
+  );
 };
 
 export const getMarketConditionUpdateTask = (taskId: string) => {
   return http.get<any, Query>(
-    baseUrlApi(`update-market-condition/${encodeURIComponent(taskId)}`)
+    baseUrlApi(`update-market-condition/${encodeURIComponent(taskId)}`),
+    undefined,
+    { timeout: AI_API_TIMEOUT }
   );
 };
 

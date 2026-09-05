@@ -2,6 +2,8 @@ import { http, baseUrlApi } from "@/utils/http";
 
 type Query = Record<string, any>;
 
+const AI_API_TIMEOUT = 30000;
+
 export interface StrategyTemplateAIProgressEvent {
   progress: number;
   stage: string;
@@ -60,7 +62,8 @@ export const startAIGeneration = (data: {
 }) => {
   return http.post<any, typeof data>(
     baseUrlApi("strategy-templates/ai-generate"),
-    { data }
+    { data },
+    { timeout: AI_API_TIMEOUT }
   );
 };
 
@@ -82,7 +85,9 @@ export const importAIGeneratedData = (taskId: string, json: string) => {
 
 export const getAIGenerationTask = (taskId: string) => {
   return http.get<any, Query>(
-    baseUrlApi(`strategy-templates/ai-generate/${encodeURIComponent(taskId)}`)
+    baseUrlApi(`strategy-templates/ai-generate/${encodeURIComponent(taskId)}`),
+    undefined,
+    { timeout: AI_API_TIMEOUT }
   );
 };
 

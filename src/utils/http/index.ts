@@ -23,7 +23,7 @@ export const baseUrlApi = (url: string) => {
 // 相关配置请参考：www.axios-js.com/zh-cn/docs/#axios-request-config-1
 const defaultConfig: AxiosRequestConfig = {
   // 请求超时时间
-  timeout: 10000,
+  timeout: 30000,
   headers: {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json",
@@ -69,6 +69,20 @@ class PureHttp {
       async (config: PureHttpRequestConfig): Promise<any> => {
         // 开启进度条动画
         NProgress.start();
+        // FormData 必须由浏览器自动生成 multipart/form-data boundary。
+        // 全局默认 application/json 会导致 Axios 将 FormData 按 JSON 处理。
+        if (
+          typeof FormData !== "undefined" &&
+          config.data instanceof FormData
+        ) {
+          const headers = config.headers as any;
+          if (typeof headers?.delete === "function") {
+            headers.delete("Content-Type");
+          } else if (headers) {
+            delete headers["Content-Type"];
+            delete headers["content-type"];
+          }
+        }
         // 优先判断post/get等方法是否传入回调，否则执行初始化设置等回调
         if (typeof config.beforeRequestCallback === "function") {
           config.beforeRequestCallback(config);

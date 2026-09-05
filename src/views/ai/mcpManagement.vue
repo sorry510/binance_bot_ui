@@ -37,6 +37,7 @@ const oauthStartingId = ref<number | null>(null);
 let oauthPollTimer: number | null = null;
 const serverForm = reactive({
   name: "",
+  description: "",
   endpoint: "",
   enabled: 1,
   auth_type: "none",
@@ -98,6 +99,7 @@ function resetServerForm() {
   editingServerId.value = null;
   Object.assign(serverForm, {
     name: "",
+    description: "",
     endpoint: "",
     enabled: 1,
     auth_type: "none",
@@ -116,6 +118,7 @@ function openEditServer(row: AgentMCPServer) {
   editingServerId.value = row.id;
   Object.assign(serverForm, {
     name: row.name,
+    description: row.description || "",
     endpoint: row.endpoint,
     enabled: row.enabled,
     auth_type: row.auth_type || "none",
@@ -354,6 +357,12 @@ onBeforeUnmount(() => {
           prop="name"
           :label="t('agentMCPPage.table.name')"
           min-width="140"
+        />
+        <el-table-column
+          prop="description"
+          :label="t('agentMCPPage.table.description')"
+          min-width="200"
+          show-overflow-tooltip
         />
         <el-table-column
           prop="endpoint"
@@ -637,9 +646,20 @@ onBeforeUnmount(() => {
       width="680px"
     >
       <el-form label-width="150px">
-        <el-form-item :label="t('agentMCPPage.field.name')"
-          ><el-input v-model="serverForm.name"
-        /></el-form-item>
+        <el-form-item :label="t('agentMCPPage.field.name')">
+          <el-input v-model="serverForm.name" />
+          <div class="text-xs text-orange-500 mt-1">
+            {{ t("agentMCPPage.hint.canonicalName") }}
+          </div>
+        </el-form-item>
+        <el-form-item :label="t('agentMCPPage.field.description')">
+          <el-input
+            v-model="serverForm.description"
+            type="textarea"
+            :rows="3"
+            :placeholder="t('agentMCPPage.placeholder.description')"
+          />
+        </el-form-item>
         <el-form-item :label="t('agentMCPPage.field.endpoint')"
           ><el-input
             v-model="serverForm.endpoint"

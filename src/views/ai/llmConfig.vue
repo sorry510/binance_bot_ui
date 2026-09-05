@@ -6,12 +6,17 @@ import {
   createLLMConfig,
   deleteLLMConfig,
   getLLMConfigs,
+  getLLMConfigAPIKey,
   getLLMProviderPresets,
+  getLLMRouterState,
+  updateLLMRouterSettings,
   testLLMConfig,
   updateLLMConfig,
   type LLMConfigInput,
   type LLMConfigItem,
-  type LLMProviderPreset
+  type LLMProviderPreset,
+  type LLMRouterSettings,
+  type LLMHealthSnapshot
 } from "@/api/llm";
 
 defineOptions({ name: "LLMConfigManagement" });
@@ -24,8 +29,19 @@ const switchingId = ref<number | null>(null);
 const testingId = ref<number | null>(null);
 const dialogVisible = ref(false);
 const editingId = ref<number | null>(null);
+const apiKeyVisible = ref(false);
+const apiKeyLoading = ref(false);
 const configs = ref<LLMConfigItem[]>([]);
 const presets = ref<LLMProviderPreset[]>([]);
+const routerSaving = ref(false);
+const routerSettings = reactive<LLMRouterSettings>({
+  enabled: 0,
+  fallback_enabled: 1,
+  failure_threshold: 3,
+  cooldown_seconds: 60,
+  health_window: 20
+});
+const healthByConfig = ref<Record<number, LLMHealthSnapshot>>({});
 const form = reactive<LLMConfigInput>({
   name: "",
   provider: "deepseek",
@@ -35,7 +51,16 @@ const form = reactive<LLMConfigInput>({
   api_version: "",
   timeout_seconds: 60,
   temperature: 0.2,
-  enabled: 0
+  enabled: 0,
+  router_candidate: 0,
+  structured_output: 1,
+  native_tool_calling: 0,
+  reasoning: 0,
+  long_context: 0,
+  json_reliability: 80,
+  max_context_tokens: 0,
+  cost_class: "medium",
+  latency_class: "medium"
 });
 
 const selectedPreset = computed(() =>
@@ -74,12 +99,20 @@ function applyPreset(provider: string, force = false) {
 async function fetchData() {
   loading.value = true;
   try {
-    const [configRes, presetRes] = await Promise.all([
+    const [configRes, presetRes, routerRes] = await Promise.all([
       getLLMConfigs(),
-      getLLMProviderPresets()
+      getLLMProviderPresets(),
+      getLLMRouterState()
     ]);
     configs.value = (configRes?.data || []) as LLMConfigItem[];
     presets.value = (presetRes?.data || []) as LLMProviderPreset[];
+    Object.assign(routerSettings, routerRes?.data?.settings || {});
+    healthByConfig.value = Object.fromEntries(
+      ((routerRes?.data?.health || []) as LLMHealthSnapshot[]).map(item => [
+        item.config_id,
+        item
+      ])
+    );
   } catch (error: any) {
     ElMessage.error(error?.message || t("llmConfigPage.message.loadFailed"));
   } finally {
@@ -89,6 +122,7 @@ async function fetchData() {
 
 function resetForm() {
   editingId.value = null;
+  apiKeyVisible.value = false;
   Object.assign(form, {
     name: "",
     provider: presets.value[0]?.provider || "deepseek",
@@ -98,7 +132,16 @@ function resetForm() {
     api_version: "",
     timeout_seconds: 60,
     temperature: 0.2,
-    enabled: configs.value.length === 0 ? 1 : 0
+    enabled: configs.value.length === 0 ? 1 : 0,
+    router_candidate: 0,
+    structured_output: 1,
+    native_tool_calling: 0,
+    reasoning: 0,
+    long_context: 0,
+    json_reliability: 80,
+    max_context_tokens: 0,
+    cost_class: "medium",
+    latency_class: "medium"
   });
   applyPreset(form.provider, true);
 }
@@ -109,6 +152,7 @@ function openCreate() {
 
 function openEdit(row: LLMConfigItem) {
   editingId.value = row.id;
+  apiKeyVisible.value = false;
   Object.assign(form, {
     name: row.name,
     provider: row.provider,
@@ -118,9 +162,35 @@ function openEdit(row: LLMConfigItem) {
     api_version: row.api_version || "",
     timeout_seconds: row.timeout_seconds || 60,
     temperature: Number(row.temperature ?? 0.2),
-    enabled: row.enabled
+    enabled: row.enabled,
+    router_candidate: row.router_candidate ?? 0,
+    structured_output: row.structured_output ?? 1,
+    native_tool_calling: row.native_tool_calling ?? 0,
+    reasoning: row.reasoning ?? 0,
+    long_context: row.long_context ?? 0,
+    json_reliability: row.json_reliability ?? 80,
+    max_context_tokens: row.max_context_tokens ?? 0,
+    cost_class: row.cost_class || "medium",
+    latency_class: row.latency_class || "medium"
   });
   dialogVisible.value = true;
+}
+
+async function onAPIKeyVisibilityChange(visible: boolean) {
+  if (!visible || editingId.value === null || form.api_key.trim()) return;
+  if (!editingRow.value?.has_api_key) return;
+  apiKeyLoading.value = true;
+  try {
+    const res = await getLLMConfigAPIKey(editingId.value);
+    form.api_key = String(res?.data?.api_key || "");
+  } catch (error: any) {
+    apiKeyVisible.value = false;
+    ElMessage.error(
+      error?.message || t("llmConfigPage.message.apiKeyLoadFailed")
+    );
+  } finally {
+    apiKeyLoading.value = false;
+  }
 }
 
 function onProviderChange(value: string) {
@@ -137,7 +207,16 @@ function payloadFromRow(row: LLMConfigItem): LLMConfigInput {
     api_version: row.api_version || "",
     timeout_seconds: row.timeout_seconds || 60,
     temperature: Number(row.temperature ?? 0.2),
-    enabled: row.enabled
+    enabled: row.enabled,
+    router_candidate: row.router_candidate ?? 0,
+    structured_output: row.structured_output ?? 1,
+    native_tool_calling: row.native_tool_calling ?? 0,
+    reasoning: row.reasoning ?? 0,
+    long_context: row.long_context ?? 0,
+    json_reliability: row.json_reliability ?? 80,
+    max_context_tokens: row.max_context_tokens ?? 0,
+    cost_class: row.cost_class || "medium",
+    latency_class: row.latency_class || "medium"
   };
 }
 function validateForm() {
@@ -251,6 +330,40 @@ async function remove(row: LLMConfigItem) {
   }
 }
 
+async function saveRouterSettings() {
+  routerSaving.value = true;
+  try {
+    await updateLLMRouterSettings({ ...routerSettings });
+    ElMessage.success(t("llmConfigPage.message.routerSaved"));
+    await fetchData();
+  } catch (error: any) {
+    ElMessage.error(
+      error?.message || t("llmConfigPage.message.routerSaveFailed")
+    );
+  } finally {
+    routerSaving.value = false;
+  }
+}
+
+function healthState(row: LLMConfigItem) {
+  return healthByConfig.value[row.id]?.state || "unknown";
+}
+function healthLabel(row: LLMConfigItem) {
+  const item = healthByConfig.value[row.id];
+  if (!item || item.samples === 0) return t("llmConfigPage.health.unknown");
+  return `${t(`llmConfigPage.health.${item.state}`)} · ${(item.success_rate * 100).toFixed(0)}% · ${item.average_latency_ms}ms`;
+}
+function capabilityTags(row: LLMConfigItem) {
+  const result: string[] = [];
+  if (row.structured_output === 1) result.push("JSON");
+  if (row.reasoning === 1) result.push(t("llmConfigPage.capability.reasoning"));
+  if (row.long_context === 1)
+    result.push(t("llmConfigPage.capability.longContext"));
+  if (row.native_tool_calling === 1)
+    result.push(t("llmConfigPage.capability.nativeTools"));
+  return result;
+}
+
 onMounted(fetchData);
 </script>
 
@@ -284,6 +397,52 @@ onMounted(fetchData);
         class="mb-4"
       />
 
+      <el-card shadow="never" class="mb-4 router-card">
+        <template #header
+          ><div class="font-medium">
+            {{ t("llmConfigPage.router.title") }}
+          </div></template
+        >
+        <el-form inline label-width="120px">
+          <el-form-item :label="t('llmConfigPage.router.enabled')"
+            ><el-switch
+              v-model="routerSettings.enabled"
+              :active-value="1"
+              :inactive-value="0"
+          /></el-form-item>
+          <el-form-item :label="t('llmConfigPage.router.fallback')"
+            ><el-switch
+              v-model="routerSettings.fallback_enabled"
+              :active-value="1"
+              :inactive-value="0"
+          /></el-form-item>
+          <el-form-item :label="t('llmConfigPage.router.failureThreshold')"
+            ><el-input-number
+              v-model="routerSettings.failure_threshold"
+              :min="1"
+              :max="20"
+          /></el-form-item>
+          <el-form-item :label="t('llmConfigPage.router.cooldown')"
+            ><el-input-number
+              v-model="routerSettings.cooldown_seconds"
+              :min="5"
+              :max="3600"
+            /><span class="ml-1">s</span></el-form-item
+          >
+          <el-form-item
+            ><el-button
+              type="primary"
+              :loading="routerSaving"
+              @click="saveRouterSettings"
+              >{{ t("llmConfigPage.button.saveRouter") }}</el-button
+            ></el-form-item
+          >
+        </el-form>
+        <div class="text-xs text-gray-500">
+          {{ t("llmConfigPage.router.hint") }}
+        </div>
+      </el-card>
+
       <el-table v-loading="loading" :data="configs" size="small">
         <el-table-column
           prop="name"
@@ -304,6 +463,57 @@ onMounted(fetchData);
           min-width="170"
           show-overflow-tooltip
         />
+        <el-table-column
+          :label="t('llmConfigPage.table.routing')"
+          min-width="150"
+        >
+          <template #default="{ row }">
+            <el-tag v-if="row.enabled === 1" type="success" size="small">{{
+              t("llmConfigPage.state.primary")
+            }}</el-tag>
+            <el-tag
+              v-else-if="row.router_candidate === 1"
+              type="warning"
+              size="small"
+              >{{ t("llmConfigPage.state.candidate") }}</el-tag
+            >
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="t('llmConfigPage.table.capabilities')"
+          min-width="220"
+        >
+          <template #default="{ row }"
+            ><div class="flex flex-wrap gap-1">
+              <el-tag
+                v-for="tag in capabilityTags(row)"
+                :key="tag"
+                size="small"
+                effect="plain"
+                >{{ tag }}</el-tag
+              >
+            </div></template
+          >
+        </el-table-column>
+        <el-table-column
+          :label="t('llmConfigPage.table.health')"
+          min-width="190"
+        >
+          <template #default="{ row }"
+            ><el-tag
+              :type="
+                healthState(row) === 'open'
+                  ? 'danger'
+                  : healthState(row) === 'closed'
+                    ? 'success'
+                    : 'info'
+              "
+              size="small"
+              >{{ healthLabel(row) }}</el-tag
+            ></template
+          >
+        </el-table-column>
         <el-table-column
           prop="api_url"
           :label="t('llmConfigPage.table.apiUrl')"
@@ -410,8 +620,7 @@ onMounted(fetchData);
         >
           <el-input
             v-model="form.api_key"
-            type="password"
-            show-password
+            :type="apiKeyVisible ? 'text' : 'password'"
             autocomplete="new-password"
             :placeholder="
               editingRow?.has_api_key
@@ -419,7 +628,19 @@ onMounted(fetchData);
                 : t('llmConfigPage.placeholder.apiKey')
             "
           />
-          <div v-if="editingRow?.has_api_key" class="form-hint">
+          <div class="api-key-controls">
+            <el-switch
+              v-model="apiKeyVisible"
+              :loading="apiKeyLoading"
+              :active-text="t('llmConfigPage.button.showApiKey')"
+              :inactive-text="t('llmConfigPage.button.hideApiKey')"
+              @change="onAPIKeyVisibilityChange"
+            />
+          </div>
+          <div
+            v-if="editingRow?.has_api_key && !apiKeyVisible"
+            class="form-hint"
+          >
             {{ t("llmConfigPage.hint.apiKeyKeep") }}
             {{ editingRow.api_key_masked }}
           </div>
@@ -458,6 +679,76 @@ onMounted(fetchData);
             controls-position="right"
           />
         </el-form-item>
+        <el-divider content-position="left">{{
+          t("llmConfigPage.capability.title")
+        }}</el-divider>
+        <el-form-item :label="t('llmConfigPage.field.routerCandidate')">
+          <el-switch
+            v-model="form.router_candidate"
+            :active-value="1"
+            :inactive-value="0"
+          />
+        </el-form-item>
+        <el-form-item :label="t('llmConfigPage.field.structuredOutput')">
+          <el-switch
+            v-model="form.structured_output"
+            :active-value="1"
+            :inactive-value="0"
+          />
+        </el-form-item>
+        <el-form-item :label="t('llmConfigPage.field.reasoning')">
+          <el-switch
+            v-model="form.reasoning"
+            :active-value="1"
+            :inactive-value="0"
+          />
+        </el-form-item>
+        <el-form-item :label="t('llmConfigPage.field.longContext')">
+          <el-switch
+            v-model="form.long_context"
+            :active-value="1"
+            :inactive-value="0"
+          />
+        </el-form-item>
+        <el-form-item :label="t('llmConfigPage.field.nativeToolCalling')">
+          <el-switch
+            v-model="form.native_tool_calling"
+            :active-value="1"
+            :inactive-value="0"
+          />
+        </el-form-item>
+        <el-form-item :label="t('llmConfigPage.field.jsonReliability')">
+          <el-input-number
+            v-model="form.json_reliability"
+            :min="0"
+            :max="100"
+          />
+        </el-form-item>
+        <el-form-item :label="t('llmConfigPage.field.maxContextTokens')">
+          <el-input-number
+            v-model="form.max_context_tokens"
+            :min="0"
+            :step="8192"
+          />
+        </el-form-item>
+        <el-form-item :label="t('llmConfigPage.field.costClass')">
+          <el-select v-model="form.cost_class" class="w-full"
+            ><el-option
+              v-for="value in ['low', 'medium', 'high']"
+              :key="value"
+              :label="t(`llmConfigPage.class.${value}`)"
+              :value="value"
+          /></el-select>
+        </el-form-item>
+        <el-form-item :label="t('llmConfigPage.field.latencyClass')">
+          <el-select v-model="form.latency_class" class="w-full"
+            ><el-option
+              v-for="value in ['low', 'medium', 'high']"
+              :key="value"
+              :label="t(`llmConfigPage.class.${value}`)"
+              :value="value"
+          /></el-select>
+        </el-form-item>
         <el-form-item :label="t('llmConfigPage.field.enabled')">
           <el-switch
             v-model="form.enabled"
@@ -493,6 +784,11 @@ onMounted(fetchData);
 </template>
 
 <style scoped>
+.api-key-controls {
+  width: 100%;
+  margin-top: 6px;
+}
+
 .form-hint {
   width: 100%;
   margin-top: 4px;

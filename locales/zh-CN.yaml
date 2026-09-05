@@ -81,11 +81,14 @@ menus:
   purePermissionButtonLogin: 登录接口返回按钮权限
   dashboard: 配置中心
   ai: AI
+  agentChat: 对话
   symbolAnalysis: 单币分析
   agentSkillManagement: Skill 管理
   agentTaskCenter: 任务中心
-  llmConfig: 大语言模型配置
+  agentMemoryManagement: Memory 管理
+  llmConfig: 模型配置
   agentMCPManagement: MCP 管理
+  alertPipelineHistory: 报警链路历史
   notification: 通知
   notifyConfig: 通知配置
   notificationHistory: 历史通知
@@ -228,6 +231,7 @@ dashboard:
     fallbacks: AI 降级
     notifications: 通知数
     recentTrace: 最近事件 → 信号 → 任务 → 通知链路
+    viewAll: 查看全部
     symbol: 合约
     signal: 信号
     severity: 级别
@@ -399,6 +403,10 @@ agentTaskCenter:
     executionMode: 执行模式
     resumeCount: 恢复次数
     modelConfigId: 模型配置 ID
+    finalModelConfigId: 最终模型配置 ID
+    routeReason: 路由原因
+    routeCandidates: Router 候选
+    routeFallback: Fallback 轨迹
     toolCatalogHash: Tool Catalog Hash
     skillPackageHash: Skill Package Hash
     plan: 执行计划
@@ -425,6 +433,8 @@ agentTaskCenter:
     contextBlocks: Context Block
     trimmedBlocks: 裁剪 Block
     staleEvidence: 过期 Evidence
+    memorySelected: 选中的 Memory
+    memoryTrimmed: 裁剪的 Memory
     evidence: 结构化 Evidence
     evidenceId: Evidence ID
     evidenceSource: 数据来源
@@ -440,6 +450,7 @@ agentTaskCenter:
     cancelFailed: 取消任务失败
     resumeAccepted: 已提交恢复请求
     resumeFailed: 恢复任务失败
+    loadFailed: 加载任务详情失败
   unit:
     minute: 分钟
     millisecond: 毫秒
@@ -499,31 +510,80 @@ agentTaskCenter:
 agentSkillPage:
   title: 智能体 Skill 管理
   hint:
-    implementation: 数据库存储 Skill 注册与治理配置；执行逻辑仍由后端代码提供。删除后该 Skill 将无法启动，除非重新创建。
+    implementation: Native Skill 由后端 Go 实现；Portable Skill 来自标准 Agent Skills 包。两者共用 Runtime、Tool 权限、Task 和审计。
+    portable: 仅接受符合 Agent Skills 规范的 ZIP 或单个 SKILL.md。包内 scripts 默认禁止执行；allowed-tools 只表示作者请求，导入后不会自动授权。
+    file: ZIP 可包含 skill-name/SKILL.md，也可在根目录直接包含 SKILL.md；单文件必须名为 SKILL.md。
+    directory: 这里只能填写 agent_skills.import_dir 配置目录下的相对路径，不能访问任意服务器绝对路径。
+    allowedTools: allowed-tools 是作者请求的预批准能力，不代表本系统授权。只有管理员显式开启 Granted 后才会进入运行时 Tool allowlist，高风险 Tool 仍受全局 Runtime Policy 限制。
   button:
-    add: 新增 Skill
+    add: 新增 Native Skill
+    import: 导入标准 Skill
+    chooseFile: 选择文件
+    versions: 版本
+    activate: 激活/回滚
+    view: 查看
     edit: 编辑
     delete: 删除
     cancel: 取消
     save: 保存
   table:
     skill: Skill
+    type: 类型
     displayName: 显示名称
     description: 描述
+    activeRevision: 当前 Revision
     enabled: 启用
+    version: 版本
+    packageHash: Package Hash
+    validation: 校验
+    source: 来源
+    size: 大小
+    requestedTool: Requested Tool
+    resolvedTool: Resolved Tool
+    status: 状态
+    reason: 原因
+    granted: 已授权
+    file: 文件
     operation: 操作
   dialog:
-    add: 新增智能体 Skill
+    add: 新增 Native Skill
     edit: 编辑智能体 Skill
+    import: 导入标准 Agent Skill
+    versions: "版本管理：{name}"
   field:
     implementation: Skill 实现
+    importMode: 导入方式
+    file: Skill 文件
+    directory: 服务器目录
+    activate: 导入后立即激活
+  placeholder:
+    directory: 例如 team/market-summary
+  importMode:
+    upload: 上传 ZIP / SKILL.md
+    directory: 服务器目录
+  type:
+    native: Native
+    portable: Portable
+  state:
+    active: 当前
+  section:
+    permissions: Requested / Granted Tools
+    files: Package 文件
   confirm:
     title: 提示
     delete: 确认删除 Skill {name}？删除后运行时将拒绝启动该 Skill。
   message:
     nameRequired: 请选择 Skill 实现
+    fileRequired: 请选择 ZIP 或 SKILL.md
+    directoryRequired: 请输入服务器相对目录
     saved: Skill 已保存
     saveFailed: Skill 保存失败
+    imported: 标准 Skill 已导入
+    importFailed: 标准 Skill 导入失败
+    activated: Revision 已激活
+    activateFailed: Revision 激活失败
+    permissionFailed: Tool 授权更新失败
+    fileLoadFailed: Skill 文件读取失败
     deleted: Skill 已删除
     deleteFailed: Skill 删除失败
   implementation:
@@ -541,10 +601,10 @@ agentSkillPage:
       description: 分析指定 USDT 永续合约并输出结构化交易计划。
 
 llmConfigPage:
-  title: 大语言模型配置
+  title: 模型配置
   subtitle: 智能体新任务会读取当前启用的数据库模型配置，切换后无需重启服务。
   hint:
-    database: 大语言模型配置只存储在数据库中；API 密钥不会回传明文。Token 和 Tool 上限继续由全局智能体治理控制。
+    database: 模型配置存储在数据库中；API 密钥默认仅显示掩码，只有在编辑页主动切换为显示时才单独读取明文。Token 和 Tool 上限继续由全局智能体治理控制。
     apiKeyKeep: 当前已保存密钥，留空不会修改：
     enabled: 开启后会自动关闭其他当前模型。
   button:
@@ -556,6 +616,9 @@ llmConfigPage:
     delete: 删除
     cancel: 取消
     save: 保存
+    showApiKey: 显示 API 密钥
+    hideApiKey: 隐藏 API 密钥
+    saveRouter: 保存 Router
   table:
     name: 配置名称
     provider: 服务商
@@ -564,6 +627,9 @@ llmConfigPage:
     apiKey: API 密钥
     enabled: 当前状态
     operation: 操作
+    routing: 路由角色
+    capabilities: 能力
+    health: 健康状态
   field:
     provider: 服务商模板
     name: 配置名称
@@ -574,6 +640,15 @@ llmConfigPage:
     timeout: 请求超时
     temperature: 随机性
     enabled: 设为当前模型
+    routerCandidate: Router 候选
+    structuredOutput: 结构化输出
+    reasoning: 推理能力
+    longContext: 长上下文
+    nativeToolCalling: 原生 Tool Calling
+    jsonReliability: JSON 可靠度
+    maxContextTokens: 最大上下文 Token
+    costClass: 成本等级
+    latencyClass: 延迟等级
   placeholder:
     name: 例如 DeepSeek 主模型
     apiUrl: 完整的 HTTP API 地址
@@ -581,30 +656,56 @@ llmConfigPage:
     apiKeyKeep: 留空则保留已有 API 密钥
     model: 例如 deepseek-chat
   dialog:
-    add: 新增大语言模型配置
-    edit: 编辑大语言模型配置
+    add: 新增模型配置
+    edit: 编辑模型配置
   state:
     current: 当前
     inactive: 未启用
     notConfigured: 未配置
+    primary: 主模型
+    candidate: 候选
   confirm:
     title: 提示
     delete: 确认删除模型配置 {name}？
   message:
-    loadFailed: 加载大语言模型配置失败
+    loadFailed: 加载模型配置失败
     nameRequired: 请输入配置名称
     providerRequired: 请选择服务商
     apiUrlRequired: 请输入 API 地址
     apiKeyRequired: 当前服务商需要 API 密钥
     modelRequired: 请输入模型名称
-    saved: 大语言模型配置已保存
-    saveFailed: 保存大语言模型配置失败
+    saved: 模型配置已保存
+    saveFailed: 保存模型配置失败
     testSuccess: 连接测试成功
     testFailed: 连接测试失败
     activated: 已切换当前大语言模型
     activateFailed: 切换模型失败
-    deleted: 大语言模型配置已删除
-    deleteFailed: 删除大语言模型配置失败
+    deleted: 模型配置已删除
+    deleteFailed: 删除模型配置失败
+    apiKeyLoadFailed: 读取 API 密钥失败
+    routerSaved: Model Router 设置已保存
+    routerSaveFailed: 保存 Model Router 设置失败
+  router:
+    title: Model Router
+    enabled: 启用 Router
+    fallback: 允许 Fallback
+    failureThreshold: 熔断失败阈值
+    cooldown: 熔断冷却
+    hint: Router 关闭时严格使用当前主模型；开启后，主模型与显式 Router 候选根据 Skill 能力需求和健康状态进行选择。
+  capability:
+    title: Model Capability Profile
+    reasoning: 推理
+    longContext: 长上下文
+    nativeTools: 原生工具
+  health:
+    unknown: 暂无样本
+    closed: 正常
+    open: 熔断
+    half_open: 半开
+  class:
+    low: 低
+    medium: 中
+    high: 高
   unit:
     second: 秒
   provider:
@@ -1425,6 +1526,44 @@ trade:
   ISOLATED: "逐仓"
   CROSSED: "全仓"
 
+alertPipelineHistory:
+  title: 报警链路历史
+  subtitle: 持久化查看 Event → Signal → Agent Task → Notification 完整链路，支持分页和筛选。
+  total: "共 {total} 条"
+  hint:
+    delivery: Notification ID 表示本地通知记录已创建并进入外部推送流程；当前钉钉 HTTP 投递回执未持久化，请与实际收到的钉钉消息人工核对。历史持久化从本功能上线后开始。
+  button:
+    search: 查询
+    reset: 重置
+  placeholder:
+    symbol: 合约
+    type: 信号类型
+    severity: 级别
+    status: 链路状态
+    fallback: 是否降级
+    notification: 是否有通知
+    startTime: 开始时间
+    endTime: 结束时间
+  state:
+    yes: 是
+    no: 否
+    hasNotification: 有通知
+    noNotification: 无通知
+  table:
+    time: 时间
+    symbol: 合约
+    signal: 信号
+    severity: 级别
+    status: 状态
+    fallback: 降级
+    eventId: Event ID
+    signalId: Signal ID
+    taskId: Task ID
+    taskStatus: Task 状态/阶段
+    notificationId: Notification ID
+    notification: 本地通知内容
+    error: 错误
+
 agentMCPPage:
   title: 第三方 MCP 管理
   subtitle: 管理 Agent 主动连接的第三方 Streamable HTTP MCP Server；本页不配置本项目自身的 MCP Server。
@@ -1433,11 +1572,12 @@ agentMCPPage:
     secretRef: Bearer/自定义 Header 只填写受管凭据引用，例如 env:MCP_TOKEN；页面和 API 不返回凭据明文。编辑时留空会保留已有引用。
     oauth2: OAuth2 Server 保存后请使用操作栏的“授权”完成浏览器 OAuth/PKCE 授权；OAuth Token 会加密存储，不需要手工填写 SecretRef。
     allowPrivate: 仅可信内网 MCP 使用；开启后允许 HTTP、localhost 和私网地址。
+    canonicalName: Server 名称会参与生成 MCP Tool canonical name；修改名称后刷新能力会改变 canonical name，历史任务中的旧名称不会回写。
   button:
     add: 新增 MCP Server
-    catalog: 能力目录
+    catalog: 能力
     test: 测试连接
-    refresh: 刷新能力目录
+    refresh: 刷新能力
     edit: 编辑
     delete: 删除
     save: 保存
@@ -1448,6 +1588,7 @@ agentMCPPage:
     reauthorize: 重新授权
   table:
     name: Server 名称
+    description: 描述
     endpoint: Endpoint
     status: 状态
     enabled: 启用
@@ -1458,6 +1599,7 @@ agentMCPPage:
     operation: 操作
   field:
     name: Server 名称
+    description: MCP 描述
     endpoint: Endpoint
     authType: 鉴权类型
     secretRef: 凭据引用
@@ -1465,6 +1607,7 @@ agentMCPPage:
     enabled: 启用
     allowPrivate: 允许私网
   placeholder:
+    description: 例如：获取加密货币实时新闻、合约异常和爆仓数据
     secretRef: 例如 env:MCP_TOKEN
   state:
     configured: 已配置
@@ -1477,7 +1620,7 @@ agentMCPPage:
     add: 新增第三方 MCP Server
     edit: 编辑第三方 MCP Server
   catalog:
-    title: "{name} 能力目录"
+    title: "{name} 能力"
     tools: Tools
     resources: Resources
     prompts: Prompts
@@ -1506,10 +1649,10 @@ agentMCPPage:
     autoLoad: 自动加载
   confirm:
     title: 提示
-    delete: "确认删除 MCP Server {name}？相关能力目录和 Skill 授权会一并删除。"
+    delete: "确认删除 MCP Server {name}？相关能力和 Skill 授权会一并删除。"
   message:
     loadFailed: 加载 MCP Server 失败
-    catalogFailed: 加载 MCP 能力目录失败
+    catalogFailed: 加载 MCP 能力失败
     required: Server 名称和 Endpoint 不能为空
     saved: MCP Server 已保存
     saveFailed: 保存 MCP Server 失败
@@ -1517,8 +1660,8 @@ agentMCPPage:
     deleteFailed: 删除 MCP Server 失败
     testSuccess: MCP 连接测试成功
     testFailed: MCP 连接测试失败
-    refreshed: MCP 能力目录已刷新
-    refreshFailed: 刷新 MCP 能力目录失败
+    refreshed: MCP 能力已刷新
+    refreshFailed: 刷新 MCP 能力失败
     toolSaved: MCP Tool 治理配置已保存
     toolSaveFailed: 保存 MCP Tool 配置失败
     permissionSaveFailed: 保存 Skill MCP 授权失败
@@ -1526,3 +1669,119 @@ agentMCPPage:
     oauthCompleted: MCP OAuth 授权完成
     oauthFailed: MCP OAuth 授权未完成或失败
     popupBlocked: 浏览器阻止了 OAuth 授权窗口，请允许弹窗后重试
+
+agentChat:
+  newConversation: 新对话
+  subtitle: 选择 Skill 后发送消息，输入 / 可切换 Skill
+  button:
+    newConversation: 新建对话
+    send: 发送
+    taskDetail: 查看任务
+    rename: 编辑
+    delete: 删除
+  placeholder:
+    message: 输入消息，输入 / 选择 Skill；Enter 发送，Shift+Enter 换行
+    title: 请输入对话标题
+  message:
+    renameTitle: 编辑对话标题
+    renamePrompt: 修改左侧显示的对话标题
+    titleRequired: 对话标题不能为空
+    renameFailed: 修改对话标题失败
+    renamed: 对话标题已更新
+    deleteTitle: 删除对话
+    deleteConfirm: 确定删除对话“{title}”吗？对话消息将被删除，任务历史仍会保留。
+    deleteFailed: 删除对话失败
+    deleted: 对话已删除
+    deleteRunning: 对话仍有任务正在运行，请等待任务完成或取消任务后再删除
+  hint:
+    slash: 输入 / 调出可用 Skill
+  skillMenu:
+    title: 选择 Skill
+  empty:
+    conversation: 暂无对话
+    message: 选择 Skill 开始对话
+    skill: 没有匹配的 Skill
+  role:
+    user: 你
+    assistant: Agent
+  status:
+    queued: 排队中
+    running: 运行中
+    waiting_llm: 思考中
+    waiting_tool: 调用工具中
+    validating: 验证中
+    succeeded: 已完成
+    failed: 执行失败
+    cancelled: 已取消
+    interrupted: 已中断
+
+agentMemoryPage:
+  title: 长期 Memory 管理
+  subtitle: 管理跨 Task 保留的用户偏好、策略事实、市场假设、任务摘要与经验；Conversation 与 Memory 生命周期相互独立。
+  type:
+    user_preference: 用户偏好
+    strategy_fact: 策略事实
+    market_hypothesis: 市场假设
+    task_summary: 任务摘要
+    lesson: 经验
+  status:
+    candidate: 待审批
+    active: 启用
+    disabled: 已禁用
+    expired: 已过期
+  scope:
+    global: 全局
+  filter:
+    expired: 过期
+  placeholder:
+    type: Memory 类型
+    status: 状态
+    skill: Skill
+    symbol: 交易对
+    strategy: 策略
+  table:
+    type: 类型
+    status: 状态
+    scope: Scope
+    content: 内容
+    confidence: 置信度
+    sourceTask: 来源 Task
+    expiresAt: 过期时间
+    updatedAt: 更新时间
+    operation: 操作
+  form:
+    type: 类型
+    content: 内容
+    confidence: 置信度
+    scope: Scope
+    user: User
+    skill: Skill
+    symbol: Symbol
+    strategy: Strategy
+    expiresAt: 过期时间
+    candidate: 保存为待审批
+  dialog:
+    create: 新增 Memory
+    edit: 编辑 Memory
+  button:
+    refresh: 刷新
+    add: 新增
+    search: 查询
+    edit: 编辑
+    approve: 审批
+    disable: 禁用
+    enable: 启用
+    delete: 删除
+    cancel: 取消
+    save: 保存
+  message:
+    contentRequired: Memory 内容不能为空
+    saved: Memory 已保存
+    saveFailed: Memory 保存失败
+    statusUpdated: Memory 状态已更新
+    statusFailed: Memory 状态更新失败
+    deleted: Memory 已删除
+    deleteFailed: Memory 删除失败
+  confirm:
+    title: 确认操作
+    delete: 确定永久删除这条 Memory 吗？

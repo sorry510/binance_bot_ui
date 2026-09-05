@@ -40,13 +40,23 @@ export default [
     path: "/ai",
     name: "AI",
     component: Layout,
-    redirect: "/ai/symbol-analysis",
+    redirect: "/ai/chat",
     meta: {
       icon: RobotIcon,
       title: "menus.ai",
       rank: 1.1
     },
     children: [
+      {
+        path: "/ai/chat",
+        name: "AgentChat",
+        component: () => import("@/views/ai/chat/index.vue"),
+        meta: {
+          title: "menus.agentChat",
+          showLink: true,
+          showParent: true
+        }
+      },
       {
         path: "/ai/symbol-analysis",
         name: "SymbolAnalysis",
@@ -63,6 +73,26 @@ export default [
         component: () => import("@/views/ai/taskCenter.vue"),
         meta: {
           title: "menus.agentTaskCenter",
+          showLink: true,
+          showParent: true
+        }
+      },
+      {
+        path: "/ai/memory",
+        name: "AgentMemoryManagement",
+        component: () => import("@/views/ai/memoryManagement.vue"),
+        meta: {
+          title: "menus.agentMemoryManagement",
+          showLink: true,
+          showParent: true
+        }
+      },
+      {
+        path: "/ai/alert-pipeline-history",
+        name: "AlertPipelineHistory",
+        component: () => import("@/views/ai/alertPipelineHistory.vue"),
+        meta: {
+          title: "menus.alertPipelineHistory",
           showLink: true,
           showParent: true
         }

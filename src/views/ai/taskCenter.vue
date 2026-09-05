@@ -3,6 +3,7 @@ import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import dayjs from "dayjs";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from "vue-i18n";
+import { useRoute, useRouter } from "vue-router";
 import {
   cancelAgentTask,
   getAgentGovernanceStatus,
@@ -20,6 +21,8 @@ import {
 defineOptions({ name: "AgentTaskCenter" });
 
 const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
 const loading = ref(false);
 const schedulerLoading = ref(false);
 const tasks = ref<AgentTask[]>([]);
@@ -237,8 +240,27 @@ function scheduleRefresh() {
   }, 5000);
 }
 
+async function openTaskFromQuery() {
+  const taskId = String(route.query.taskId || "").trim();
+  if (!taskId) return;
+  detailVisible.value = true;
+  detailLoading.value = true;
+  try {
+    const res = await getAgentTask(taskId);
+    detail.value = (res?.data || null) as AgentTask | null;
+  } catch (error: any) {
+    ElMessage.error(error?.message || t("agentTaskCenter.message.loadFailed"));
+  } finally {
+    detailLoading.value = false;
+    const query = { ...route.query };
+    delete query.taskId;
+    router.replace({ path: route.path, query });
+  }
+}
+
 onMounted(async () => {
   await Promise.all([fetchTasks(), fetchScheduler(), fetchGovernance()]);
+  await openTaskFromQuery();
   scheduleRefresh();
 });
 
@@ -750,6 +772,15 @@ onBeforeUnmount(() => {
             >{{ detail.model_config_id || "-" }}</el-descriptions-item
           >
           <el-descriptions-item
+            :label="t('agentTaskCenter.detail.finalModelConfigId')"
+            >{{ detail.final_model_config_id || "-" }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :label="t('agentTaskCenter.detail.routeReason')"
+            :span="2"
+            >{{ detail.route_reason || "-" }}</el-descriptions-item
+          >
+          <el-descriptions-item
             :label="t('agentTaskCenter.detail.toolCatalogHash')"
           >
             <span class="hash-value">{{
@@ -787,6 +818,18 @@ onBeforeUnmount(() => {
             {{ t("agentTaskCenter.button.resume") }}
           </el-button>
         </div>
+        <template v-if="detail?.route_candidates?.length">
+          <div class="detail-title">
+            {{ t("agentTaskCenter.detail.routeCandidates") }}
+          </div>
+          <pre class="json-box">{{ prettyJSON(detail.route_candidates) }}</pre>
+        </template>
+        <template v-if="detail?.route_fallback?.length">
+          <div class="detail-title">
+            {{ t("agentTaskCenter.detail.routeFallback") }}
+          </div>
+          <pre class="json-box">{{ prettyJSON(detail.route_fallback) }}</pre>
+        </template>
         <div class="detail-title">{{ t("agentTaskCenter.detail.input") }}</div>
         <pre class="json-box">{{ prettyJSON(detail?.input) }}</pre>
         <div class="detail-title">{{ t("agentTaskCenter.detail.result") }}</div>
@@ -929,6 +972,16 @@ onBeforeUnmount(() => {
                       :label="t('agentTaskCenter.detail.staleEvidence')"
                     >
                       {{ row.context_trace.stale_evidence_ids?.length || 0 }}
+                    </el-descriptions-item>
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.memorySelected')"
+                    >
+                      {{ row.context_trace.selected_memory_ids?.length || 0 }}
+                    </el-descriptions-item>
+                    <el-descriptions-item
+                      :label="t('agentTaskCenter.detail.memoryTrimmed')"
+                    >
+                      {{ row.context_trace.trimmed_memory_ids?.length || 0 }}
                     </el-descriptions-item>
                   </el-descriptions>
                   <pre
