@@ -85,6 +85,7 @@ menus:
   symbolAnalysis: 单币分析
   agentSkillManagement: Skill 管理
   agentTaskCenter: 任务中心
+  agentObservability: 可观测性
   agentMemoryManagement: Memory 管理
   llmConfig: 模型配置
   agentMCPManagement: MCP 管理
@@ -1785,3 +1786,61 @@ agentMemoryPage:
   confirm:
     title: 确认操作
     delete: 确定永久删除这条 Memory 吗？
+
+agentObservabilityPage:
+  title: AI 可观测性与长期指标
+  subtitle: 独立观察 Agent/LLM/Tool/MCP/Context/Eval，不与交易主循环指标混合。
+  tab:
+    overview: 运营概览
+    traces: Trace
+    changes: 变更历史
+  metric:
+    tasks: 任务数
+    successRate: 成功率
+    tokens: Token 成本
+    contextTokens: 平均 Context Token
+    memoryHit: Memory 命中率
+    evalScore: Eval 平均分
+    changes: 变更事件
+    contextTrim: Context 裁剪率
+    evidenceCoverage: Evidence 覆盖率
+    evalPass: Eval 通过率
+    repairs: Repair 次数
+  section:
+    skill: Skill 指标
+    model: Model 指标
+    prompt: Prompt 版本指标
+    revision: Skill Revision 指标
+    quality: Context / Evidence / Repair
+    tools: Tool 指标
+    mcp: MCP Server
+  table:
+    dimension: 维度
+    tool: Tool
+    source: 来源
+    calls: 调用数
+    errorRate: 错误率
+    cacheRate: Cache 命中
+    partialRate: Partial
+    timeouts: 超时
+    server: Server
+    status: 状态
+    protocol: 协议
+    availability: 可用率
+    catalog: Catalog Hash
+    time: 时间
+    error: 错误类型
+    duration: 耗时
+    entityType: 实体类型
+    entity: 实体
+    from: From
+    to: To
+  placeholder:
+    task: Task ID
+    type: Trace 类型
+    source: Tool 来源
+    category: 分类
+    changeType: 变更类型
+  button:
+    refresh: 刷新
+    search: 查询

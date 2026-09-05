@@ -78,6 +78,16 @@ export default [
         }
       },
       {
+        path: "/ai/observability",
+        name: "AgentObservability",
+        component: () => import("@/views/ai/observability.vue"),
+        meta: {
+          title: "menus.agentObservability",
+          showLink: true,
+          showParent: true
+        }
+      },
+      {
         path: "/ai/memory",
         name: "AgentMemoryManagement",
         component: () => import("@/views/ai/memoryManagement.vue"),

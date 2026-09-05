@@ -820,3 +820,139 @@ export const enableAgentMemory = (id: number) =>
 
 export const approveAgentMemory = (id: number) =>
   http.post<any, Query>(baseUrlApi(`agents/memories/${id}/approve`));
+
+export interface AgentObservabilityTaskAggregate {
+  tasks: number;
+  succeeded: number;
+  failed: number;
+  cancelled: number;
+  success_rate: number;
+  total_tokens: number;
+  average_tokens: number;
+  average_duration_ms: number;
+  p95_duration_ms: number;
+  average_rounds: number;
+}
+
+export interface AgentObservabilityDimension
+  extends AgentObservabilityTaskAggregate {
+  key: string;
+  label: string;
+}
+
+export interface AgentObservabilitySummary {
+  start_time: number;
+  end_time: number;
+  global: AgentObservabilityTaskAggregate;
+  by_skill: AgentObservabilityDimension[];
+  by_model: AgentObservabilityDimension[];
+  by_prompt: AgentObservabilityDimension[];
+  by_skill_revision: AgentObservabilityDimension[];
+  context: {
+    builds: number;
+    average_tokens: number;
+    trim_rate: number;
+    memory_hit_rate: number;
+    selected_memories: number;
+    trimmed_memories: number;
+  };
+  tools: Array<{
+    tool: string;
+    source: string;
+    calls: number;
+    errors: number;
+    error_rate: number;
+    cache_hit_rate: number;
+    partial_rate: number;
+    timeouts: number;
+    average_latency_ms: number;
+    p95_latency_ms: number;
+  }>;
+  mcp_servers: Array<{
+    id: number;
+    name: string;
+    status: string;
+    protocol_version?: string;
+    catalog_hash?: string;
+    last_success_at?: number;
+    last_error_at?: number;
+    calls: number;
+    errors: number;
+    availability: number;
+    p95_latency_ms: number;
+  }>;
+  repairs: Array<{ name: string; count: number }>;
+  errors: Array<{ name: string; count: number }>;
+  evidence: {
+    validations: number;
+    with_evidence: number;
+    coverage_rate: number;
+    average_evidence: number;
+  };
+  eval: {
+    runs: number;
+    passed: number;
+    pass_rate: number;
+    average_score: number;
+  };
+  change_events: number;
+}
+
+export interface AgentObservationTrace {
+  id: number;
+  task_id: string;
+  conversation_id?: string;
+  type: string;
+  step_id?: string;
+  step_type?: string;
+  skill: string;
+  provider?: string;
+  model?: string;
+  tool?: string;
+  tool_source?: string;
+  provider_ref?: string;
+  protocol_version?: string;
+  catalog_hash?: string;
+  schema_hash?: string;
+  status?: string;
+  error_type?: string;
+  error?: string;
+  round?: number;
+  duration_ms?: number;
+  cache_hit?: boolean;
+  partial?: boolean;
+  context_tokens?: number;
+  context_blocks?: number;
+  trimmed_blocks?: number;
+  memory_selected?: number;
+  memory_trimmed?: number;
+  evidence_count?: number;
+  eval_case?: string;
+  eval_score?: number;
+  created_at: number;
+}
+
+export interface AgentChangeEvent {
+  id: number;
+  category: string;
+  entity_type: string;
+  entity_id?: number;
+  entity_name: string;
+  change_type: string;
+  from_version?: string;
+  to_version?: string;
+  before_hash?: string;
+  after_hash?: string;
+  status: string;
+  detail_json?: string;
+  created_at: number;
+}
+
+export const getAgentObservabilitySummary = (params: Query = {}) =>
+  http.get<any, Query>(baseUrlApi("agents/observability/summary"), { params });
+
+export const getAgentObservabilityTraces = (params: Query = {}) =>
+  http.get<any, Query>(baseUrlApi("agents/observability/traces"), { params });
+
+export const getAgentObservabilityChanges = (params: Query = {}) =>
+  http.get<any, Query>(baseUrlApi("agents/observability/changes"), { params });

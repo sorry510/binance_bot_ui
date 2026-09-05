@@ -85,6 +85,7 @@ menus:
   symbolAnalysis: Symbol Analysis
   agentSkillManagement: Skill Management
   agentTaskCenter: Task Center
+  agentObservability: Observability
   agentMemoryManagement: Memory Management
   llmConfig: LLM Config
   agentMCPManagement: MCP Management
@@ -1785,3 +1786,61 @@ agentMemoryPage:
   confirm:
     title: Confirm
     delete: Permanently delete this Memory?
+
+agentObservabilityPage:
+  title: AI Observability & Long-term Metrics
+  subtitle: Observe Agent, LLM, Tool, MCP, Context, and Eval independently from the trading-loop metrics.
+  tab:
+    overview: Operations
+    traces: Trace
+    changes: Change History
+  metric:
+    tasks: Tasks
+    successRate: Success Rate
+    tokens: Token Cost
+    contextTokens: Avg Context Tokens
+    memoryHit: Memory Hit Rate
+    evalScore: Avg Eval Score
+    changes: Change Events
+    contextTrim: Context Trim Rate
+    evidenceCoverage: Evidence Coverage
+    evalPass: Eval Pass Rate
+    repairs: Repairs
+  section:
+    skill: Skill Metrics
+    model: Model Metrics
+    prompt: Prompt Version Metrics
+    revision: Skill Revision Metrics
+    quality: Context / Evidence / Repair
+    tools: Tool Metrics
+    mcp: MCP Servers
+  table:
+    dimension: Dimension
+    tool: Tool
+    source: Source
+    calls: Calls
+    errorRate: Error Rate
+    cacheRate: Cache Hit
+    partialRate: Partial
+    timeouts: Timeouts
+    server: Server
+    status: Status
+    protocol: Protocol
+    availability: Availability
+    catalog: Catalog Hash
+    time: Time
+    error: Error Type
+    duration: Duration
+    entityType: Entity Type
+    entity: Entity
+    from: From
+    to: To
+  placeholder:
+    task: Task ID
+    type: Trace Type
+    source: Tool Source
+    category: Category
+    changeType: Change Type
+  button:
+    refresh: Refresh
+    search: Search
