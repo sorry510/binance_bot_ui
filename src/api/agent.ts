@@ -286,7 +286,7 @@ export const getAgentChatMessages = (conversationId: string) =>
 
 export const sendAgentChatMessage = (
   conversationId: string,
-  data: { skill: string; content: string }
+  data: { skill: string; content: string; symbol?: string }
 ) =>
   http.post<any, typeof data>(
     baseUrlApi(
@@ -497,6 +497,7 @@ export interface AgentSkillConfig {
   type: "native" | "portable" | string;
   active_version_id: number;
   enabled: number;
+  chat_enabled: number;
   created_at: number;
   updated_at: number;
 }
@@ -505,9 +506,22 @@ export interface AgentSkillImplementation {
   name: string;
   display_name: string;
   description: string;
+  chat_default: number;
 }
-export const getAgentSkills = () => {
-  return http.get<any, Query>(baseUrlApi("agents/skills"));
+
+export interface AgentSkillListResult {
+  page: number;
+  limit: number;
+  total: number;
+  list: AgentSkillConfig[];
+}
+
+export const getAgentSkills = (params: Query = {}) => {
+  const hasParams = Object.keys(params).length > 0;
+  return http.get<any, Query>(
+    baseUrlApi("agents/skills"),
+    hasParams ? { params } : undefined
+  );
 };
 
 export const getAgentSkillImplementations = () => {
@@ -956,3 +970,50 @@ export const getAgentObservabilityTraces = (params: Query = {}) =>
 
 export const getAgentObservabilityChanges = (params: Query = {}) =>
   http.get<any, Query>(baseUrlApi("agents/observability/changes"), { params });
+
+export type AgentWorkflowName =
+  | "market_scan"
+  | "strategy_review"
+  | "strategy_experiment"
+  | "alert_triage"
+  | "daily_market_brief";
+
+export interface AgentWorkflowRun {
+  id: string;
+  workflow: AgentWorkflowName | string;
+  schema_version: string;
+  status: "queued" | "running" | "succeeded" | "failed" | string;
+  stage: string;
+  input?: Record<string, any>;
+  result?: Record<string, any>;
+  error?: string;
+  child_task_ids: string[];
+  created_at: number;
+  updated_at: number;
+  completed_at?: number;
+}
+
+export interface AgentWorkflowListResult {
+  page: number;
+  limit: number;
+  total: number;
+  list: AgentWorkflowRun[];
+}
+
+export const startAgentWorkflow = (data: {
+  workflow: AgentWorkflowName;
+  input?: Record<string, any>;
+}) =>
+  http.post<any, typeof data>(
+    baseUrlApi("agents/workflows"),
+    { data },
+    { timeout: AGENT_API_TIMEOUT }
+  );
+
+export const getAgentWorkflow = (id: string) =>
+  http.get<any, Query>(
+    baseUrlApi(`agents/workflows/${encodeURIComponent(id)}`)
+  );
+
+export const getAgentWorkflows = (params: Query = {}) =>
+  http.get<any, Query>(baseUrlApi("agents/workflows"), { params });

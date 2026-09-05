@@ -25,6 +25,13 @@ defineOptions({ name: "AgentSkillManagement" });
 const { t } = useI18n();
 const loading = ref(false);
 const saving = ref(false);
+const chatSavingId = ref<number | null>(null);
+const activeTab = ref<"native" | "portable">("native");
+const keyword = ref("");
+const page = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+const configuredSkillNames = ref<Set<string>>(new Set());
 const dialogVisible = ref(false);
 const importVisible = ref(false);
 const importing = ref(false);
@@ -45,14 +52,16 @@ const form = reactive({
   name: "",
   display_name: "",
   description: "",
-  enabled: 1
+  enabled: 1,
+  chat_enabled: 1
 });
 const importForm = reactive({ mode: "upload", directory: "", activate: true });
 
 const availableImplementations = computed(() => {
   if (editingId.value !== null) return implementations.value;
-  const configured = new Set(skills.value.map(item => item.name));
-  return implementations.value.filter(item => !configured.has(item.name));
+  return implementations.value.filter(
+    item => !configuredSkillNames.value.has(item.name)
+  );
 });
 function implementationText(
   name: string,
@@ -76,15 +85,54 @@ async function fetchData() {
   loading.value = true;
   try {
     const [skillRes, implementationRes] = await Promise.all([
-      getAgentSkills(),
+      getAgentSkills({
+        type: activeTab.value,
+        keyword: keyword.value.trim(),
+        page: page.value,
+        limit: pageSize.value
+      }),
       getAgentSkillImplementations()
     ]);
-    skills.value = (skillRes?.data || []) as AgentSkillConfig[];
+    const data = skillRes?.data;
+    if (Array.isArray(data)) {
+      skills.value = data.filter(
+        (item: AgentSkillConfig) => item.type === activeTab.value
+      );
+      total.value = skills.value.length;
+    } else {
+      skills.value = (data?.list || []) as AgentSkillConfig[];
+      total.value = Number(data?.total || 0);
+    }
     implementations.value = (implementationRes?.data ||
       []) as AgentSkillImplementation[];
   } finally {
     loading.value = false;
   }
+}
+async function refreshConfiguredSkillNames() {
+  const res = await getAgentSkills();
+  const items = Array.isArray(res?.data)
+    ? (res.data as AgentSkillConfig[])
+    : ((res?.data?.list || []) as AgentSkillConfig[]);
+  configuredSkillNames.value = new Set(items.map(item => item.name));
+}
+function searchSkills() {
+  page.value = 1;
+  fetchData();
+}
+function onTabChange() {
+  page.value = 1;
+  keyword.value = "";
+  fetchData();
+}
+function onPageChange(value: number) {
+  page.value = value;
+  fetchData();
+}
+function onPageSizeChange(value: number) {
+  pageSize.value = value;
+  page.value = 1;
+  fetchData();
 }
 function resetForm() {
   editingId.value = null;
@@ -92,11 +140,17 @@ function resetForm() {
     name: "",
     display_name: "",
     description: "",
-    enabled: 1
+    enabled: 1,
+    chat_enabled: 1
   });
 }
-function openCreate() {
+async function openCreate() {
   resetForm();
+  try {
+    await refreshConfiguredSkillNames();
+  } catch {
+    configuredSkillNames.value = new Set();
+  }
   dialogVisible.value = true;
 }
 function openEdit(row: AgentSkillConfig) {
@@ -105,7 +159,8 @@ function openEdit(row: AgentSkillConfig) {
     name: row.name,
     display_name: row.display_name,
     description: row.description,
-    enabled: row.enabled
+    enabled: row.enabled,
+    chat_enabled: row.chat_enabled
   });
   dialogVisible.value = true;
 }
@@ -114,6 +169,7 @@ function onImplementationChange(name: string) {
   if (item) {
     form.display_name = item.display_name;
     form.description = item.description;
+    form.chat_enabled = item.chat_default;
   }
 }
 async function save() {
@@ -149,6 +205,28 @@ async function remove(row: AgentSkillConfig) {
     ElMessage.error(error?.message || t("agentSkillPage.message.deleteFailed"));
   }
 }
+async function changeChatEnabled(row: AgentSkillConfig, value: number) {
+  chatSavingId.value = row.id;
+  try {
+    const res = await updateAgentSkill(row.id, {
+      display_name: row.display_name,
+      description: row.description,
+      enabled: row.enabled,
+      chat_enabled: value
+    });
+    assertBusinessSuccess(res, t("agentSkillPage.message.chatUpdateFailed"));
+    row.chat_enabled = value;
+    ElMessage.success(t("agentSkillPage.message.chatUpdated"));
+  } catch (error: any) {
+    ElMessage.error(
+      error?.message || t("agentSkillPage.message.chatUpdateFailed")
+    );
+    await fetchData();
+  } finally {
+    chatSavingId.value = null;
+  }
+}
+
 function assertBusinessSuccess(res: any, fallback: string) {
   if (res && Number(res.code) !== 200) {
     throw new Error(res.msg || fallback);
@@ -185,6 +263,9 @@ async function importPortable() {
     }
     ElMessage.success(t("agentSkillPage.message.imported"));
     importVisible.value = false;
+    activeTab.value = "portable";
+    page.value = 1;
+    keyword.value = "";
     await fetchData();
   } catch (error: any) {
     ElMessage.error(error?.message || t("agentSkillPage.message.importFailed"));
@@ -286,6 +367,26 @@ onMounted(fetchData);
         :closable="false"
         class="mb-4"
       />
+      <el-tabs v-model="activeTab" class="skill-tabs" @tab-change="onTabChange">
+        <el-tab-pane :label="t('agentSkillPage.type.native')" name="native" />
+        <el-tab-pane
+          :label="t('agentSkillPage.type.portable')"
+          name="portable"
+        />
+      </el-tabs>
+      <div class="skill-toolbar">
+        <el-input
+          v-model="keyword"
+          clearable
+          :placeholder="t('agentSkillPage.placeholder.search')"
+          class="skill-search"
+          @keyup.enter="searchSkills"
+          @clear="searchSkills"
+        />
+        <el-button type="primary" @click="searchSkills">{{
+          t("agentSkillPage.button.search")
+        }}</el-button>
+      </div>
       <el-table v-loading="loading" :data="skills" size="small">
         <el-table-column
           prop="name"
@@ -337,6 +438,20 @@ onMounted(fetchData);
           ></el-table-column
         >
         <el-table-column
+          :label="t('agentSkillPage.table.chatEnabled')"
+          width="110"
+          align="center"
+          ><template #default="{ row }"
+            ><el-switch
+              :model-value="row.chat_enabled"
+              :active-value="1"
+              :inactive-value="0"
+              :loading="chatSavingId === row.id"
+              @change="
+                value => changeChatEnabled(row, Number(value))
+              " /></template
+        ></el-table-column>
+        <el-table-column
           :label="t('agentSkillPage.table.operation')"
           width="245"
           fixed="right"
@@ -357,6 +472,18 @@ onMounted(fetchData);
           ></el-table-column
         >
       </el-table>
+      <div class="skill-pagination">
+        <el-pagination
+          background
+          layout="total, sizes, prev, pager, next"
+          :total="total"
+          :current-page="page"
+          :page-size="pageSize"
+          :page-sizes="[10, 20, 50]"
+          @current-change="onPageChange"
+          @size-change="onPageSizeChange"
+        />
+      </div>
     </el-card>
 
     <el-dialog
@@ -392,7 +519,17 @@ onMounted(fetchData);
             v-model="form.enabled"
             :active-value="1"
             :inactive-value="0" /></el-form-item
-      ></el-form>
+        ><el-form-item :label="t('agentSkillPage.table.chatEnabled')"
+          ><el-switch
+            v-model="form.chat_enabled"
+            :active-value="1"
+            :inactive-value="0"
+          />
+          <span class="chat-switch-hint">{{
+            t("agentSkillPage.hint.chatEnabled")
+          }}</span></el-form-item
+        ></el-form
+      >
       <template #footer
         ><el-button @click="dialogVisible = false">{{
           t("agentSkillPage.button.cancel")
@@ -588,6 +725,28 @@ onMounted(fetchData);
 </template>
 
 <style scoped>
+.skill-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.skill-search {
+  max-width: 420px;
+}
+
+.skill-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.chat-switch-hint {
+  margin-left: 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
 .file-preview {
   max-height: 65vh;
   padding: 12px;

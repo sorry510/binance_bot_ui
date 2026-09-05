@@ -78,6 +78,16 @@ export default [
         }
       },
       {
+        path: "/ai/workflows",
+        name: "AgentWorkflows",
+        component: () => import("@/views/ai/workflows.vue"),
+        meta: {
+          title: "menus.agentWorkflows",
+          showLink: true,
+          showParent: true
+        }
+      },
+      {
         path: "/ai/observability",
         name: "AgentObservability",
         component: () => import("@/views/ai/observability.vue"),

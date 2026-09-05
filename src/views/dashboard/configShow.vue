@@ -55,6 +55,8 @@ const config = reactive<Record<string, any>>({
   AgentAlertMaxPerMinute: 6,
   AgentMarketRegimeScheduleEnable: 1,
   AgentMarketRegimeIntervalMin: 60,
+  AgentDailyMarketBriefScheduleEnable: 0,
+  AgentDailyMarketBriefIntervalMin: 1440,
   AgentMaxStartsPerMinute: 30,
   AgentMaxStartsPerHour: 300,
   AgentMaxTokensPerTask: 240000,
@@ -1109,6 +1111,42 @@ onBeforeUnmount(() => {
               @change="
                 value =>
                   saveField('agent_market_regime_interval_min', Number(value))
+              "
+            />
+            <span class="hint">{{ t("dashboard.unit.minute") }}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.dailyMarketBriefScheduleEnable")
+            }}</span>
+            <el-switch
+              :model-value="config.AgentDailyMarketBriefScheduleEnable"
+              :active-value="1"
+              :inactive-value="0"
+              @change="
+                value =>
+                  saveField('agent_daily_market_brief_schedule_enable', value)
+              "
+            />
+            <span class="hint">{{
+              t("dashboard.hint.dailyMarketBriefSchedule")
+            }}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.dailyMarketBriefIntervalMin")
+            }}</span>
+            <el-input
+              v-model="config.AgentDailyMarketBriefIntervalMin"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value =>
+                  saveField(
+                    'agent_daily_market_brief_interval_min',
+                    Number(value)
+                  )
               "
             />
             <span class="hint">{{ t("dashboard.unit.minute") }}</span>

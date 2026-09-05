@@ -85,6 +85,7 @@ menus:
   symbolAnalysis: 单币分析
   agentSkillManagement: Skill 管理
   agentTaskCenter: 任务中心
+  agentWorkflows: 业务 Workflow
   agentObservability: 可观测性
   agentMemoryManagement: Memory 管理
   llmConfig: 模型配置
@@ -163,6 +164,8 @@ dashboard:
     alertMaxPerMinute: AI 报警每分钟预算
     marketRegimeScheduleEnable: 市场趋势调度器
     marketRegimeIntervalMin: 市场趋势执行周期(分钟)
+    dailyMarketBriefScheduleEnable: 每日市场摘要调度器
+    dailyMarketBriefIntervalMin: 市场摘要执行周期(分钟)
     schedulerTaskCenter: 调度与任务历史
     skillManagement: Skill 管理
     agentStartsPerMinute: 智能体每分钟启动上限
@@ -202,6 +205,7 @@ dashboard:
     alertPipeline: 快速波动和强平仅使用新报警链路；关闭时仍计算信号，但不发送这两类报警。
     alertAIFallback: AI 关闭、超预算或失败时自动使用确定性规则通知，不影响 WebSocket。
     marketRegimeSchedule: 仅在市场趋势自动更新开启时运行；使用统一智能体任务，重启后仍可查询历史。
+    dailyMarketBriefSchedule: 默认关闭；开启后使用 V2-11 固定 Schema 摘要，默认每 1440 分钟运行一次。
     tradeDisabled: 交易 Tool 全局禁用
     globalAgentBudget: Token 与 Tool 调用次数仅使用这里的全局上限控制。
     limitMode: 限价单模式
@@ -516,6 +520,7 @@ agentSkillPage:
     file: ZIP 可包含 skill-name/SKILL.md，也可在根目录直接包含 SKILL.md；单文件必须名为 SKILL.md。
     directory: 这里只能填写 agent_skills.import_dir 配置目录下的相对路径，不能访问任意服务器绝对路径。
     allowedTools: allowed-tools 是作者请求的预批准能力，不代表本系统授权。只有管理员显式开启 Granted 后才会进入运行时 Tool allowlist，高风险 Tool 仍受全局 Runtime Policy 限制。
+    chatEnabled: 仅控制该 Skill 是否出现在对话入口，不影响后台任务、调度器或报警链路。
   button:
     add: 新增 Native Skill
     import: 导入标准 Skill
@@ -527,6 +532,7 @@ agentSkillPage:
     delete: 删除
     cancel: 取消
     save: 保存
+    search: 查询
   table:
     skill: Skill
     type: 类型
@@ -534,6 +540,7 @@ agentSkillPage:
     description: 描述
     activeRevision: 当前 Revision
     enabled: 启用
+    chatEnabled: 对话可用
     version: 版本
     packageHash: Package Hash
     validation: 校验
@@ -559,6 +566,7 @@ agentSkillPage:
     activate: 导入后立即激活
   placeholder:
     directory: 例如 team/market-summary
+    search: 搜索 Skill 名称、显示名称或描述
   importMode:
     upload: 上传 ZIP / SKILL.md
     directory: 服务器目录
@@ -578,6 +586,8 @@ agentSkillPage:
     fileRequired: 请选择 ZIP 或 SKILL.md
     directoryRequired: 请输入服务器相对目录
     saved: Skill 已保存
+    chatUpdated: 对话可用状态已更新
+    chatUpdateFailed: 更新对话可用状态失败
     saveFailed: Skill 保存失败
     imported: 标准 Skill 已导入
     importFailed: 标准 Skill 导入失败
@@ -1683,6 +1693,7 @@ agentChat:
   placeholder:
     message: 输入消息，输入 / 选择 Skill；Enter 发送，Shift+Enter 换行
     title: 请输入对话标题
+    symbol: 选择合约（可选）
   message:
     renameTitle: 编辑对话标题
     renamePrompt: 修改左侧显示的对话标题
@@ -1844,3 +1855,53 @@ agentObservabilityPage:
   button:
     refresh: 刷新
     search: 查询
+
+workflowPage:
+  title: V2-11 业务 Workflow
+  subtitle: 确定性 Service 负责扫描、聚合、验证和测试；Agent 只处理少量候选、判断与归纳，不直接执行交易或修改正式策略。
+  history: Workflow 历史
+  workflow:
+    market_scan: 市场机会扫描
+    strategy_review: 策略复盘
+    strategy_experiment: 策略实验
+    alert_triage: 报警事件归并
+    daily_market_brief: 每日市场摘要
+  status:
+    queued: 排队中
+    running: 运行中
+    succeeded: 已完成
+    failed: 失败
+  form:
+    workflow: Workflow
+    analyze: AI 分析候选数
+    templateId: 策略模板
+    templateName: 模板名称
+    or: 或
+    days: 复盘天数
+    goal: 实验目标
+    windowMinutes: Signal 时间窗口（分钟）
+    maxSignals: 最大 Signal 数
+    windowHours: 摘要窗口（小时）
+  table:
+    workflow: Workflow
+    schema: 输出 Schema
+    status: 状态
+    stage: 阶段
+    tasks: 子任务
+    createdAt: 创建时间
+    operation: 操作
+  button:
+    start: 启动 Workflow
+    refresh: 刷新
+    detail: 详情
+  detail:
+    title: Workflow 详情
+    tasks: 子 Task ID
+    error: 错误
+    input: 输入
+    result: 结果
+  message:
+    templateRequired: 请输入策略模板 ID 或名称
+    goalRequired: 策略实验必须填写实验目标
+    started: Workflow 已启动
+    startFailed: Workflow 启动失败

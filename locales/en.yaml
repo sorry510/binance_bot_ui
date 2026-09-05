@@ -85,6 +85,7 @@ menus:
   symbolAnalysis: Symbol Analysis
   agentSkillManagement: Skill Management
   agentTaskCenter: Task Center
+  agentWorkflows: Workflows
   agentObservability: Observability
   agentMemoryManagement: Memory Management
   llmConfig: LLM Config
@@ -163,6 +164,8 @@ dashboard:
     alertMaxPerMinute: AI alerts per minute budget
     marketRegimeScheduleEnable: Market regime Scheduler
     marketRegimeIntervalMin: Market regime interval (min)
+    dailyMarketBriefScheduleEnable: Daily market brief Scheduler
+    dailyMarketBriefIntervalMin: Market brief interval (minutes)
     schedulerTaskCenter: Scheduler and task history
     skillManagement: Skill Management
     agentStartsPerMinute: Agent starts per minute
@@ -202,6 +205,7 @@ dashboard:
     alertPipeline: FastMove and liquidation alerts use only the new Pipeline; when off, Signals are still evaluated but these alerts are not sent.
     alertAIFallback: If AI is disabled, over budget, or fails, deterministic fallback notifications continue without blocking WebSocket processing.
     marketRegimeSchedule: Runs only when automatic market-condition updates are enabled; uses persistent Agent Tasks.
+    dailyMarketBriefSchedule: Disabled by default. When enabled, runs the V2-11 fixed-schema brief every 1440 minutes by default.
     tradeDisabled: Trade Tools globally disabled
     globalAgentBudget: Token and Tool call limits are controlled only by these global settings.
     limitMode: Limit order mode
@@ -516,6 +520,7 @@ agentSkillPage:
     file: A ZIP may contain skill-name/SKILL.md or SKILL.md at its root. A single-file upload must be named SKILL.md.
     directory: Enter only a relative path below the configured agent_skills.import_dir. Arbitrary server absolute paths are not allowed.
     allowedTools: allowed-tools are requested pre-approvals, not system grants. A Tool enters the runtime allowlist only after an administrator explicitly grants it; high-risk Tools remain subject to global Runtime Policy.
+    chatEnabled: Controls only whether this Skill is available in Chat; background tasks, schedulers, and alert pipelines are unaffected.
   button:
     add: Add Native Skill
     import: Import Standard Skill
@@ -527,6 +532,7 @@ agentSkillPage:
     delete: Delete
     cancel: Cancel
     save: Save
+    search: Search
   table:
     skill: Skill
     type: Type
@@ -534,6 +540,7 @@ agentSkillPage:
     description: Description
     activeRevision: Active Revision
     enabled: Enabled
+    chatEnabled: Chat Enabled
     version: Version
     packageHash: Package Hash
     validation: Validation
@@ -559,6 +566,7 @@ agentSkillPage:
     activate: Activate After Import
   placeholder:
     directory: Example team/market-summary
+    search: Search Skill name, display name, or description
   importMode:
     upload: Upload ZIP / SKILL.md
     directory: Server Directory
@@ -578,6 +586,8 @@ agentSkillPage:
     fileRequired: Choose a ZIP or SKILL.md file
     directoryRequired: Enter a relative server directory
     saved: Skill saved
+    chatUpdated: Chat availability updated
+    chatUpdateFailed: Failed to update Chat availability
     saveFailed: Failed to save Skill
     imported: Standard Skill imported
     importFailed: Failed to import standard Skill
@@ -1683,6 +1693,7 @@ agentChat:
   placeholder:
     message: Type a message; use / to select a Skill. Enter to send, Shift+Enter for newline
     title: Enter a conversation title
+    symbol: Select contract (optional)
   message:
     renameTitle: Edit conversation title
     renamePrompt: Change the title shown in conversation history
@@ -1844,3 +1855,53 @@ agentObservabilityPage:
   button:
     refresh: Refresh
     search: Search
+
+workflowPage:
+  title: V2-11 Business Workflows
+  subtitle: Deterministic services perform scanning, aggregation, validation and testing. Agents only rank, judge and summarize small structured inputs; they never execute trades or overwrite production strategies.
+  history: Workflow History
+  workflow:
+    market_scan: Market Scan
+    strategy_review: Strategy Review
+    strategy_experiment: Strategy Experiment
+    alert_triage: Alert Triage
+    daily_market_brief: Daily Market Brief
+  status:
+    queued: Queued
+    running: Running
+    succeeded: Succeeded
+    failed: Failed
+  form:
+    workflow: Workflow
+    analyze: AI candidate count
+    templateId: Strategy template
+    templateName: Template name
+    or: or
+    days: Review days
+    goal: Experiment goal
+    windowMinutes: Signal window (minutes)
+    maxSignals: Maximum signals
+    windowHours: Brief window (hours)
+  table:
+    workflow: Workflow
+    schema: Output Schema
+    status: Status
+    stage: Stage
+    tasks: Child Tasks
+    createdAt: Created At
+    operation: Actions
+  button:
+    start: Start Workflow
+    refresh: Refresh
+    detail: Detail
+  detail:
+    title: Workflow Detail
+    tasks: Child Task IDs
+    error: Error
+    input: Input
+    result: Result
+  message:
+    templateRequired: Enter a strategy template ID or name
+    goalRequired: Strategy experiment requires a goal
+    started: Workflow started
+    startFailed: Failed to start workflow

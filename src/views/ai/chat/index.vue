@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { getFeaturesOptions } from "@/api/trade";
 import {
   createAgentChatConversation,
   deleteAgentChatConversation,
@@ -29,6 +30,7 @@ const { t } = useI18n();
 const conversations = ref<AgentChatConversation[]>([]);
 const messages = ref<AgentChatMessage[]>([]);
 const skills = ref<AgentChatSkill[]>([]);
+const symbols = ref<string[]>([]);
 const activeId = ref("");
 const listLoading = ref(false);
 const messageLoading = ref(false);
@@ -36,6 +38,7 @@ const creating = ref(false);
 const deletingId = ref("");
 const runningTasks = reactive<Record<string, string>>({});
 const selectedSkills = reactive<Record<string, string>>({});
+const selectedSymbols = reactive<Record<string, string>>({});
 const lastSelectedSkill = ref("");
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -45,6 +48,13 @@ const selectedSkill = computed({
     if (!activeId.value) return;
     selectedSkills[activeId.value] = value;
     if (value) lastSelectedSkill.value = value;
+  }
+});
+const selectedSymbol = computed({
+  get: () => selectedSymbols[activeId.value] || "",
+  set: value => {
+    if (!activeId.value) return;
+    selectedSymbols[activeId.value] = value;
   }
 });
 const currentRunning = computed(() => Boolean(runningTasks[activeId.value]));
@@ -72,6 +82,22 @@ function assertBusinessSuccess(res: any, fallback: string) {
   if (res && Number(res.code) !== 200) {
     throw new Error(res.msg || fallback);
   }
+}
+
+async function loadSymbols() {
+  const res = await getFeaturesOptions();
+  assertBusinessSuccess(res, "加载合约列表失败");
+  const items: unknown[] = Array.isArray(res?.data) ? res.data : [];
+  const normalized = items
+    .map(item =>
+      String(item || "")
+        .trim()
+        .toUpperCase()
+    )
+    .filter(item => item.endsWith("USDT"));
+  symbols.value = Array.from(new Set<string>(normalized)).sort((left, right) =>
+    left.localeCompare(right)
+  );
 }
 
 async function loadSkills() {
@@ -207,13 +233,19 @@ async function pollTask(conversationId: string, taskId: string) {
 async function sendMessage(content: string) {
   const conversationId = activeId.value;
   const skill = selectedSkill.value;
+  const symbol = selectedSymbol.value;
   if (!conversationId || !skill || currentRunning.value) return;
   try {
-    const res = await sendAgentChatMessage(conversationId, { skill, content });
+    const res = await sendAgentChatMessage(conversationId, {
+      skill,
+      content,
+      symbol: symbol || undefined
+    });
     assertBusinessSuccess(res, "发送失败");
     const taskId = String(res?.data?.task_id || "");
     if (!taskId) throw new Error(res?.msg || "task id is missing");
     runningTasks[conversationId] = taskId;
+    selectedSymbols[conversationId] = "";
     await Promise.all([
       loadMessages(conversationId, false),
       loadConversations(false, false)
@@ -269,6 +301,7 @@ async function deleteConversation(item: AgentChatConversation) {
     clearPoll(item.id);
     delete runningTasks[item.id];
     delete selectedSkills[item.id];
+    delete selectedSymbols[item.id];
     if (wasActive) {
       activeId.value = "";
       messages.value = [];
@@ -295,7 +328,7 @@ function openTask(taskId: string) {
 }
 
 onMounted(async () => {
-  await Promise.all([loadSkills(), loadConversations(false)]);
+  await Promise.all([loadSkills(), loadSymbols(), loadConversations(false)]);
   if (conversations.value.length === 0) await createConversation();
   else await selectConversation(conversations.value[0].id);
 });
@@ -347,7 +380,9 @@ onBeforeUnmount(() => {
           <div class="chat-composer">
             <ChatComposer
               v-model:selected-skill="selectedSkill"
+              v-model:selected-symbol="selectedSymbol"
               :skills="skills"
+              :symbols="symbols"
               :disabled="!activeId || currentRunning"
               @send="sendMessage"
             />

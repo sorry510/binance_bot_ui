@@ -5,11 +5,14 @@ import SkillCommandMenu from "./skillCommandMenu.vue";
 
 const props = defineProps<{
   skills: AgentChatSkill[];
+  symbols: string[];
   selectedSkill?: string;
+  selectedSymbol?: string;
   disabled?: boolean;
 }>();
 const emit = defineEmits<{
   "update:selectedSkill": [name: string];
+  "update:selectedSymbol": [symbol: string];
   send: [content: string];
 }>();
 
@@ -62,7 +65,28 @@ function onKeydown(event: KeyboardEvent) {
       @keydown="onKeydown"
     />
     <div class="composer-footer">
-      <span class="hint">{{ $t("agentChat.hint.slash") }}</span>
+      <div class="composer-footer-context">
+        <span class="hint">{{ $t("agentChat.hint.slash") }}</span>
+        <el-select
+          :model-value="selectedSymbol || ''"
+          class="symbol-select"
+          size="small"
+          clearable
+          filterable
+          :disabled="disabled"
+          :placeholder="$t('agentChat.placeholder.symbol')"
+          @update:model-value="
+            value => emit('update:selectedSymbol', String(value || ''))
+          "
+        >
+          <el-option
+            v-for="symbol in symbols"
+            :key="symbol"
+            :label="symbol"
+            :value="symbol"
+          />
+        </el-select>
+      </div>
       <el-button
         type="primary"
         :disabled="!content.trim() || !selectedSkill || disabled || showMenu"
@@ -89,6 +113,17 @@ function onKeydown(event: KeyboardEvent) {
   align-items: center;
   justify-content: space-between;
   margin-top: 8px;
+}
+
+.composer-footer-context {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.symbol-select {
+  width: 190px;
 }
 
 .hint {
