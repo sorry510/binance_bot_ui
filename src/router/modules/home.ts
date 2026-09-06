@@ -51,11 +51,7 @@ export default [
         path: "/ai/chat",
         name: "AgentChat",
         component: () => import("@/views/ai/chat/index.vue"),
-        meta: {
-          title: "menus.agentChat",
-          showLink: true,
-          showParent: true
-        }
+        meta: { title: "menus.agentChat", showLink: true, showParent: true }
       },
       {
         path: "/ai/symbol-analysis",
@@ -68,11 +64,37 @@ export default [
         }
       },
       {
-        path: "/ai/task-center",
-        name: "AgentTaskCenter",
-        component: () => import("@/views/ai/taskCenter.vue"),
+        path: "/ai/llm-config",
+        name: "LLMConfigManagement",
+        component: () => import("@/views/ai/llmConfig.vue"),
+        meta: { title: "menus.llmConfig", showLink: true, showParent: true }
+      },
+      {
+        path: "/ai/skills",
+        name: "AgentSkillManagement",
+        component: () => import("@/views/ai/skillManagement.vue"),
         meta: {
-          title: "menus.agentTaskCenter",
+          title: "menus.agentSkillManagement",
+          showLink: true,
+          showParent: true
+        }
+      },
+      {
+        path: "/ai/mcp",
+        name: "AgentMCPManagement",
+        component: () => import("@/views/ai/mcpManagement.vue"),
+        meta: {
+          title: "menus.agentMCPManagement",
+          showLink: true,
+          showParent: true
+        }
+      },
+      {
+        path: "/ai/memory",
+        name: "AgentMemoryManagement",
+        component: () => import("@/views/ai/memoryManagement.vue"),
+        meta: {
+          title: "menus.agentMemoryManagement",
           showLink: true,
           showParent: true
         }
@@ -98,21 +120,21 @@ export default [
         }
       },
       {
-        path: "/ai/observability",
-        name: "AgentObservability",
-        component: () => import("@/views/ai/observability.vue"),
+        path: "/ai/task-center",
+        name: "AgentTaskCenter",
+        component: () => import("@/views/ai/taskCenter.vue"),
         meta: {
-          title: "menus.agentObservability",
+          title: "menus.agentTaskCenter",
           showLink: true,
           showParent: true
         }
       },
       {
-        path: "/ai/memory",
-        name: "AgentMemoryManagement",
-        component: () => import("@/views/ai/memoryManagement.vue"),
+        path: "/ai/observability",
+        name: "AgentObservability",
+        component: () => import("@/views/ai/observability.vue"),
         meta: {
-          title: "menus.agentMemoryManagement",
+          title: "menus.agentObservability",
           showLink: true,
           showParent: true
         }
@@ -128,34 +150,10 @@ export default [
         }
       },
       {
-        path: "/ai/skills",
-        name: "AgentSkillManagement",
-        component: () => import("@/views/ai/skillManagement.vue"),
-        meta: {
-          title: "menus.agentSkillManagement",
-          showLink: true,
-          showParent: true
-        }
-      },
-      {
-        path: "/ai/llm-config",
-        name: "LLMConfigManagement",
-        component: () => import("@/views/ai/llmConfig.vue"),
-        meta: {
-          title: "menus.llmConfig",
-          showLink: true,
-          showParent: true
-        }
-      },
-      {
-        path: "/ai/mcp",
-        name: "AgentMCPManagement",
-        component: () => import("@/views/ai/mcpManagement.vue"),
-        meta: {
-          title: "menus.agentMCPManagement",
-          showLink: true,
-          showParent: true
-        }
+        path: "/ai/config",
+        name: "AgentAIConfig",
+        component: () => import("@/views/ai/aiConfig.vue"),
+        meta: { title: "menus.agentAIConfig", showLink: true, showParent: true }
       }
     ]
   }

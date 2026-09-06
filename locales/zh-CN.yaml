@@ -92,6 +92,7 @@ menus:
   llmConfig: 模型配置
   agentMCPManagement: MCP 管理
   alertPipelineHistory: 报警链路历史
+  agentAIConfig: AI 配置
   notification: 通知
   notifyConfig: 通知配置
   notificationHistory: 历史通知
@@ -218,7 +219,7 @@ dashboard:
     alertPipeline: 快速波动和强平仅使用新报警链路；关闭时仍计算信号，但不发送这两类报警。
     alertAIFallback: AI 关闭、超预算或失败时自动使用确定性规则通知，不影响 WebSocket。
     marketRegimeSchedule: 仅在市场趋势自动更新开启时运行；使用统一智能体任务，重启后仍可查询历史。
-    dailyMarketBriefSchedule: 默认关闭；开启后使用 V2-11 固定 Schema 摘要，默认每 1440 分钟运行一次。
+    dailyMarketBriefSchedule: 默认关闭；开启后使用固定结构的市场摘要，默认每 1440 分钟运行一次。
     tradeDisabled: 交易 Tool 全局禁用
     globalAgentBudget: Token 与 Tool 调用次数仅使用这里的全局上限控制。
     controlledTrade: Agent Runtime 的 Trade Tool 始终禁用；这里只控制经过 Proposal → Risk → 人工批准 → Execution Service 的真实执行通道。
@@ -1876,7 +1877,7 @@ agentObservabilityPage:
     search: 查询
 
 workflowPage:
-  title: V2-11 业务 Workflow
+  title: 业务 Workflow
   subtitle: 确定性 Service 负责扫描、聚合、验证和测试；Agent 只处理少量候选、判断与归纳，不直接执行交易或修改正式策略。
   history: Workflow 历史
   workflow:
@@ -2017,3 +2018,6 @@ controlledTradePage:
     executeFailed: 执行失败或结果待确认，请检查详情
     reconcileSuccess: 对账完成
     reconcileFailed: 尚未确认订单结果，禁止重新提交
+aiConfigPage:
+  title: AI 配置
+  subtitle: 集中管理 AI 报警、调度、治理预算和受控交易参数。

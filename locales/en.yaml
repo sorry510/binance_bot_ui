@@ -92,6 +92,7 @@ menus:
   llmConfig: LLM Config
   agentMCPManagement: MCP Management
   alertPipelineHistory: Alert Pipeline History
+  agentAIConfig: AI Config
   notification: Notifications
   notifyConfig: Notify Config
   notificationHistory: Notification History
@@ -218,7 +219,7 @@ dashboard:
     alertPipeline: FastMove and liquidation alerts use only the new Pipeline; when off, Signals are still evaluated but these alerts are not sent.
     alertAIFallback: If AI is disabled, over budget, or fails, deterministic fallback notifications continue without blocking WebSocket processing.
     marketRegimeSchedule: Runs only when automatic market-condition updates are enabled; uses persistent Agent Tasks.
-    dailyMarketBriefSchedule: Disabled by default. When enabled, runs the V2-11 fixed-schema brief every 1440 minutes by default.
+    dailyMarketBriefSchedule: Disabled by default. When enabled, runs a fixed-structure market brief every 1440 minutes by default.
     tradeDisabled: Trade Tools globally disabled
     globalAgentBudget: Token and Tool call limits are controlled only by these global settings.
     controlledTrade: Agent Runtime Trade Tools remain disabled. This switch controls only the Proposal → Risk → human approval → Execution Service path.
@@ -1876,7 +1877,7 @@ agentObservabilityPage:
     search: Search
 
 workflowPage:
-  title: V2-11 Business Workflows
+  title: Business Workflows
   subtitle: Deterministic services perform scanning, aggregation, validation and testing. Agents only rank, judge and summarize small structured inputs; they never execute trades or overwrite production strategies.
   history: Workflow History
   workflow:
@@ -2017,3 +2018,6 @@ controlledTradePage:
     executeFailed: Execution failed or is uncertain; inspect the details
     reconcileSuccess: Reconciliation completed
     reconcileFailed: Order result is still unconfirmed; do not resubmit
+aiConfigPage:
+  title: AI Configuration
+  subtitle: Manage AI alerts, scheduling, governance budgets, and controlled trading in one place.
