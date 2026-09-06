@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { getFeaturesOptions } from "../../api/trade";
@@ -24,6 +24,7 @@ const { t } = useI18n();
 const loading = ref(false);
 const symbols = ref<string[]>([]);
 const excludeSymbols = ref<string[]>([]);
+const aiTradeAllowedSymbols = ref<string[]>([]);
 const marketAnalysis = ref<{
   source: string;
   confidence: number;
@@ -61,6 +62,16 @@ const config = reactive<Record<string, any>>({
   AgentMaxStartsPerHour: 300,
   AgentMaxTokensPerTask: 240000,
   AgentMaxToolCallsPerTask: 12,
+  AgentTradeExecutionEnable: 0,
+  AgentTradeAllowedSymbols: "",
+  AgentTradeMaxRiskUSDT: 5,
+  AgentTradeMaxNotionalUSDT: 50,
+  AgentTradeMaxTotalExposureUSDT: 200,
+  AgentTradeMaxLeverage: 3,
+  AgentTradePriceFreshnessSec: 10,
+  AgentTradeMaxSlippageBps: 30,
+  AgentTradeCooldownSec: 900,
+  AgentTradeProposalTTLMin: 15,
   futuresPositionConvertEnable: 0,
   coinAllowLong: 1,
   coinAllowShort: 0,
@@ -144,6 +155,10 @@ async function fetchConfig() {
       .split(",")
       .map((item: string) => item.trim())
       .filter(Boolean);
+    aiTradeAllowedSymbols.value = String(data.AgentTradeAllowedSymbols || "")
+      .split(",")
+      .map((item: string) => item.trim())
+      .filter(Boolean);
     try {
       config.externalLinks = JSON.parse(data.externalLinks || "[]");
     } catch {
@@ -192,6 +207,33 @@ async function saveField(field: string, value: any) {
 
 async function onExcludeChange() {
   await saveField("future_exclude_symbols", excludeSymbols.value.join(","));
+}
+
+async function onAITradeAllowlistChange() {
+  await saveField(
+    "agent_trade_allowed_symbols",
+    aiTradeAllowedSymbols.value.join(",")
+  );
+}
+
+async function onAITradeExecutionChange(value: number | string | boolean) {
+  const enabled = Number(value) === 1;
+  if (enabled) {
+    if (aiTradeAllowedSymbols.value.length === 0) {
+      ElMessage.error(t("dashboard.message.tradeAllowlistRequired"));
+      return;
+    }
+    try {
+      await ElMessageBox.confirm(
+        t("dashboard.confirm.enableControlledTrade"),
+        t("dashboard.confirm.controlledTradeTitle"),
+        { type: "warning" }
+      );
+    } catch {
+      return;
+    }
+  }
+  await saveField("agent_trade_execution_enable", enabled ? 1 : 0);
 }
 
 async function onTestPusher() {
@@ -332,6 +374,7 @@ onBeforeUnmount(() => {
         'ai_alert',
         'ai_scheduler',
         'ai_governance',
+        'ai_trade',
         'new_coin_rush',
         'coin_notice',
         'market_listen',
@@ -1247,6 +1290,199 @@ onBeforeUnmount(() => {
             <span class="hint">{{
               t("dashboard.hint.globalAgentBudget")
             }}</span>
+          </div>
+        </div>
+      </el-collapse-item>
+
+      <el-collapse-item name="ai_trade">
+        <template #title>
+          <div class="dashboard-text flex items-center gap-3">
+            <span>{{ t("dashboard.section.aiTrade") }}</span>
+            <el-tag
+              :type="config.AgentTradeExecutionEnable === 1 ? 'danger' : 'info'"
+              size="small"
+            >
+              {{
+                config.AgentTradeExecutionEnable === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="dashboard-body">
+          <el-alert
+            :title="t('dashboard.hint.controlledTrade')"
+            type="warning"
+            show-icon
+            :closable="false"
+            class="mb-3"
+          />
+          <div class="field-row field-row-top">
+            <span class="field-label">{{
+              t("dashboard.field.aiTradeAllowedSymbols")
+            }}</span>
+            <el-select
+              v-model="aiTradeAllowedSymbols"
+              multiple
+              filterable
+              clearable
+              class="wide-select"
+              @change="onAITradeAllowlistChange"
+            >
+              <el-option
+                v-for="symbol in symbols"
+                :key="symbol"
+                :label="symbol"
+                :value="symbol"
+              />
+            </el-select>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.aiTradeExecutionEnable")
+            }}</span>
+            <el-switch
+              :model-value="config.AgentTradeExecutionEnable"
+              :active-value="1"
+              :inactive-value="0"
+              @change="onAITradeExecutionChange"
+            />
+            <el-button
+              type="primary"
+              size="small"
+              @click="router.push({ name: 'AgentControlledTrade' })"
+              >{{ t("dashboard.button.openControlledTrade") }}</el-button
+            >
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.aiTradeMaxRisk")
+            }}</span>
+            <el-input-number
+              :model-value="config.AgentTradeMaxRiskUSDT"
+              :min="0.01"
+              :step="1"
+              controls-position="right"
+              @change="
+                value =>
+                  saveField('agent_trade_max_risk_usdt', Number(value || 0))
+              "
+            />
+            <span class="hint">USDT</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.aiTradeMaxNotional")
+            }}</span>
+            <el-input-number
+              :model-value="config.AgentTradeMaxNotionalUSDT"
+              :min="0.01"
+              :step="10"
+              controls-position="right"
+              @change="
+                value =>
+                  saveField('agent_trade_max_notional_usdt', Number(value || 0))
+              "
+            />
+            <span class="hint">USDT</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.aiTradeMaxExposure")
+            }}</span>
+            <el-input-number
+              :model-value="config.AgentTradeMaxTotalExposureUSDT"
+              :min="0.01"
+              :step="10"
+              controls-position="right"
+              @change="
+                value =>
+                  saveField(
+                    'agent_trade_max_total_exposure_usdt',
+                    Number(value || 0)
+                  )
+              "
+            />
+            <span class="hint">USDT</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.aiTradeMaxLeverage")
+            }}</span>
+            <el-input-number
+              :model-value="config.AgentTradeMaxLeverage"
+              :min="1"
+              :max="125"
+              controls-position="right"
+              @change="
+                value =>
+                  saveField('agent_trade_max_leverage', Number(value || 1))
+              "
+            />
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.aiTradeFreshness")
+            }}</span>
+            <el-input-number
+              :model-value="config.AgentTradePriceFreshnessSec"
+              :min="1"
+              controls-position="right"
+              @change="
+                value =>
+                  saveField(
+                    'agent_trade_price_freshness_sec',
+                    Number(value || 1)
+                  )
+              "
+            />
+            <span class="hint">s</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.aiTradeSlippage")
+            }}</span>
+            <el-input-number
+              :model-value="config.AgentTradeMaxSlippageBps"
+              :min="1"
+              controls-position="right"
+              @change="
+                value =>
+                  saveField('agent_trade_max_slippage_bps', Number(value || 1))
+              "
+            />
+            <span class="hint">bps</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.aiTradeCooldown")
+            }}</span>
+            <el-input-number
+              :model-value="config.AgentTradeCooldownSec"
+              :min="0"
+              controls-position="right"
+              @change="
+                value =>
+                  saveField('agent_trade_cooldown_sec', Number(value || 0))
+              "
+            />
+            <span class="hint">s</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.aiTradeProposalTTL")
+            }}</span>
+            <el-input-number
+              :model-value="config.AgentTradeProposalTTLMin"
+              :min="1"
+              controls-position="right"
+              @change="
+                value =>
+                  saveField('agent_trade_proposal_ttl_min', Number(value || 1))
+              "
+            />
+            <span class="hint">{{ t("dashboard.unit.minute") }}</span>
           </div>
         </div>
       </el-collapse-item>

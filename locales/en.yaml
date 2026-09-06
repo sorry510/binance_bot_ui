@@ -86,6 +86,7 @@ menus:
   agentSkillManagement: Skill Management
   agentTaskCenter: Task Center
   agentWorkflows: Workflows
+  agentControlledTrade: Controlled Trade
   agentObservability: Observability
   agentMemoryManagement: Memory Management
   llmConfig: LLM Config
@@ -139,6 +140,7 @@ dashboard:
     aiAlert: AI Event Alerts
     aiScheduler: AI Scheduler
     aiGovernance: AI Governance & Budgets
+    aiTrade: AI Controlled Trade
     newCoinRush: New Coin Rush
     coinNotice: Coin Notice
     marketListen: Market Listener
@@ -172,6 +174,16 @@ dashboard:
     agentStartsPerHour: Agent starts per hour
     agentMaxTokens: Max tokens per task
     agentMaxToolCalls: Max tool calls per task
+    aiTradeAllowedSymbols: AI Trade Allowlist
+    aiTradeExecutionEnable: AI Execution Kill Switch
+    aiTradeMaxRisk: Max Risk per Trade
+    aiTradeMaxNotional: Max Notional per Trade
+    aiTradeMaxExposure: Max Total Exposure
+    aiTradeMaxLeverage: Max Leverage
+    aiTradeFreshness: Max Price Age (sec)
+    aiTradeSlippage: Max Slippage (bps)
+    aiTradeCooldown: Symbol Cooldown (sec)
+    aiTradeProposalTTL: Proposal TTL
     positionConvert: futures position convert notice
     allowLong: Allow Long
     allowShort: Allow Short
@@ -199,6 +211,7 @@ dashboard:
     testPush: Test Push
     openSkillManagement: Open Skill Management
     openTaskCenter: Open Task Center
+    openControlledTrade: Open Controlled Trade
   hint:
     autoUpdatePrice: Auto update price
     autoRefresh: Automatically updated by the AI Scheduler at the configured interval
@@ -208,6 +221,7 @@ dashboard:
     dailyMarketBriefSchedule: Disabled by default. When enabled, runs the V2-11 fixed-schema brief every 1440 minutes by default.
     tradeDisabled: Trade Tools globally disabled
     globalAgentBudget: Token and Tool call limits are controlled only by these global settings.
+    controlledTrade: Agent Runtime Trade Tools remain disabled. This switch controls only the Proposal → Risk → human approval → Execution Service path.
     limitMode: Limit order mode
     marketMode: Market order mode
     testAutoTradeLimit: Non-zero:after n consecutive wins of the test strategy, automatically switch to real trading. After n consecutive losses in real trading, switch back to the test strategy.
@@ -322,6 +336,10 @@ dashboard:
     progressQueryFail: Failed to query AI analysis progress
     sendSuccess: Sent successfully
     sendFail: Send failed
+    tradeAllowlistRequired: Configure at least one allowed symbol before enabling AI execution
+  confirm:
+    controlledTradeTitle: Enable AI Real Execution
+    enableControlledTrade: Enable controlled real trading? Only Proposals that pass the deterministic Risk Engine and receive human approval can execute.
 agentTaskCenter:
   governance:
     title: Agent Governance & Runtime Metrics
@@ -345,7 +363,8 @@ agentTaskCenter:
     alertNotifyRate: Signal→Notify Rate
     alertFallbackRate: Alert Fallback Rate
     perSkill: Per-Skill Runtime Metrics
-    trade: Trade
+    trade: Direct Agent Runtime Trade Tool
+    controlledTrade: Controlled Real Execution
   scheduler:
     title: Agent Scheduler
     name: Job
@@ -1905,3 +1924,96 @@ workflowPage:
     goalRequired: Strategy experiment requires a goal
     started: Workflow started
     startFailed: Failed to start workflow
+
+controlledTradePage:
+  title: AI Controlled Trade
+  subtitle: Proposals can only come from successful Symbol Analysis Tasks. Real execution requires deterministic Risk, human approval, and another Risk check immediately before execution.
+  history: Proposal History
+  warning:
+    title: Real Trading Is High Risk
+    description: Agent Runtime has no direct Trade Tool. Even after approval, the kill switch, allowlist, stale prices, or any failed Risk check will block execution.
+  hint:
+    create: Only successful symbol_analysis Task IDs are accepted. Quantity cannot be entered directly here.
+  button:
+    create: Create Proposal from Task
+    refresh: Refresh
+    search: Search
+    detail: Details
+    risk: Recheck Risk
+    approve: Human Approve
+    reject: Reject
+    execute: Execute Real Trade
+    reconcile: Reconcile by Client Order ID
+  placeholder:
+    taskId: Enter a successful Symbol Analysis Task ID
+    symbol: Symbol, for example BTCUSDT
+    rejectReason: Enter rejection reason
+  table:
+    taskId: Source Task ID
+    symbol: Symbol
+    side: Side
+    status: Status
+    risk: Risk
+    quantity: Quantity
+    notional: Notional
+    expiresAt: Expires At
+    operation: Action
+  detail:
+    title: Controlled Trade Proposal
+    marketCondition: Market Condition
+    referencePrice: Reference Price
+    leverage: Leverage
+    riskUsdt: Max Stop Risk
+    entryCondition: Entry Condition
+    entryZones: Entry Zones
+    stopLoss: Stop Loss
+    takeProfits: Take Profits
+    invalidations: Invalidations
+    evidence: Evidence
+    riskChecks: Deterministic Risk Checks
+    check: Check
+    result: Result
+    message: Message
+    execution: Execution
+    executionStatus: Execution Status
+    clientOrderId: Client Order ID
+    exchangeOrderId: Binance Order ID
+    averagePrice: Average Price
+    error: Error
+    audit: Audit Trail
+    time: Time
+    event: Event
+    actor: Actor
+    detail: Detail
+  status:
+    risk_rejected: Risk Rejected
+    awaiting_approval: Awaiting Human Approval
+    approved: Approved
+    rejected: Rejected
+    executing: Executing
+    executed: Executed
+    execution_failed: Execution Failed
+    execution_uncertain: Execution Uncertain
+    expired: Expired
+  confirm:
+    title: Human Approval
+    approve: Approve this Proposal? Approval does not place an order; the full Risk Engine runs again before execution.
+    rejectTitle: Reject Proposal
+    reject: Reject this Proposal. You may enter a reason.
+    executeTitle: Real Trade Confirmation
+    execute: A real Binance order may be submitted after another complete Risk check. Continue?
+  message:
+    taskRequired: Enter the source Task ID
+    created: Proposal created and initial Risk check completed
+    createFailed: Failed to create Proposal
+    loadFailed: Failed to load Proposal details
+    riskSuccess: Risk check completed
+    riskFailed: Risk check failed
+    approveSuccess: Proposal approved by operator
+    approveFailed: Approval failed
+    rejectSuccess: Proposal rejected
+    rejectFailed: Rejection failed
+    executeSuccess: Real order execution completed
+    executeFailed: Execution failed or is uncertain; inspect the details
+    reconcileSuccess: Reconciliation completed
+    reconcileFailed: Order result is still unconfirmed; do not resubmit

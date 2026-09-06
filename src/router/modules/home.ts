@@ -88,6 +88,16 @@ export default [
         }
       },
       {
+        path: "/ai/controlled-trade",
+        name: "AgentControlledTrade",
+        component: () => import("@/views/ai/controlledTrade.vue"),
+        meta: {
+          title: "menus.agentControlledTrade",
+          showLink: true,
+          showParent: true
+        }
+      },
+      {
         path: "/ai/observability",
         name: "AgentObservability",
         component: () => import("@/views/ai/observability.vue"),

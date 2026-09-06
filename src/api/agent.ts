@@ -465,6 +465,7 @@ export interface AgentGovernanceStatus {
     };
     default_budget: { max_tool_calls: number; max_total_tokens: number };
     trade_enabled: boolean;
+    controlled_execution_enabled?: boolean;
   };
   metrics: {
     global: AgentRuntimeMetrics;
@@ -1017,3 +1018,150 @@ export const getAgentWorkflow = (id: string) =>
 
 export const getAgentWorkflows = (params: Query = {}) =>
   http.get<any, Query>(baseUrlApi("agents/workflows"), { params });
+
+export interface AgentTradeRiskCheck {
+  name: string;
+  passed: boolean;
+  message?: string;
+}
+
+export interface AgentTradeRiskResult {
+  status: "pass" | "fail" | string;
+  checks: AgentTradeRiskCheck[];
+  reference_price: number;
+  estimated_fill_price: number;
+  slippage_bps: number;
+  quantity: number;
+  leverage: number;
+  notional_usdt: number;
+  risk_usdt: number;
+  current_exposure_usdt: number;
+  checked_at: number;
+}
+
+export interface AgentTradeProposal {
+  id: number;
+  proposal_id: string;
+  source_task_id: string;
+  source_skill: string;
+  content_hash: string;
+  symbol: string;
+  side: string;
+  entry_condition: string;
+  entry_zones_json: string;
+  stop_loss: number;
+  take_profits_json: string;
+  invalidations_json: string;
+  evidence_json: string;
+  market_condition: number;
+  status: string;
+  risk_status: string;
+  risk_json?: string;
+  risk_checked_at: number;
+  quantity: number;
+  reference_price: number;
+  leverage: number;
+  notional_usdt: number;
+  risk_usdt: number;
+  approved_by?: string;
+  rejected_reason?: string;
+  created_at: number;
+  updated_at: number;
+  expires_at: number;
+  approved_at: number;
+  rejected_at: number;
+  executed_at: number;
+}
+
+export interface AgentTradeExecution {
+  id: number;
+  proposal_id: string;
+  idempotency_key: string;
+  client_order_id: string;
+  exchange_order_id?: string;
+  status: string;
+  symbol: string;
+  side: string;
+  order_type: string;
+  quantity: number;
+  reference_price: number;
+  average_price: number;
+  leverage: number;
+  error?: string;
+  created_at: number;
+  updated_at: number;
+  submitted_at: number;
+  completed_at: number;
+}
+
+export interface AgentTradeAudit {
+  id: number;
+  proposal_id: string;
+  event: string;
+  status: string;
+  actor?: string;
+  detail_json?: string;
+  created_at: number;
+}
+
+export interface AgentTradeProposalListResult {
+  page: number;
+  limit: number;
+  total: number;
+  list: AgentTradeProposal[];
+}
+
+export interface AgentTradeProposalDetail {
+  proposal: AgentTradeProposal;
+  execution?: AgentTradeExecution;
+  audits: AgentTradeAudit[];
+}
+export const getAgentTradeProposals = (params: Query = {}) =>
+  http.get<any, Query>(baseUrlApi("agents/trade/proposals"), { params });
+
+export const createAgentTradeProposal = (taskId: string) =>
+  http.post<any, { task_id: string }>(baseUrlApi("agents/trade/proposals"), {
+    data: { task_id: taskId }
+  });
+
+export const getAgentTradeProposal = (proposalId: string) =>
+  http.get<any, Query>(
+    baseUrlApi(`agents/trade/proposals/${encodeURIComponent(proposalId)}`)
+  );
+
+export const checkAgentTradeRisk = (proposalId: string) =>
+  http.post<any, Query>(
+    baseUrlApi(`agents/trade/proposals/${encodeURIComponent(proposalId)}/risk`)
+  );
+
+export const approveAgentTradeProposal = (proposalId: string) =>
+  http.post<any, Query>(
+    baseUrlApi(
+      `agents/trade/proposals/${encodeURIComponent(proposalId)}/approve`
+    )
+  );
+
+export const rejectAgentTradeProposal = (proposalId: string, reason: string) =>
+  http.post<any, { reason: string }>(
+    baseUrlApi(
+      `agents/trade/proposals/${encodeURIComponent(proposalId)}/reject`
+    ),
+    { data: { reason } }
+  );
+export const executeAgentTradeProposal = (proposalId: string) =>
+  http.post<any, Query>(
+    baseUrlApi(
+      `agents/trade/proposals/${encodeURIComponent(proposalId)}/execute`
+    ),
+    undefined,
+    { timeout: AGENT_API_TIMEOUT }
+  );
+
+export const reconcileAgentTradeProposal = (proposalId: string) =>
+  http.post<any, Query>(
+    baseUrlApi(
+      `agents/trade/proposals/${encodeURIComponent(proposalId)}/reconcile`
+    ),
+    undefined,
+    { timeout: AGENT_API_TIMEOUT }
+  );

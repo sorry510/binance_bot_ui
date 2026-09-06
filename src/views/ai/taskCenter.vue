@@ -300,6 +300,20 @@ onBeforeUnmount(() => {
               : t("dashboard.state.off")
           }}
         </el-tag>
+        <el-tag
+          :type="
+            governance?.governance?.controlled_execution_enabled
+              ? 'warning'
+              : 'info'
+          "
+        >
+          {{ t("agentTaskCenter.governance.controlledTrade") }}:
+          {{
+            governance?.governance?.controlled_execution_enabled
+              ? t("dashboard.state.on")
+              : t("dashboard.state.off")
+          }}
+        </el-tag>
       </div>
       <el-descriptions :column="4" border size="small">
         <el-descriptions-item :label="t('agentTaskCenter.governance.minute')">

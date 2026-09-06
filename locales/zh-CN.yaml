@@ -86,6 +86,7 @@ menus:
   agentSkillManagement: Skill 管理
   agentTaskCenter: 任务中心
   agentWorkflows: 业务 Workflow
+  agentControlledTrade: 受控交易
   agentObservability: 可观测性
   agentMemoryManagement: Memory 管理
   llmConfig: 模型配置
@@ -139,6 +140,7 @@ dashboard:
     aiAlert: AI 事件报警
     aiScheduler: AI 调度任务
     aiGovernance: AI 治理与预算
+    aiTrade: AI 受控交易
     newCoinRush: 抢新配置
     coinNotice: 币种提醒
     marketListen: 市场监听
@@ -172,6 +174,16 @@ dashboard:
     agentStartsPerHour: 智能体每小时启动上限
     agentMaxTokens: 单任务最大 Token
     agentMaxToolCalls: 单任务最大 Tool 调用
+    aiTradeAllowedSymbols: AI 交易白名单
+    aiTradeExecutionEnable: AI 真实执行 Kill Switch
+    aiTradeMaxRisk: 单笔最大风险
+    aiTradeMaxNotional: 单笔最大名义金额
+    aiTradeMaxExposure: 最大总暴露
+    aiTradeMaxLeverage: 最大杠杆
+    aiTradeFreshness: 行情最大年龄(秒)
+    aiTradeSlippage: 最大滑点(bps)
+    aiTradeCooldown: 同币种冷却(秒)
+    aiTradeProposalTTL: Proposal 有效期
     positionConvert: 仓位收益正负转换通知
     allowLong: 允许做多
     allowShort: 允许做空
@@ -199,6 +211,7 @@ dashboard:
     testPush: 测试推送
     openSkillManagement: 打开 Skill 管理
     openTaskCenter: 打开任务中心
+    openControlledTrade: 打开受控交易
   hint:
     autoUpdatePrice: 自动更新价格
     autoRefresh: 由 AI 调度器按配置周期自动更新
@@ -208,6 +221,7 @@ dashboard:
     dailyMarketBriefSchedule: 默认关闭；开启后使用 V2-11 固定 Schema 摘要，默认每 1440 分钟运行一次。
     tradeDisabled: 交易 Tool 全局禁用
     globalAgentBudget: Token 与 Tool 调用次数仅使用这里的全局上限控制。
+    controlledTrade: Agent Runtime 的 Trade Tool 始终禁用；这里只控制经过 Proposal → Risk → 人工批准 → Execution Service 的真实执行通道。
     limitMode: 限价单模式
     marketMode: 市价单模式
     testAutoTradeLimit: 非 0 时，测试策略连续盈利 n 次后，自动切换真实交易，真实交易连续亏损后 n 次后，切换回测试策略
@@ -322,6 +336,10 @@ dashboard:
     progressQueryFail: 查询 AI 分析进度失败
     sendSuccess: 发送成功
     sendFail: 发送失败
+    tradeAllowlistRequired: 开启 AI 真实执行前必须至少配置一个交易白名单币种
+  confirm:
+    controlledTradeTitle: 开启 AI 真实执行
+    enableControlledTrade: 确认开启受控真实交易吗？只有通过确定性 Risk Engine 且经人工批准的 Proposal 才能执行。
 agentTaskCenter:
   governance:
     title: 智能体治理与运行指标
@@ -345,7 +363,8 @@ agentTaskCenter:
     alertNotifyRate: 信号→通知转化率
     alertFallbackRate: 报警降级率
     perSkill: 各 Skill 运行指标
-    trade: 交易
+    trade: Agent Runtime 直接交易 Tool
+    controlledTrade: 受控真实执行
   scheduler:
     title: 智能体调度器
     name: 调度任务
@@ -1905,3 +1924,96 @@ workflowPage:
     goalRequired: 策略实验必须填写实验目标
     started: Workflow 已启动
     startFailed: Workflow 启动失败
+
+controlledTradePage:
+  title: AI 受控交易
+  subtitle: 只能从成功的单币分析 Task 创建 Proposal；真实下单必须经过确定性 Risk、人工批准和执行前二次 Risk。
+  history: Proposal 历史
+  warning:
+    title: 真实交易高风险
+    description: Agent Runtime 不拥有直接交易 Tool。即使 Proposal 已批准，Kill Switch、白名单、行情新鲜度或其他 Risk 条件变化也会阻止执行。
+  hint:
+    create: 仅接受成功的 symbol_analysis Task ID，不能在此直接输入数量下单。
+  button:
+    create: 从 Task 创建 Proposal
+    refresh: 刷新
+    search: 查询
+    detail: 详情
+    risk: 重新检查 Risk
+    approve: 人工批准
+    reject: 拒绝
+    execute: 执行真实交易
+    reconcile: 按 Client Order ID 对账
+  placeholder:
+    taskId: 输入成功的单币分析 Task ID
+    symbol: 合约，例如 BTCUSDT
+    rejectReason: 输入拒绝原因
+  table:
+    taskId: 来源 Task ID
+    symbol: 合约
+    side: 方向
+    status: 状态
+    risk: Risk
+    quantity: 数量
+    notional: 名义金额
+    expiresAt: 失效时间
+    operation: 操作
+  detail:
+    title: 受控交易 Proposal
+    marketCondition: 市场环境
+    referencePrice: 参考价格
+    leverage: 杠杆
+    riskUsdt: 最大止损风险
+    entryCondition: 入场条件
+    entryZones: 入场区间
+    stopLoss: 止损
+    takeProfits: 止盈
+    invalidations: 失效条件
+    evidence: Evidence
+    riskChecks: 确定性 Risk Checks
+    check: 检查项
+    result: 结果
+    message: 说明
+    execution: Execution
+    executionStatus: 执行状态
+    clientOrderId: Client Order ID
+    exchangeOrderId: Binance Order ID
+    averagePrice: 平均成交价
+    error: 错误
+    audit: 审计记录
+    time: 时间
+    event: 事件
+    actor: 操作者
+    detail: 详情
+  status:
+    risk_rejected: Risk 未通过
+    awaiting_approval: 等待人工批准
+    approved: 已批准
+    rejected: 已拒绝
+    executing: 执行中
+    executed: 已执行
+    execution_failed: 执行失败
+    execution_uncertain: 执行结果待确认
+    expired: 已失效
+  confirm:
+    title: 人工批准
+    approve: 确认批准此 Proposal？批准不会立即下单，执行时仍会重新运行完整 Risk Engine。
+    rejectTitle: 拒绝 Proposal
+    reject: 确认拒绝此 Proposal，可填写原因。
+    executeTitle: 真实交易确认
+    execute: 即将向 Binance 提交真实订单。系统会先再次运行 Risk Engine；确认继续？
+  message:
+    taskRequired: 请输入来源 Task ID
+    created: Proposal 已创建并完成首次 Risk 检查
+    createFailed: 创建 Proposal 失败
+    loadFailed: 加载 Proposal 详情失败
+    riskSuccess: Risk 检查完成
+    riskFailed: Risk 检查失败
+    approveSuccess: Proposal 已人工批准
+    approveFailed: 批准失败
+    rejectSuccess: Proposal 已拒绝
+    rejectFailed: 拒绝失败
+    executeSuccess: 真实订单执行完成
+    executeFailed: 执行失败或结果待确认，请检查详情
+    reconcileSuccess: 对账完成
+    reconcileFailed: 尚未确认订单结果，禁止重新提交
