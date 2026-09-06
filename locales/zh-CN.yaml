@@ -1492,6 +1492,9 @@ testOrderPage:
     deleteFiltered: 删除筛选结果
   placeholder:
     symbol: 币种
+    strategyTemplate: 策略模板
+    openStrategy: 开仓策略
+    closeStrategy: 平仓策略
     status: 状态
     side: 方向
     startTime: 开始时间
@@ -1502,12 +1505,17 @@ testOrderPage:
     close: 平仓
     long: 做多
     short: 做空
+    customStrategy: 自定义策略
+    unknownStrategy: 未识别策略
   label:
     currentProfit: 当前收益
     total: 总数
   table:
     symbol: 币种
     side: 方向
+    strategyTemplate: 策略模板 / 版本
+    openStrategy: 开仓策略 / 版本
+    closeStrategy: 平仓策略 / 版本
     amount: 数量
     leverage: 杠杆
     openPrice: 开仓价
@@ -1520,6 +1528,26 @@ testOrderPage:
     period: 持仓时长
     createTime: 创建时间
     operation: 操作
+  stats:
+    title: 策略复盘统计
+    realizedHint: 盈亏、手续费和胜率仅统计已平仓交易
+    total: 总交易
+    open: 未平仓
+    closed: 已平仓
+    wins: 盈利
+    losses: 亏损
+    breakeven: 持平
+    winRate: 胜率
+    netProfit: 净利润
+    fee: 手续费
+    averageNetProfit: 平均净利润
+    template: 策略模板版本
+    openStrategy: 开仓策略版本
+    closeStrategy: 平仓策略版本
+    name: 名称
+    type: 类型
+    version: 版本 Hash
+    trades: 交易数
   confirm:
     title: 提示
     delete: 确认删除 {symbol} ?

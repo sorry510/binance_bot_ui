@@ -202,6 +202,8 @@ const strategyDialogVisible = ref(false);
 const strategyDialogTitle = ref("");
 const strategySymbolId = ref<number | null>(null);
 const strategy = ref<StrategyItem[]>([]);
+const selectedStrategyTemplateId = ref<number | undefined>();
+const selectedStrategyTemplateName = ref("");
 const {
   options: strategyTemplates,
   selectLoading: strategyTemplateLoading,
@@ -823,6 +825,11 @@ async function openStrategyDialog(row: FeatureRow) {
 
   strategySymbolId.value = row.id;
   copyTechnology.value = "";
+  selectedStrategyTemplateId.value =
+    Number(data.strategy_template_id) || undefined;
+  selectedStrategyTemplateName.value = String(
+    data.strategy_template_name || ""
+  );
   strategyDialogTitle.value = `${row.symbol} ${t("futuresSymbolPage.button.strategy")}`;
 
   if (data.strategy) {
@@ -856,10 +863,16 @@ function removeStrategy(index: number) {
 }
 
 function selectStrategyTemplate(id?: number) {
-  if (!id) return;
+  if (!id) {
+    selectedStrategyTemplateId.value = undefined;
+    selectedStrategyTemplateName.value = "";
+    return;
+  }
   const find = strategyTemplates.value.find(item => item.id === id);
   if (!find) return;
 
+  selectedStrategyTemplateId.value = find.id;
+  selectedStrategyTemplateName.value = find.name;
   try {
     strategy.value = JSON.parse(find.strategy || "[]");
     copyTechnology.value = find.technology || "";
@@ -873,7 +886,9 @@ async function confirmStrategy() {
   dialogLoading.value = true;
   try {
     const data: Record<string, any> = {
-      strategy: JSON.stringify(strategy.value)
+      strategy: JSON.stringify(strategy.value),
+      strategy_template_id: selectedStrategyTemplateId.value || 0,
+      strategy_template_name: selectedStrategyTemplateName.value
     };
     if (copyTechnology.value) data.technology = copyTechnology.value;
     await setFeature(strategySymbolId.value, data);
@@ -1534,7 +1549,7 @@ onBeforeUnmount(() => {
           t("futuresSymbolPage.button.add")
         }}</el-button>
         <el-select
-          v-model="batchInfo.strategyTemplateId"
+          v-model="selectedStrategyTemplateId"
           clearable
           filterable
           remote

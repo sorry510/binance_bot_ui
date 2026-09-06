@@ -1492,6 +1492,9 @@ testOrderPage:
     deleteFiltered: Delete Filtered
   placeholder:
     symbol: Symbol
+    strategyTemplate: Strategy Template
+    openStrategy: Open Strategy
+    closeStrategy: Close Strategy
     status: Status
     side: Side
     startTime: Start Time
@@ -1502,12 +1505,17 @@ testOrderPage:
     close: Close
     long: Long
     short: Short
+    customStrategy: Custom Strategy
+    unknownStrategy: Unknown Strategy
   label:
     currentProfit: Current Profit
     total: Total
   table:
     symbol: Symbol
     side: Side
+    strategyTemplate: Strategy Template / Version
+    openStrategy: Open Strategy / Version
+    closeStrategy: Close Strategy / Version
     amount: Amount
     leverage: Leverage
     openPrice: Open Price
@@ -1520,6 +1528,26 @@ testOrderPage:
     period: Holding Duration
     createTime: Create Time
     operation: Operation
+  stats:
+    title: Strategy Review Statistics
+    realizedHint: P&L, fees, and win rate include closed trades only
+    total: Total Trades
+    open: Open
+    closed: Closed
+    wins: Wins
+    losses: Losses
+    breakeven: Breakeven
+    winRate: Win Rate
+    netProfit: Net Profit
+    fee: Fees
+    averageNetProfit: Avg. Net Profit
+    template: Template Versions
+    openStrategy: Open Strategy Versions
+    closeStrategy: Close Strategy Versions
+    name: Name
+    type: Type
+    version: Version Hash
+    trades: Trades
   confirm:
     title: Confirm
     delete: Confirm deleting {symbol} ?
