@@ -341,6 +341,10 @@ dashboard:
   confirm:
     controlledTradeTitle: Enable AI Real Execution
     enableControlledTrade: Enable controlled real trading? Only Proposals that pass the deterministic Risk Engine and receive human approval can execute.
+    futuresTradeTitle: High Risk: Enable Futures Trading
+    enableFuturesTrade: Once enabled, all futures positions and open orders in the current account will be managed by the automated trading system, except symbols configured under “Excluded Auto-Trading Symbols”. Are you sure you want to enable it?
+    confirmEnableFuturesTrade: Enable
+    cancel: Cancel
 agentTaskCenter:
   governance:
     title: Agent Governance & Runtime Metrics
@@ -402,6 +406,10 @@ agentTaskCenter:
     model: Model
     tokens: Tokens
     conversation: Conversation ID
+    teamRole: Team Role
+    teamRun: Team Run
+    parentTask: Parent Task ID
+    duration: Duration
     operation: Action
   status:
     queued: Queued
@@ -434,6 +442,11 @@ agentTaskCenter:
     routeFallback: Fallback Trace
     toolCatalogHash: Tool Catalog Hash
     skillPackageHash: Skill Package Hash
+    teamName: Team Name
+    teamRunId: Team Run ID
+    teamRole: Team Role
+    parentTaskId: Parent Task ID
+    teamChildren: Team Child Tasks
     plan: Execution Plan
     steps: Execution Steps
     stepId: Step ID
@@ -518,6 +531,18 @@ agentTaskCenter:
     build_input_failed: Failed to Build Input
     context_too_large: Context Too Large
     llm_failed: AI Call Failed
+    team_queued: Team Queued
+    team_shared_context: Collecting Shared Market Context
+    team_shared_context_ready: Shared Market Context Ready
+    team_children: Child Agents Running
+    team_supervisor: Supervisor Synthesizing
+    team_completed: Team Completed
+    team_completed_partial: Team Partially Completed
+    team_shared_context_failed: Shared Market Context Failed
+    team_supervisor_failed: Supervisor Failed
+    team_supervisor_decode_failed: Supervisor Result Decode Failed
+    team_budget_exceeded: Team Budget Exceeded
+    team_cancelled: Team Cancelled
     token_budget_exceeded: Token Budget Exceeded
     agent_error: Agent Execution Error
     tool_limit_exceeded: Tool Call Limit Exceeded
@@ -592,6 +617,7 @@ agentSkillPage:
     directory: Server Directory
   type:
     native: Native
+    team: Team
     portable: Portable
   state:
     active: Active
@@ -1890,6 +1916,9 @@ agentObservabilityPage:
     time: Time
     error: Error Type
     duration: Duration
+    tokens: Tokens
+    teamRole: Team Role
+    teamRun: Team Run
     entityType: Entity Type
     entity: Entity
     from: From

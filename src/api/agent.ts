@@ -173,6 +173,10 @@ export interface AgentTask<T = any> {
   id: string;
   skill: string;
   conversation_id?: string;
+  parent_task_id?: string;
+  team_run_id?: string;
+  team_name?: string;
+  team_role?: string;
   status:
     | "queued"
     | "running"
@@ -221,6 +225,7 @@ export interface AgentTask<T = any> {
   updated_at: string;
   completed_at?: string;
   events: AgentTaskEvent[];
+  team_children?: AgentTask[];
 }
 
 export interface SymbolAnalysisHistoryItem {
@@ -495,7 +500,7 @@ export interface AgentSkillConfig {
   name: string;
   display_name: string;
   description: string;
-  type: "native" | "portable" | string;
+  type: "native" | "team" | "portable" | string;
   active_version_id: number;
   enabled: number;
   chat_enabled: number;
@@ -507,6 +512,7 @@ export interface AgentSkillImplementation {
   name: string;
   display_name: string;
   description: string;
+  type: "native" | "team" | string;
   chat_default: number;
 }
 
@@ -917,6 +923,10 @@ export interface AgentObservationTrace {
   id: number;
   task_id: string;
   conversation_id?: string;
+  parent_task_id?: string;
+  team_run_id?: string;
+  team_name?: string;
+  team_role?: string;
   type: string;
   step_id?: string;
   step_type?: string;
@@ -934,6 +944,9 @@ export interface AgentObservationTrace {
   error?: string;
   round?: number;
   duration_ms?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
   cache_hit?: boolean;
   partial?: boolean;
   context_tokens?: number;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { getFeaturesOptions } from "../../api/trade";
@@ -139,6 +139,26 @@ async function saveField(field: string, value: any) {
   } finally {
     loading.value = false;
   }
+}
+
+async function onTradeFutureEnableChange(value: number | string | boolean) {
+  const enabled = Number(value) === 1;
+  if (enabled) {
+    try {
+      await ElMessageBox.confirm(
+        t("dashboard.confirm.enableFuturesTrade"),
+        t("dashboard.confirm.futuresTradeTitle"),
+        {
+          type: "warning",
+          confirmButtonText: t("dashboard.confirm.confirmEnableFuturesTrade"),
+          cancelButtonText: t("dashboard.confirm.cancel")
+        }
+      );
+    } catch {
+      return;
+    }
+  }
+  await saveField("future_enable", enabled ? 1 : 0);
 }
 
 async function onExcludeChange() {
@@ -291,7 +311,7 @@ onBeforeUnmount(() => {
               :model-value="config.tradeFutureEnable"
               :active-value="1"
               :inactive-value="0"
-              @change="value => saveField('future_enable', value)"
+              @change="onTradeFutureEnableChange"
             />
           </div>
         </template>

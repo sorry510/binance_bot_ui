@@ -45,6 +45,10 @@ const query = reactive({
 
 const skillOptions = [
   "symbol_analysis",
+  "symbol_analysis_team",
+  "symbol_team_technical",
+  "symbol_team_flow",
+  "symbol_team_supervisor",
   "alert_analysis",
   "market_regime",
   "strategy_builder"
@@ -87,6 +91,11 @@ function formatTime(value?: string | number) {
   return dayjs(value).format("YYYY-MM-DD HH:mm:ss");
 }
 
+function durationMs(row?: AgentTask | null) {
+  if (!row?.started_at || !row?.completed_at) return 0;
+  return Math.max(0, dayjs(row.completed_at).diff(dayjs(row.started_at)));
+}
+
 function prettyJSON(value: unknown) {
   if (value === undefined || value === null || value === "") return "-";
   try {
@@ -119,6 +128,7 @@ function canCancelTask(row?: AgentTask | null) {
 }
 
 function canResumeTask(row?: AgentTask | null) {
+  if (row?.execution_mode === "team") return false;
   if (!row?.runtime_version?.startsWith("2.")) return false;
   if (row.status === "cancelled" || row.status === "interrupted") return true;
   return row.status === "failed" && row.stage === "timeout";
@@ -658,6 +668,19 @@ onBeforeUnmount(() => {
           :label="t('agentTaskCenter.table.skill')"
           min-width="150"
         />
+        <el-table-column
+          :label="t('agentTaskCenter.table.teamRole')"
+          min-width="150"
+        >
+          <template #default="{ row }">{{ row.team_role || "-" }}</template>
+        </el-table-column>
+        <el-table-column
+          :label="t('agentTaskCenter.table.teamRun')"
+          min-width="160"
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">{{ row.team_run_id || "-" }}</template>
+        </el-table-column>
         <el-table-column :label="t('agentTaskCenter.table.status')" width="120">
           <template #default="{ row }">
             <el-tag :type="statusType(row.status)" size="small">{{
@@ -757,6 +780,26 @@ onBeforeUnmount(() => {
           <el-descriptions-item :label="t('agentTaskCenter.table.skill')">{{
             detail.skill
           }}</el-descriptions-item>
+          <el-descriptions-item
+            v-if="detail.team_name"
+            :label="t('agentTaskCenter.detail.teamName')"
+            >{{ detail.team_name }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            v-if="detail.team_role"
+            :label="t('agentTaskCenter.detail.teamRole')"
+            >{{ detail.team_role }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            v-if="detail.team_run_id"
+            :label="t('agentTaskCenter.detail.teamRunId')"
+            >{{ detail.team_run_id }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            v-if="detail.parent_task_id"
+            :label="t('agentTaskCenter.detail.parentTaskId')"
+            >{{ detail.parent_task_id }}</el-descriptions-item
+          >
           <el-descriptions-item :label="t('agentTaskCenter.table.status')">{{
             translateDynamic("agentTaskCenter.status", detail.status)
           }}</el-descriptions-item>
@@ -832,6 +875,68 @@ onBeforeUnmount(() => {
             {{ t("agentTaskCenter.button.resume") }}
           </el-button>
         </div>
+        <template v-if="detail?.team_children?.length">
+          <div class="detail-title">
+            {{ t("agentTaskCenter.detail.teamChildren") }}
+          </div>
+          <el-table
+            :data="detail.team_children"
+            size="small"
+            border
+            class="mt-2 mb-4"
+          >
+            <el-table-column
+              prop="team_role"
+              :label="t('agentTaskCenter.table.teamRole')"
+              min-width="150"
+            />
+            <el-table-column
+              prop="skill"
+              :label="t('agentTaskCenter.table.skill')"
+              min-width="170"
+            />
+            <el-table-column
+              :label="t('agentTaskCenter.table.status')"
+              width="110"
+            >
+              <template #default="{ row }">
+                <el-tag :type="statusType(row.status)" size="small">{{
+                  translateDynamic("agentTaskCenter.status", row.status)
+                }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('agentTaskCenter.table.duration')"
+              width="110"
+            >
+              <template #default="{ row }">{{ durationMs(row) }} ms</template>
+            </el-table-column>
+            <el-table-column
+              :label="t('agentTaskCenter.table.tokens')"
+              width="90"
+            >
+              <template #default="{ row }">{{
+                row.usage?.total_tokens || 0
+              }}</template>
+            </el-table-column>
+            <el-table-column
+              prop="id"
+              :label="t('agentTaskCenter.table.taskId')"
+              min-width="180"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              :label="t('agentTaskCenter.table.operation')"
+              width="90"
+            >
+              <template #default="{ row }">
+                <el-button size="small" @click="openDetail(row)">{{
+                  t("agentTaskCenter.button.view")
+                }}</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </template>
         <template v-if="detail?.route_candidates?.length">
           <div class="detail-title">
             {{ t("agentTaskCenter.detail.routeCandidates") }}

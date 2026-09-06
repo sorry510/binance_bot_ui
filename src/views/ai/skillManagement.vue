@@ -26,7 +26,7 @@ const { t } = useI18n();
 const loading = ref(false);
 const saving = ref(false);
 const chatSavingId = ref<number | null>(null);
-const activeTab = ref<"native" | "portable">("native");
+const activeTab = ref<"native" | "team" | "portable">("native");
 const keyword = ref("");
 const page = ref(1);
 const pageSize = ref(10);
@@ -369,6 +369,7 @@ onMounted(fetchData);
       />
       <el-tabs v-model="activeTab" class="skill-tabs" @tab-change="onTabChange">
         <el-tab-pane :label="t('agentSkillPage.type.native')" name="native" />
+        <el-tab-pane :label="t('agentSkillPage.type.team')" name="team" />
         <el-tab-pane
           :label="t('agentSkillPage.type.portable')"
           name="portable"
@@ -395,9 +396,16 @@ onMounted(fetchData);
         />
         <el-table-column :label="t('agentSkillPage.table.type')" width="100"
           ><template #default="{ row }"
-            ><el-tag :type="row.type === 'portable' ? 'warning' : 'info'">{{
-              t(`agentSkillPage.type.${row.type || "native"}`)
-            }}</el-tag></template
+            ><el-tag
+              :type="
+                row.type === 'portable'
+                  ? 'warning'
+                  : row.type === 'team'
+                    ? 'primary'
+                    : 'info'
+              "
+              >{{ t(`agentSkillPage.type.${row.type || "native"}`) }}</el-tag
+            ></template
           ></el-table-column
         >
         <el-table-column

@@ -583,6 +583,17 @@ onMounted(refreshAll);
             >
             <el-table-column prop="task_id" label="Task ID" min-width="210" />
             <el-table-column
+              prop="team_role"
+              :label="t('agentObservabilityPage.table.teamRole')"
+              min-width="145"
+            />
+            <el-table-column
+              prop="team_run_id"
+              :label="t('agentObservabilityPage.table.teamRun')"
+              min-width="180"
+              show-overflow-tooltip
+            />
+            <el-table-column
               prop="type"
               :label="t('agentObservabilityPage.placeholder.type')"
               width="125"
@@ -609,6 +620,14 @@ onMounted(refreshAll);
               :label="t('agentObservabilityPage.table.error')"
               min-width="130"
             />
+            <el-table-column
+              :label="t('agentObservabilityPage.table.tokens')"
+              width="90"
+            >
+              <template #default="{ row }">{{
+                row.total_tokens || 0
+              }}</template>
+            </el-table-column>
             <el-table-column
               :label="t('agentObservabilityPage.table.duration')"
               width="100"
