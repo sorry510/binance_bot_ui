@@ -341,7 +341,7 @@ dashboard:
   confirm:
     controlledTradeTitle: Enable AI Real Execution
     enableControlledTrade: Enable controlled real trading? Only Proposals that pass the deterministic Risk Engine and receive human approval can execute.
-    futuresTradeTitle: High Risk: Enable Futures Trading
+    futuresTradeTitle: "High Risk: Enable Futures Trading"
     enableFuturesTrade: Once enabled, all futures positions and open orders in the current account will be managed by the automated trading system, except symbols configured under “Excluded Auto-Trading Symbols”. Are you sure you want to enable it?
     confirmEnableFuturesTrade: Enable
     cancel: Cancel
