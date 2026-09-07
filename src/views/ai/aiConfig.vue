@@ -27,13 +27,13 @@ const config = reactive<Record<string, any>>({
   AgentAlertMinSeverity: "medium",
   AgentAlertCooldownSec: 900,
   AgentAlertMaxConcurrent: 2,
-  AgentAlertMaxPerMinute: 6,
   AgentMarketRegimeScheduleEnable: 1,
   AgentMarketRegimeIntervalMin: 60,
   AgentDailyMarketBriefScheduleEnable: 0,
   AgentDailyMarketBriefIntervalMin: 1440,
   AgentMaxStartsPerMinute: 30,
   AgentMaxStartsPerHour: 300,
+  AgentMaxRoundsPerTask: 15,
   AgentMaxTokensPerTask: 240000,
   AgentMaxToolCallsPerTask: 12,
   AgentTradeExecutionEnable: 0,
@@ -246,20 +246,6 @@ onBeforeUnmount(() => {
               class="compact-input"
               @change="
                 value => saveField('agent_alert_max_concurrent', Number(value))
-              "
-            />
-          </div>
-          <div class="field-row">
-            <span class="field-label">{{
-              t("dashboard.field.alertMaxPerMinute")
-            }}</span>
-            <el-input
-              v-model="config.AgentAlertMaxPerMinute"
-              type="number"
-              min="1"
-              class="compact-input"
-              @change="
-                value => saveField('agent_alert_max_per_minute', Number(value))
               "
             />
           </div>
@@ -556,6 +542,20 @@ onBeforeUnmount(() => {
               class="compact-input"
               @change="
                 value => saveField('agent_max_starts_per_hour', Number(value))
+              "
+            />
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.agentMaxRounds")
+            }}</span>
+            <el-input
+              v-model="config.AgentMaxRoundsPerTask"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value => saveField('agent_max_rounds_per_task', Number(value))
               "
             />
           </div>

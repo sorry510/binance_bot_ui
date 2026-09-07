@@ -164,7 +164,6 @@ dashboard:
     alertMinSeverity: Minimum alert severity
     alertCooldownSec: Signal alert cooldown (sec)
     alertMaxConcurrent: Max concurrent AI alerts
-    alertMaxPerMinute: AI alerts per minute budget
     marketRegimeScheduleEnable: Market regime Scheduler
     marketRegimeIntervalMin: Market regime interval (min)
     dailyMarketBriefScheduleEnable: Daily market brief Scheduler
@@ -173,6 +172,7 @@ dashboard:
     skillManagement: Skill Management
     agentStartsPerMinute: Agent starts per minute
     agentStartsPerHour: Agent starts per hour
+    agentMaxRounds: Max rounds per task
     agentMaxTokens: Max tokens per task
     agentMaxToolCalls: Max tool calls per task
     aiTradeAllowedSymbols: AI Trade Allowlist

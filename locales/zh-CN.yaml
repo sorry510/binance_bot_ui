@@ -164,7 +164,6 @@ dashboard:
     alertMinSeverity: 最低报警级别
     alertCooldownSec: 信号报警冷却(秒)
     alertMaxConcurrent: AI 报警最大并发
-    alertMaxPerMinute: AI 报警每分钟预算
     marketRegimeScheduleEnable: 市场趋势调度器
     marketRegimeIntervalMin: 市场趋势执行周期(分钟)
     dailyMarketBriefScheduleEnable: 每日市场摘要调度器
@@ -173,6 +172,7 @@ dashboard:
     skillManagement: Skill 管理
     agentStartsPerMinute: 智能体每分钟启动上限
     agentStartsPerHour: 智能体每小时启动上限
+    agentMaxRounds: 单任务最大轮数
     agentMaxTokens: 单任务最大 Token
     agentMaxToolCalls: 单任务最大 Tool 调用
     aiTradeAllowedSymbols: AI 交易白名单
