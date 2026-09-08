@@ -291,7 +291,7 @@ export const getAgentChatMessages = (conversationId: string) =>
 
 export const sendAgentChatMessage = (
   conversationId: string,
-  data: { skill: string; content: string; symbol?: string }
+  data: { skill?: string; content: string; symbol?: string }
 ) =>
   http.post<any, typeof data>(
     baseUrlApi(

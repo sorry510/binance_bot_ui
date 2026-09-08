@@ -5,6 +5,8 @@ export interface LLMConfigItem {
   name: string;
   provider: string;
   api_url: string;
+  proxy_url_masked?: string;
+  has_proxy_url: boolean;
   model: string;
   api_version?: string;
   timeout_seconds: number;
@@ -38,6 +40,8 @@ export interface LLMConfigInput {
   provider: string;
   api_url: string;
   api_key: string;
+  proxy_url: string;
+  clear_proxy_url?: boolean;
   model: string;
   api_version: string;
   timeout_seconds: number;

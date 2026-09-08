@@ -29,8 +29,7 @@ function chooseSkill(skill: AgentChatSkill) {
 
 function submit() {
   const value = content.value.trim();
-  if (!value || !props.selectedSkill || props.disabled || showMenu.value)
-    return;
+  if (!value || props.disabled || showMenu.value) return;
   emit("send", value);
   content.value = "";
 }
@@ -89,7 +88,7 @@ function onKeydown(event: KeyboardEvent) {
       </div>
       <el-button
         type="primary"
-        :disabled="!content.trim() || !selectedSkill || disabled || showMenu"
+        :disabled="!content.trim() || disabled || showMenu"
         @click="submit"
       >
         {{ $t("agentChat.button.send") }}

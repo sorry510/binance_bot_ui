@@ -663,6 +663,8 @@ llmConfigPage:
   hint:
     database: 模型配置存储在数据库中；API 密钥默认仅显示掩码，只有在编辑页主动切换为显示时才单独读取明文。Token 和 Tool 上限继续由全局智能体治理控制。
     apiKeyKeep: 当前已保存密钥，留空不会修改：
+    proxy: 可选。开启后该模型的 HTTP API 请求通过 SOCKS5H 代理连接，DNS 也由代理解析。
+    proxyKeep: 当前已保存代理，留空不会修改：
     enabled: 开启后会自动关闭其他当前模型。
   button:
     add: 新增模型
@@ -682,6 +684,7 @@ llmConfigPage:
     model: 模型
     apiUrl: API 地址
     apiKey: API 密钥
+    proxy: SOCKS5H 代理
     enabled: 当前状态
     operation: 操作
     routing: 路由角色
@@ -692,6 +695,8 @@ llmConfigPage:
     name: 配置名称
     apiUrl: API 地址
     apiKey: API 密钥
+    proxyEnabled: 使用 SOCKS5H 代理
+    proxyUrl: SOCKS5H 代理地址
     model: 模型名称
     apiVersion: API 版本
     timeout: 请求超时
@@ -711,6 +716,8 @@ llmConfigPage:
     apiUrl: 完整的 HTTP API 地址
     apiKey: 输入 API 密钥
     apiKeyKeep: 留空则保留已有 API 密钥
+    proxyUrl: 例如 socks5h://127.0.0.1:1080
+    proxyKeep: 留空则保留已有代理
     model: 例如 deepseek-chat
   dialog:
     add: 新增模型配置
@@ -730,11 +737,16 @@ llmConfigPage:
     providerRequired: 请选择服务商
     apiUrlRequired: 请输入 API 地址
     apiKeyRequired: 当前服务商需要 API 密钥
+    proxyUrlRequired: 开启代理后请输入 SOCKS5H 代理地址
+    proxyUrlInvalid: 代理地址必须使用 socks5h://
     modelRequired: 请输入模型名称
     saved: 模型配置已保存
     saveFailed: 保存模型配置失败
     testSuccess: 连接测试成功
     testFailed: 连接测试失败
+    proxyDialed: SOCKS5H 已实际拨号
+    proxyNotDialed: SOCKS5H 已配置但未发生拨号
+    proxyDisabled: 未使用 SOCKS5H 代理
     activated: 已切换当前大语言模型
     activateFailed: 切换模型失败
     deleted: 模型配置已删除
@@ -1757,7 +1769,7 @@ agentMCPPage:
 
 agentChat:
   newConversation: 新对话
-  subtitle: 选择 Skill 后发送消息，输入 / 可切换 Skill
+  subtitle: 直接发送即可连续对话；输入 / 可选择业务 Skill
   button:
     newConversation: 新建对话
     send: 发送
@@ -1765,7 +1777,7 @@ agentChat:
     rename: 编辑
     delete: 删除
   placeholder:
-    message: 输入消息，输入 / 选择 Skill；Enter 发送，Shift+Enter 换行
+    message: 输入消息直接对话；输入 / 可选择业务 Skill。Enter 发送，Shift+Enter 换行
     title: 请输入对话标题
     symbol: 选择合约（可选）
   message:
@@ -1780,12 +1792,12 @@ agentChat:
     deleted: 对话已删除
     deleteRunning: 对话仍有任务正在运行，请等待任务完成或取消任务后再删除
   hint:
-    slash: 输入 / 调出可用 Skill
+    slash: 不选 Skill 为通用对话；输入 / 调出业务 Skill
   skillMenu:
     title: 选择 Skill
   empty:
     conversation: 暂无对话
-    message: 选择 Skill 开始对话
+    message: 输入消息开始对话，或使用 / 选择业务 Skill
     skill: 没有匹配的 Skill
   role:
     user: 你
@@ -1977,6 +1989,58 @@ workflowPage:
     error: 错误
     input: 输入
     result: 结果
+  result:
+    empty: 暂无结果
+    rawJson: 查看原始 JSON
+    asOf: 数据时间
+    marketCondition: 市场环境
+    opportunityCount: 机会数量
+    incidentCount: 事件数量
+    score: 评分
+    confidence: 置信度
+    evidence: 依据
+    risks: 风险
+    dataMissing: 缺失数据
+    verdictLabel: 结论
+    failureModes: 失效模式
+    proposals: 优化建议
+    suitableEnvironments: 适用市场环境
+    candidate: 候选策略
+    deterministicTest: 确定性测试
+    passed: 通过
+    failed: 未通过
+    ruleCount: 规则数
+    enabledRules: 启用规则
+    compiledRules: 编译通过
+    scenarioPasses: 场景通过
+    proposedChanges: 建议变更
+    rationale: 判断理由
+    opportunities: 机会
+    watchlist: 关注列表
+    incidents: 市场事件
+    unknown: 未知
+    direction:
+      long: 做多
+      short: 做空
+      watch: 观察
+      avoid: 回避
+    verdict:
+      keep: 保持
+      revise: 建议调整
+      retire: 建议停用
+      insufficient_data: 数据不足
+      promising: 值得继续验证
+      reject: 不建议采用
+      needs_more_data: 需要更多数据
+    action:
+      notify: 通知
+      suppress: 抑制
+      monitor: 继续观察
+    severity:
+      low: 低
+      medium: 中
+      high: 高
+      critical: 严重
   message:
     templateRequired: 请输入策略模板 ID 或名称
     goalRequired: 策略实验必须填写实验目标

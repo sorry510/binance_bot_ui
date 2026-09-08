@@ -39,7 +39,6 @@ const deletingId = ref("");
 const runningTasks = reactive<Record<string, string>>({});
 const selectedSkills = reactive<Record<string, string>>({});
 const selectedSymbols = reactive<Record<string, string>>({});
-const lastSelectedSkill = ref("");
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 
 const selectedSkill = computed({
@@ -47,7 +46,6 @@ const selectedSkill = computed({
   set: value => {
     if (!activeId.value) return;
     selectedSkills[activeId.value] = value;
-    if (value) lastSelectedSkill.value = value;
   }
 });
 const selectedSymbol = computed({
@@ -61,21 +59,6 @@ const currentRunning = computed(() => Boolean(runningTasks[activeId.value]));
 
 function hasSelectedSkill(conversationId: string) {
   return Object.prototype.hasOwnProperty.call(selectedSkills, conversationId);
-}
-
-function assignDefaultSkill(conversationId: string) {
-  if (!conversationId || hasSelectedSkill(conversationId)) return;
-  const preferred = skills.value.find(
-    item => item.name === lastSelectedSkill.value
-  );
-  if (preferred) {
-    selectedSkills[conversationId] = preferred.name;
-    return;
-  }
-  if (skills.value.length === 1) {
-    selectedSkills[conversationId] = skills.value[0].name;
-    lastSelectedSkill.value = skills.value[0].name;
-  }
 }
 
 function assertBusinessSuccess(res: any, fallback: string) {
@@ -104,15 +87,6 @@ async function loadSkills() {
   const res = await getAgentChatSkills();
   assertBusinessSuccess(res, "加载 Skill 失败");
   skills.value = (res?.data || []) as AgentChatSkill[];
-  if (
-    lastSelectedSkill.value &&
-    !skills.value.some(item => item.name === lastSelectedSkill.value)
-  ) {
-    lastSelectedSkill.value = "";
-  }
-  if (!lastSelectedSkill.value && skills.value.length === 1) {
-    lastSelectedSkill.value = skills.value[0].name;
-  }
 }
 
 async function loadConversations(selectFirst = false, showLoading = true) {
@@ -150,18 +124,15 @@ async function loadMessages(conversationId: string, showLoading = true) {
     if (activeId.value !== conversationId) return;
     messages.value = (res?.data || []) as AgentChatMessage[];
     if (!hasSelectedSkill(conversationId)) {
-      const lastWithSkill = [...messages.value]
+      const latestUserMessage = [...messages.value]
         .reverse()
-        .find(
-          item =>
-            item.skill && skills.value.some(skill => skill.name === item.skill)
-        );
-      if (lastWithSkill?.skill) {
-        selectedSkills[conversationId] = lastWithSkill.skill;
-        lastSelectedSkill.value = lastWithSkill.skill;
-      } else {
-        assignDefaultSkill(conversationId);
-      }
+        .find(item => item.role === "user");
+      const restoredSkill =
+        latestUserMessage?.skill &&
+        skills.value.some(skill => skill.name === latestUserMessage.skill)
+          ? latestUserMessage.skill
+          : "";
+      selectedSkills[conversationId] = restoredSkill;
     }
     const running = [...messages.value]
       .reverse()
@@ -234,7 +205,7 @@ async function sendMessage(content: string) {
   const conversationId = activeId.value;
   const skill = selectedSkill.value;
   const symbol = selectedSymbol.value;
-  if (!conversationId || !skill || currentRunning.value) return;
+  if (!conversationId || currentRunning.value) return;
   try {
     const res = await sendAgentChatMessage(conversationId, {
       skill,

@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
+import WorkflowResultView from "./workflowResultView.vue";
 import {
   getAgentWorkflow,
   getAgentWorkflows,
@@ -386,7 +387,10 @@ onBeforeUnmount(() => timer && clearTimeout(timer));
         <div class="section-title mt-4">
           {{ t("workflowPage.detail.result") }}
         </div>
-        <pre class="json-box">{{ prettyJSON(detail.result) }}</pre>
+        <WorkflowResultView
+          :workflow="detail.workflow"
+          :result="detail.result"
+        />
       </template>
     </el-drawer>
   </div>

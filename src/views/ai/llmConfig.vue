@@ -31,6 +31,7 @@ const dialogVisible = ref(false);
 const editingId = ref<number | null>(null);
 const apiKeyVisible = ref(false);
 const apiKeyLoading = ref(false);
+const proxyEnabled = ref(false);
 const configs = ref<LLMConfigItem[]>([]);
 const presets = ref<LLMProviderPreset[]>([]);
 const routerSaving = ref(false);
@@ -47,6 +48,8 @@ const form = reactive<LLMConfigInput>({
   provider: "deepseek",
   api_url: "",
   api_key: "",
+  proxy_url: "",
+  clear_proxy_url: false,
   model: "",
   api_version: "",
   timeout_seconds: 60,
@@ -70,6 +73,9 @@ const apiKeyRequired = computed(
   () => selectedPreset.value?.api_key_required === true
 );
 const showAPIVersion = computed(() => form.provider === "anthropic");
+const supportsHTTPProxy = computed(
+  () => !["claude_sdk", "codex_sdk"].includes(form.provider)
+);
 const editingRow = computed(() =>
   configs.value.find(item => item.id === editingId.value)
 );
@@ -128,6 +134,8 @@ function resetForm() {
     provider: presets.value[0]?.provider || "deepseek",
     api_url: "",
     api_key: "",
+    proxy_url: "",
+    clear_proxy_url: false,
     model: "",
     api_version: "",
     timeout_seconds: 60,
@@ -143,6 +151,7 @@ function resetForm() {
     cost_class: "medium",
     latency_class: "medium"
   });
+  proxyEnabled.value = false;
   applyPreset(form.provider, true);
 }
 function openCreate() {
@@ -158,6 +167,8 @@ function openEdit(row: LLMConfigItem) {
     provider: row.provider,
     api_url: row.api_url,
     api_key: "",
+    proxy_url: "",
+    clear_proxy_url: false,
     model: row.model,
     api_version: row.api_version || "",
     timeout_seconds: row.timeout_seconds || 60,
@@ -173,6 +184,7 @@ function openEdit(row: LLMConfigItem) {
     cost_class: row.cost_class || "medium",
     latency_class: row.latency_class || "medium"
   });
+  proxyEnabled.value = row.has_proxy_url === true;
   dialogVisible.value = true;
 }
 
@@ -203,6 +215,8 @@ function payloadFromRow(row: LLMConfigItem): LLMConfigInput {
     provider: row.provider,
     api_url: row.api_url,
     api_key: "",
+    proxy_url: "",
+    clear_proxy_url: false,
     model: row.model,
     api_version: row.api_version || "",
     timeout_seconds: row.timeout_seconds || 60,
@@ -232,6 +246,22 @@ function validateForm() {
     ElMessage.error(t("llmConfigPage.message.apiUrlRequired"));
     return false;
   }
+  if (
+    proxyEnabled.value &&
+    !form.proxy_url.trim() &&
+    !editingRow.value?.has_proxy_url
+  ) {
+    ElMessage.error(t("llmConfigPage.message.proxyUrlRequired"));
+    return false;
+  }
+  if (
+    proxyEnabled.value &&
+    form.proxy_url.trim() &&
+    !/^socks5h:\/\//i.test(form.proxy_url.trim())
+  ) {
+    ElMessage.error(t("llmConfigPage.message.proxyUrlInvalid"));
+    return false;
+  }
   if (!form.model.trim()) {
     ElMessage.error(t("llmConfigPage.message.modelRequired"));
     return false;
@@ -247,14 +277,25 @@ function validateForm() {
   return true;
 }
 
+function formPayload(): LLMConfigInput {
+  const payload = { ...form };
+  if (!proxyEnabled.value) {
+    payload.proxy_url = "";
+    payload.clear_proxy_url = editingRow.value?.has_proxy_url === true;
+  } else {
+    payload.clear_proxy_url = false;
+  }
+  return payload;
+}
+
 async function save() {
   if (!validateForm()) return;
   saving.value = true;
   try {
     if (editingId.value === null) {
-      await createLLMConfig({ ...form });
+      await createLLMConfig(formPayload());
     } else {
-      await updateLLMConfig(editingId.value, { ...form });
+      await updateLLMConfig(editingId.value, formPayload());
     }
     ElMessage.success(t("llmConfigPage.message.saved"));
     dialogVisible.value = false;
@@ -270,12 +311,17 @@ async function testCurrent() {
   testing.value = true;
   try {
     const res = await testLLMConfig({
-      ...form,
+      ...formPayload(),
       id: editingId.value || undefined
     });
     const data = res?.data || {};
+    const proxyStatus = data.proxy_enabled
+      ? data.proxy_dialed
+        ? t("llmConfigPage.message.proxyDialed")
+        : t("llmConfigPage.message.proxyNotDialed")
+      : t("llmConfigPage.message.proxyDisabled");
     ElMessage.success(
-      `${t("llmConfigPage.message.testSuccess")}: ${data.provider || form.provider} / ${data.model || form.model} ${data.content ? `- ${data.content}` : ""}`
+      `${t("llmConfigPage.message.testSuccess")}: ${data.provider || form.provider} / ${data.model || form.model} · ${proxyStatus}${data.content ? ` - ${data.content}` : ""}`
     );
   } catch (error: any) {
     ElMessage.error(error?.message || t("llmConfigPage.message.testFailed"));
@@ -289,8 +335,13 @@ async function testRow(row: LLMConfigItem) {
   try {
     const res = await testLLMConfig({ ...payloadFromRow(row), id: row.id });
     const data = res?.data || {};
+    const proxyStatus = data.proxy_enabled
+      ? data.proxy_dialed
+        ? t("llmConfigPage.message.proxyDialed")
+        : t("llmConfigPage.message.proxyNotDialed")
+      : t("llmConfigPage.message.proxyDisabled");
     ElMessage.success(
-      `${t("llmConfigPage.message.testSuccess")}: ${data.model || row.model}${data.content ? ` - ${data.content}` : ""}`
+      `${t("llmConfigPage.message.testSuccess")}: ${data.model || row.model} · ${proxyStatus}${data.content ? ` - ${data.content}` : ""}`
     );
   } catch (error: any) {
     ElMessage.error(error?.message || t("llmConfigPage.message.testFailed"));
@@ -520,6 +571,18 @@ onMounted(fetchData);
           min-width="280"
           show-overflow-tooltip
         />
+        <el-table-column
+          :label="t('llmConfigPage.table.proxy')"
+          min-width="240"
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">
+            <span v-if="row.has_proxy_url">{{ row.proxy_url_masked }}</span>
+            <el-tag v-else type="info" size="small">{{
+              t("llmConfigPage.state.notConfigured")
+            }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column :label="t('llmConfigPage.table.apiKey')" width="150">
           <template #default="{ row }">
             <span v-if="row.has_api_key">{{ row.api_key_masked }}</span>
@@ -613,6 +676,36 @@ onMounted(fetchData);
             v-model="form.api_url"
             :placeholder="t('llmConfigPage.placeholder.apiUrl')"
           />
+        </el-form-item>
+        <el-form-item
+          v-if="supportsHTTPProxy"
+          :label="t('llmConfigPage.field.proxyEnabled')"
+        >
+          <el-switch v-model="proxyEnabled" />
+          <span class="ml-2 text-xs text-gray-500">{{
+            t("llmConfigPage.hint.proxy")
+          }}</span>
+        </el-form-item>
+        <el-form-item
+          v-if="supportsHTTPProxy && proxyEnabled"
+          :label="t('llmConfigPage.field.proxyUrl')"
+        >
+          <el-input
+            v-model="form.proxy_url"
+            autocomplete="off"
+            :placeholder="
+              editingRow?.has_proxy_url
+                ? t('llmConfigPage.placeholder.proxyKeep')
+                : t('llmConfigPage.placeholder.proxyUrl')
+            "
+          />
+          <div
+            v-if="editingRow?.has_proxy_url && !form.proxy_url"
+            class="form-hint"
+          >
+            {{ t("llmConfigPage.hint.proxyKeep") }}
+            {{ editingRow.proxy_url_masked }}
+          </div>
         </el-form-item>
         <el-form-item
           :label="t('llmConfigPage.field.apiKey')"

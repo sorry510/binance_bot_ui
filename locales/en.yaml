@@ -663,6 +663,8 @@ llmConfigPage:
   hint:
     database: LLM settings are stored in the database. API keys are masked by default and plaintext is fetched only when explicitly revealed in the edit dialog. Token and Tool limits remain under global Agent governance.
     apiKeyKeep: "A key is already saved. Leave this blank to keep it:"
+    proxy: Optional. When enabled, this model HTTP API uses the SOCKS5H proxy and DNS is resolved by the proxy.
+    proxyKeep: "A proxy is already saved. Leave this blank to keep it:"
     enabled: Enabling this configuration automatically disables the previous active model.
   button:
     add: Add Model
@@ -682,6 +684,7 @@ llmConfigPage:
     model: Model
     apiUrl: API URL
     apiKey: API Key
+    proxy: SOCKS5H Proxy
     enabled: Status
     operation: Action
     routing: Routing
@@ -692,6 +695,8 @@ llmConfigPage:
     name: Configuration Name
     apiUrl: API URL
     apiKey: API Key
+    proxyEnabled: Use SOCKS5H Proxy
+    proxyUrl: SOCKS5H Proxy URL
     model: Model Name
     apiVersion: API Version
     timeout: Request Timeout
@@ -711,6 +716,8 @@ llmConfigPage:
     apiUrl: Full HTTP API URL
     apiKey: Enter API Key
     apiKeyKeep: Leave blank to keep the existing API key
+    proxyUrl: e.g. socks5h://127.0.0.1:1080
+    proxyKeep: Leave blank to keep the existing proxy
     model: Example deepseek-chat
   dialog:
     add: Add LLM Configuration
@@ -730,11 +737,16 @@ llmConfigPage:
     providerRequired: Select a Provider
     apiUrlRequired: Enter an API URL
     apiKeyRequired: This Provider requires an API Key
+    proxyUrlRequired: Enter a SOCKS5H proxy URL when proxy is enabled
+    proxyUrlInvalid: Proxy URL must use socks5h://
     modelRequired: Enter a model name
     saved: LLM configuration saved
     saveFailed: Failed to save LLM configuration
     testSuccess: Connection test succeeded
     testFailed: Connection test failed
+    proxyDialed: SOCKS5H proxy dialed
+    proxyNotDialed: SOCKS5H configured but no proxy dial occurred
+    proxyDisabled: SOCKS5H proxy not used
     activated: Active LLM model switched
     activateFailed: Failed to switch model
     deleted: LLM configuration deleted
@@ -1757,7 +1769,7 @@ agentMCPPage:
 
 agentChat:
   newConversation: New chat
-  subtitle: Select a Skill, or type / to switch Skills
+  subtitle: Send directly for continuous chat, or type / to select a business Skill
   button:
     newConversation: New chat
     send: Send
@@ -1765,7 +1777,7 @@ agentChat:
     rename: Edit
     delete: Delete
   placeholder:
-    message: Type a message; use / to select a Skill. Enter to send, Shift+Enter for newline
+    message: Type a message to chat directly; use / to select a business Skill. Enter to send, Shift+Enter for newline
     title: Enter a conversation title
     symbol: Select contract (optional)
   message:
@@ -1780,12 +1792,12 @@ agentChat:
     deleted: Conversation deleted
     deleteRunning: This conversation still has a running task. Wait for it to finish or cancel it before deleting.
   hint:
-    slash: Type / to open available Skills
+    slash: No Skill means general chat; type / to open business Skills
   skillMenu:
     title: Select Skill
   empty:
     conversation: No conversations
-    message: Select a Skill to start chatting
+    message: Type a message to start chatting, or use / to select a business Skill
     skill: No matching Skill
   role:
     user: You
@@ -1977,6 +1989,58 @@ workflowPage:
     error: Error
     input: Input
     result: Result
+  result:
+    empty: No result yet
+    rawJson: View Raw JSON
+    asOf: Data Time
+    marketCondition: Market Condition
+    opportunityCount: Opportunities
+    incidentCount: Incidents
+    score: Score
+    confidence: Confidence
+    evidence: Evidence
+    risks: Risks
+    dataMissing: Missing Data
+    verdictLabel: Verdict
+    failureModes: Failure Modes
+    proposals: Recommendations
+    suitableEnvironments: Suitable Environments
+    candidate: Candidate Strategy
+    deterministicTest: Deterministic Test
+    passed: Passed
+    failed: Failed
+    ruleCount: Rules
+    enabledRules: Enabled Rules
+    compiledRules: Compiled Rules
+    scenarioPasses: Scenario Passes
+    proposedChanges: Proposed Changes
+    rationale: Rationale
+    opportunities: Opportunities
+    watchlist: Watchlist
+    incidents: Incidents
+    unknown: Unknown
+    direction:
+      long: Long
+      short: Short
+      watch: Watch
+      avoid: Avoid
+    verdict:
+      keep: Keep
+      revise: Revise
+      retire: Retire
+      insufficient_data: Insufficient Data
+      promising: Promising
+      reject: Reject
+      needs_more_data: Needs More Data
+    action:
+      notify: Notify
+      suppress: Suppress
+      monitor: Monitor
+    severity:
+      low: Low
+      medium: Medium
+      high: High
+      critical: Critical
   message:
     templateRequired: Enter a strategy template ID or name
     goalRequired: Strategy experiment requires a goal
