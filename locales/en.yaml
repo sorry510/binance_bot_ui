@@ -83,6 +83,7 @@ menus:
   ai: AI
   agentChat: Chat
   symbolAnalysis: Symbol Analysis
+  agentBacktest: Historical Backtest
   agentSkillManagement: Skill Management
   agentTaskCenter: Task Center
   agentWorkflows: Workflows
@@ -2142,3 +2143,83 @@ controlledTradePage:
 aiConfigPage:
   title: AI Configuration
   subtitle: Manage AI alerts, scheduling, governance budgets, and controlled trading in one place.
+backtestPage:
+  title: Historical Backtest
+  subtitle: Replay strategy snapshots on the latest canonical historical data from Historical Market Repository with deterministic execution. Signals are evaluated at bar close and can fill no earlier than the next bar open.
+  history: Backtest History
+  form:
+    template: Strategy Template
+    symbol: Contract
+    interval: Execution Interval
+    range: Time Range
+    initialEquity: Initial Equity
+    positionSize: Position Size
+    leverage: Leverage
+    feeRate: Fee Rate
+    slippage: Slippage (bps)
+    stopLoss: Stop Loss (%)
+    takeProfit: Take Profit (%)
+  button:
+    start: Start Backtest
+    refresh: Refresh
+    detail: Detail
+    parameters: Parameters
+    cancel: Cancel
+  table:
+    strategy: Strategy
+    parameters: Parameters
+    status: Status
+    progress: Progress
+    createdAt: Created At
+    operation: Operation
+  parameters:
+    title: Backtest Parameters
+  message:
+    templateRequired: Select a strategy template
+    symbolRequired: Select a contract
+    rangeRequired: Select a backtest time range
+    started: Backtest run created
+    startFailed: Failed to create backtest
+    cancelled: Backtest cancelled
+  stage:
+    queued: Queued
+    building_dataset: Preparing historical data
+    running_backtest: Replaying historical bars
+    saving_results: Saving results
+    completed: Completed
+    failed: Failed
+    cancelled: Cancelled
+    interrupted: Interrupted
+  compare:
+    title: Compare Results
+    metric: Metric
+  chart:
+    equity: Equity
+    drawdown: Drawdown
+  detail:
+    datasetSpecHash: Dataset Spec Hash
+    dataHash: Run Data Hash
+    title: Backtest Detail
+    summary: Summary
+    trades: Trades
+    events: Audit Events
+    error: Error
+    bySide: By LONG / SHORT
+    byRegime: By MarketCondition
+    entry: Entry
+    exit: Exit
+    reason: Exit Reason
+    time: Time
+    price: Price
+  metric:
+    net_pnl: Net PnL
+    return_pct: Return (%)
+    max_drawdown_pct: Max Drawdown (%)
+    win_rate: Win Rate (%)
+    profit_factor: Profit Factor
+    sharpe: Sharpe
+    sortino: Sortino
+    trade_count: Trade Count
+    fees: Fees
+    funding: Funding
+    average_holding_ms: Avg Holding Time

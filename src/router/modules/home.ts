@@ -64,6 +64,16 @@ export default [
         }
       },
       {
+        path: "/ai/backtest",
+        name: "AgentBacktest",
+        component: () => import("@/views/ai/backtest.vue"),
+        meta: {
+          title: "menus.agentBacktest",
+          showLink: true,
+          showParent: true
+        }
+      },
+      {
         path: "/ai/llm-config",
         name: "LLMConfigManagement",
         component: () => import("@/views/ai/llmConfig.vue"),
