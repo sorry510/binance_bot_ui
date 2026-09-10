@@ -2145,26 +2145,29 @@ aiConfigPage:
   subtitle: 集中管理 AI 报警、调度、治理预算和受控交易参数。
 backtestPage:
   title: 历史回测
-  subtitle: 使用 Historical Market Repository 的当前最新历史数据和确定性执行引擎回放策略；策略信号在 Bar 收盘产生，最早在下一根 Bar 开盘成交。
+  subtitle: 回放精度固定为 1m，用于近似真实交易的秒级执行策略判定。指标 K 线周期仍然由策略模板的 Technology 配置决定。
+  replayPrecision: 回放精度
   history: 回测历史
   form:
     template: 策略模板
     symbol: 合约
-    interval: 执行周期
     range: 回测时间
     initialEquity: 初始资金
     positionSize: 仓位比例
     leverage: 杠杆
     feeRate: 手续费率
     slippage: 滑点 (bps)
-    stopLoss: 止损 (%)
-    takeProfit: 止盈 (%)
+    stopLoss: 止损触发 ROI (%)
+    takeProfit: 止盈触发 ROI (%)
   button:
+    marketConditionBackfill: 补充 MarketCondition 历史
+    prefetch: 获取历史数据
     start: 开始回测
     refresh: 刷新
     detail: 详情
     parameters: 参数
     cancel: 取消
+    delete: 删除
   table:
     strategy: 策略
     parameters: 参数
@@ -2181,6 +2184,41 @@ backtestPage:
     started: 回测任务已创建
     startFailed: 创建回测失败
     cancelled: 已取消回测
+    deleteTitle: 删除回测记录
+    deleteConfirm: 确认删除“{strategy} / {symbol}”这条回测记录及其交易、事件和资金曲线数据吗？历史行情缓存不会删除。
+    deleted: 回测记录已删除
+    deleteFailed: 删除回测记录失败
+    prefetchFetched: 历史数据已准备，从 Binance 补齐 {rows} 条
+    prefetchLocal: 本地历史数据已完整，无需请求 Binance
+    prefetchFailed: 获取历史数据失败
+  marketCondition:
+    title: MarketCondition 历史
+    confirmTitle: 补充 MarketCondition 历史
+    confirm: 将从 Binance 补齐 BTCUSDT/ETHUSDT 从各自上线至今的 1h K 线，并据此推断每小时 MarketCondition。过程可能需要较长时间，是否继续？
+    stage: 阶段
+    stageValue:
+      queued: 等待执行
+      discovering_listing: 查询 BTC/ETH 上线时间
+      loading_btc: 补齐 BTCUSDT 1h K 线
+      loading_eth: 补齐 ETHUSDT 1h K 线
+      inferring: 推断每小时 MarketCondition
+      saving: 保存 MarketCondition 历史
+      completed: 已完成
+      failed: 失败
+    inferred: 推断
+    inserted: 新增
+    skipped: 已存在跳过
+    note: 推断数据不会覆盖同小时已存在的真实 MarketCondition；Binance 历史 REST 请求继续使用全局限频。
+    succeeded: MarketCondition 历史补充完成：新增 {inserted} 条，跳过已有 {skipped} 条
+    failed: 补充 MarketCondition 历史失败
+  prefetch:
+    title: 历史数据
+    replay: 回放精度
+    intervals: 目标所需 K 线周期
+    warmup: Warmup 起始时间
+    rateLimit: Binance 历史 REST 请求全局串行节流，请求起始间隔至少 300ms。
+    fetched: 已从 Binance 补齐 {rows} 条历史数据
+    local: 本地数据已完整，未请求 Binance
   stage:
     queued: 等待执行
     building_dataset: 准备历史数据
@@ -2205,7 +2243,6 @@ backtestPage:
     events: 审计事件
     error: 错误
     bySide: 按 LONG / SHORT
-    byRegime: 按 MarketCondition
     entry: 开仓
     exit: 平仓
     reason: 平仓原因

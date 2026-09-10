@@ -23,7 +23,6 @@ export interface BacktestMetrics {
   funding: number;
   average_holding_ms: number;
   by_side: BacktestGroupMetrics[];
-  by_market_condition: BacktestGroupMetrics[];
 }
 export interface BacktestGroupMetrics {
   key: string;
@@ -68,7 +67,6 @@ export interface BacktestDataset {
   symbol: string;
   execution_interval: string;
   intervals: string[];
-  benchmark_symbols: string[];
   start_time: number;
   end_time: number;
   warmup_start_time: number;
@@ -115,13 +113,80 @@ export interface BacktestEquityPoint {
 export interface StartBacktestRequest {
   strategy_template_id: number;
   symbol: string;
-  execution_interval: string;
   start_time: number;
   end_time: number;
   config: BacktestConfig;
 }
+export interface BacktestPrefetch {
+  job_id: string;
+  status: string;
+  stage: string;
+  progress: number;
+  strategy_template_id: number;
+  strategy_template_name: string;
+  symbol: string;
+  replay_interval: string;
+  intervals: string[];
+  start_time: number;
+  end_time: number;
+  warmup_start_time: number;
+  remote_calls: number;
+  remote_rows: number;
+  error?: string;
+}
+
+export interface MarketConditionBackfill {
+  job_id: string;
+  status: string;
+  stage: string;
+  progress: number;
+  btc_start_time?: number;
+  eth_start_time?: number;
+  start_time?: number;
+  end_time?: number;
+  btc_rows: number;
+  eth_rows: number;
+  inferred_rows: number;
+  inserted_rows: number;
+  skipped_rows: number;
+  error?: string;
+  created_at: number;
+  updated_at: number;
+  completed_at?: number;
+}
+
+export interface StartBacktestPrefetchRequest {
+  strategy_template_id: number;
+  symbol: string;
+  start_time: number;
+  end_time: number;
+}
 export const getBacktests = (params: Query = {}) =>
   http.get<any, Query>(baseUrlApi("agents/backtests"), { params });
+export const startBacktestPrefetch = (data: StartBacktestPrefetchRequest) =>
+  http.post<any, StartBacktestPrefetchRequest>(
+    baseUrlApi("agents/backtests/prefetch"),
+    { data }
+  );
+export const getBacktestPrefetch = (id: string) =>
+  http.get<any, Query>(
+    baseUrlApi(`agents/backtests/prefetch/${encodeURIComponent(id)}`),
+    { params: {} }
+  );
+
+export const startMarketConditionBackfill = () =>
+  http.post<any, Record<string, never>>(
+    baseUrlApi("agents/backtests/market-condition/backfill"),
+    { data: {} }
+  );
+export const getMarketConditionBackfill = (id: string) =>
+  http.get<any, Query>(
+    baseUrlApi(
+      `agents/backtests/market-condition/backfill/${encodeURIComponent(id)}`
+    ),
+    { params: {} }
+  );
+
 export const startBacktest = (data: StartBacktestRequest) =>
   http.post<any, StartBacktestRequest>(baseUrlApi("agents/backtests"), {
     data
@@ -135,6 +200,11 @@ export const cancelBacktest = (id: string) =>
   http.post<any, Query>(
     baseUrlApi(`agents/backtests/${encodeURIComponent(id)}/cancel`),
     { data: {} }
+  );
+export const deleteBacktest = (id: string) =>
+  http.request<any>(
+    "delete",
+    baseUrlApi(`agents/backtests/${encodeURIComponent(id)}`)
   );
 export const getBacktestTrades = (id: string) =>
   http.get<any, Query>(

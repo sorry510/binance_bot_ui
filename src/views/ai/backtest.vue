@@ -5,7 +5,8 @@ import {
   onBeforeUnmount,
   onMounted,
   reactive,
-  ref
+  ref,
+  watch
 } from "vue";
 import {
   init as initECharts,
@@ -19,7 +20,7 @@ import {
   TooltipComponent
 } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from "vue-i18n";
 import {
   useStrategyTemplateOptions,
@@ -28,15 +29,22 @@ import {
 import { getFeaturesOptions } from "@/api/trade";
 import {
   cancelBacktest,
+  deleteBacktest,
   getBacktest,
   getBacktestEquity,
   getBacktestEvents,
+  getBacktestPrefetch,
+  getMarketConditionBackfill,
   getBacktestTrades,
   getBacktests,
   startBacktest,
+  startBacktestPrefetch,
+  startMarketConditionBackfill,
   type BacktestEquityPoint,
   type BacktestEvent,
   type BacktestMetrics,
+  type BacktestPrefetch,
+  type MarketConditionBackfill,
   type BacktestRun,
   type BacktestTrade
 } from "@/api/backtest";
@@ -57,34 +65,22 @@ const {
   search: searchTemplates,
   onPopupScroll
 } = useStrategyTemplateOptions();
-const intervals = [
-  "1m",
-  "3m",
-  "5m",
-  "15m",
-  "30m",
-  "1h",
-  "2h",
-  "4h",
-  "6h",
-  "8h",
-  "12h",
-  "1d",
-  "3d",
-  "1w",
-  "1M"
-];
 const symbols = ref<string[]>([]);
 const runs = ref<BacktestRun[]>([]);
 const total = ref(0);
 const loading = ref(false);
 const starting = ref(false);
+const prefetching = ref(false);
+const prefetchJob = ref<BacktestPrefetch | null>(null);
+const marketConditionBackfilling = ref(false);
+const marketConditionBackfillJob = ref<MarketConditionBackfill | null>(null);
+let prefetchGeneration = 0;
+let marketConditionBackfillGeneration = 0;
 const query = reactive({ page: 1, limit: 20 });
 const now = Date.now();
 const form = reactive({
   strategy_template_id: undefined as number | undefined,
   symbol: "",
-  execution_interval: "5m",
   range: [new Date(now - 3 * 24 * 3600 * 1000), new Date(now)] as [Date, Date],
   initial_equity: 1000,
   position_size_pct: 1,
@@ -94,6 +90,17 @@ const form = reactive({
   stop_loss_pct: 0,
   take_profit_pct: 0
 });
+watch(
+  () => [
+    form.strategy_template_id,
+    form.symbol,
+    form.range?.[0]?.getTime?.() || 0,
+    form.range?.[1]?.getTime?.() || 0
+  ],
+  () => {
+    if (!prefetching.value) prefetchJob.value = null;
+  }
+);
 const detailVisible = ref(false);
 const detail = ref<BacktestRun | null>(null);
 const paramsVisible = ref(false);
@@ -129,6 +136,10 @@ function isActiveRun(status: string) {
 }
 function stageText(stage: string) {
   return t(`backtestPage.stage.${stage}`);
+}
+function marketConditionStageText(stage: string) {
+  const key = `backtestPage.marketCondition.stageValue.${stage}`;
+  return t(key);
 }
 function formatTime(v?: number) {
   return v ? new Date(v).toLocaleString() : "-";
@@ -170,6 +181,120 @@ async function fetchRuns(show = false) {
     if (show) loading.value = false;
   }
 }
+async function prefetchData() {
+  if (!form.strategy_template_id) {
+    ElMessage.error(t("backtestPage.message.templateRequired"));
+    return;
+  }
+  if (!form.symbol) {
+    ElMessage.error(t("backtestPage.message.symbolRequired"));
+    return;
+  }
+  if (!form.range?.[0] || !form.range?.[1]) {
+    ElMessage.error(t("backtestPage.message.rangeRequired"));
+    return;
+  }
+  const generation = ++prefetchGeneration;
+  prefetching.value = true;
+  try {
+    const res = await startBacktestPrefetch({
+      strategy_template_id: Number(form.strategy_template_id),
+      symbol: form.symbol.trim().toUpperCase(),
+      start_time: form.range[0].getTime(),
+      end_time: form.range[1].getTime()
+    });
+    if (Number(res?.code) !== 200)
+      throw new Error(res?.msg || "prefetch failed");
+    prefetchJob.value = res?.data as BacktestPrefetch;
+    while (
+      generation === prefetchGeneration &&
+      prefetchJob.value &&
+      ["queued", "running"].includes(prefetchJob.value.status)
+    ) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const status = await getBacktestPrefetch(prefetchJob.value.job_id);
+      if (Number(status?.code) !== 200)
+        throw new Error(status?.msg || "prefetch status failed");
+      prefetchJob.value = status?.data as BacktestPrefetch;
+    }
+    if (generation !== prefetchGeneration || !prefetchJob.value) return;
+    if (prefetchJob.value.status === "succeeded") {
+      ElMessage.success(
+        prefetchJob.value.remote_rows > 0
+          ? t("backtestPage.message.prefetchFetched", {
+              rows: prefetchJob.value.remote_rows
+            })
+          : t("backtestPage.message.prefetchLocal")
+      );
+    } else {
+      throw new Error(
+        prefetchJob.value.error || t("backtestPage.message.prefetchFailed")
+      );
+    }
+  } catch (e: any) {
+    if (generation === prefetchGeneration)
+      ElMessage.error(e?.message || t("backtestPage.message.prefetchFailed"));
+  } finally {
+    if (generation === prefetchGeneration) prefetching.value = false;
+  }
+}
+
+async function backfillMarketCondition() {
+  try {
+    await ElMessageBox.confirm(
+      t("backtestPage.marketCondition.confirm"),
+      t("backtestPage.marketCondition.confirmTitle"),
+      { type: "warning" }
+    );
+  } catch {
+    return;
+  }
+  const generation = ++marketConditionBackfillGeneration;
+  marketConditionBackfilling.value = true;
+  try {
+    const res = await startMarketConditionBackfill();
+    if (Number(res?.code) !== 200)
+      throw new Error(res?.msg || t("backtestPage.marketCondition.failed"));
+    marketConditionBackfillJob.value = res?.data as MarketConditionBackfill;
+    while (
+      generation === marketConditionBackfillGeneration &&
+      marketConditionBackfillJob.value &&
+      ["queued", "running"].includes(marketConditionBackfillJob.value.status)
+    ) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const status = await getMarketConditionBackfill(
+        marketConditionBackfillJob.value.job_id
+      );
+      if (Number(status?.code) !== 200)
+        throw new Error(
+          status?.msg || t("backtestPage.marketCondition.failed")
+        );
+      marketConditionBackfillJob.value =
+        status?.data as MarketConditionBackfill;
+    }
+    if (generation !== marketConditionBackfillGeneration) return;
+    if (marketConditionBackfillJob.value?.status === "succeeded") {
+      ElMessage.success(
+        t("backtestPage.marketCondition.succeeded", {
+          inserted: marketConditionBackfillJob.value.inserted_rows,
+          skipped: marketConditionBackfillJob.value.skipped_rows
+        })
+      );
+    } else {
+      throw new Error(
+        marketConditionBackfillJob.value?.error ||
+          t("backtestPage.marketCondition.failed")
+      );
+    }
+  } catch (e: any) {
+    if (generation === marketConditionBackfillGeneration)
+      ElMessage.error(e?.message || t("backtestPage.marketCondition.failed"));
+  } finally {
+    if (generation === marketConditionBackfillGeneration)
+      marketConditionBackfilling.value = false;
+  }
+}
+
 async function submit() {
   if (!form.strategy_template_id) {
     ElMessage.error(t("backtestPage.message.templateRequired"));
@@ -188,7 +313,6 @@ async function submit() {
     const res = await startBacktest({
       strategy_template_id: Number(form.strategy_template_id),
       symbol: form.symbol.trim().toUpperCase(),
-      execution_interval: form.execution_interval,
       start_time: form.range[0].getTime(),
       end_time: form.range[1].getTime(),
       config: {
@@ -266,6 +390,44 @@ async function cancel(row: BacktestRun) {
     ElMessage.error(e?.message || "cancel failed");
   }
 }
+async function removeRun(row: BacktestRun) {
+  if (isActiveRun(row.status)) return;
+  try {
+    await ElMessageBox.confirm(
+      t("backtestPage.message.deleteConfirm", {
+        strategy: row.strategy_template_name,
+        symbol: row.symbol
+      }),
+      t("backtestPage.message.deleteTitle"),
+      { type: "warning" }
+    );
+    const res = await deleteBacktest(row.run_id);
+    if (Number(res?.code) !== 200) throw new Error(res?.msg || "delete failed");
+    if (detail.value?.run_id === row.run_id) {
+      detailVisible.value = false;
+      detail.value = null;
+      trades.value = [];
+      events.value = [];
+      equity.value = [];
+      loadedEventsRunId.value = "";
+    }
+    if (paramsRun.value?.run_id === row.run_id) {
+      paramsVisible.value = false;
+      paramsRun.value = null;
+    }
+    if (compareA.value === row.run_id) compareA.value = "";
+    if (compareB.value === row.run_id) compareB.value = "";
+    ElMessage.success(t("backtestPage.message.deleted"));
+    await fetchRuns();
+    if (!runs.value.length && query.page > 1) {
+      query.page -= 1;
+      await fetchRuns();
+    }
+  } catch (e: any) {
+    if (e === "cancel" || e === "close") return;
+    ElMessage.error(e?.message || t("backtestPage.message.deleteFailed"));
+  }
+}
 function renderChart() {
   if (!chartEl.value || !equity.value.length) return;
   if (!chart) chart = initECharts(chartEl.value);
@@ -339,6 +501,8 @@ onMounted(async () => {
   window.addEventListener("resize", () => chart?.resize());
 });
 onBeforeUnmount(() => {
+  prefetchGeneration += 1;
+  marketConditionBackfillGeneration += 1;
   if (timer) clearTimeout(timer);
   chart?.dispose();
 });
@@ -363,6 +527,7 @@ onBeforeUnmount(() => {
             remote
             :remote-method="searchTemplates"
             :loading="selectLoading"
+            :disabled="prefetching"
             :popper-class="strategyTemplatePopperClass"
             style="width: 360px"
             @popup-scroll="onPopupScroll"
@@ -376,6 +541,7 @@ onBeforeUnmount(() => {
           ><el-select
             v-model="form.symbol"
             filterable
+            :disabled="prefetching"
             style="width: 220px"
             :placeholder="t('backtestPage.form.symbol')"
             ><el-option
@@ -384,18 +550,11 @@ onBeforeUnmount(() => {
               :label="item"
               :value="item" /></el-select
         ></el-form-item>
-        <el-form-item :label="t('backtestPage.form.interval')"
-          ><el-select v-model="form.execution_interval" style="width: 160px"
-            ><el-option
-              v-for="x in intervals"
-              :key="x"
-              :label="x"
-              :value="x" /></el-select
-        ></el-form-item>
         <el-form-item :label="t('backtestPage.form.range')"
           ><el-date-picker
             v-model="form.range"
             type="datetimerange"
+            :disabled="prefetching"
             style="width: 440px"
         /></el-form-item>
         <el-form-item :label="t('backtestPage.form.initialEquity')"
@@ -441,10 +600,108 @@ onBeforeUnmount(() => {
             :step="0.5"
         /></el-form-item>
         <el-form-item
-          ><el-button type="primary" :loading="starting" @click="submit">{{
-            t("backtestPage.button.start")
-          }}</el-button></el-form-item
+          ><el-button
+            :loading="marketConditionBackfilling"
+            :disabled="prefetching || starting"
+            @click="backfillMarketCondition"
+            >{{ t("backtestPage.button.marketConditionBackfill") }}</el-button
+          ><el-button :loading="prefetching" @click="prefetchData">{{
+            t("backtestPage.button.prefetch")
+          }}</el-button
+          ><el-button
+            type="primary"
+            :loading="starting"
+            :disabled="prefetching"
+            @click="submit"
+            >{{ t("backtestPage.button.start") }}</el-button
+          ></el-form-item
         >
+        <el-form-item
+          v-if="marketConditionBackfillJob"
+          :label="t('backtestPage.marketCondition.title')"
+        >
+          <div class="prefetch-status">
+            <el-progress
+              :percentage="marketConditionBackfillJob.progress"
+              :status="
+                marketConditionBackfillJob.status === 'failed'
+                  ? 'exception'
+                  : marketConditionBackfillJob.status === 'succeeded'
+                    ? 'success'
+                    : undefined
+              "
+            />
+            <div class="text-sm mt-1">
+              {{ t("backtestPage.marketCondition.stage") }}:
+              {{ marketConditionStageText(marketConditionBackfillJob.stage) }}
+            </div>
+            <div class="text-sm">
+              BTC 1h: {{ marketConditionBackfillJob.btc_rows }} / ETH 1h:
+              {{ marketConditionBackfillJob.eth_rows }}
+            </div>
+            <div class="text-sm">
+              {{ t("backtestPage.marketCondition.inferred") }}:
+              {{ marketConditionBackfillJob.inferred_rows }} /
+              {{ t("backtestPage.marketCondition.inserted") }}:
+              {{ marketConditionBackfillJob.inserted_rows }} /
+              {{ t("backtestPage.marketCondition.skipped") }}:
+              {{ marketConditionBackfillJob.skipped_rows }}
+            </div>
+            <div class="text-sm text-gray-500">
+              {{ t("backtestPage.marketCondition.note") }}
+            </div>
+            <div
+              v-if="marketConditionBackfillJob.error"
+              class="text-sm text-red-500"
+            >
+              {{ marketConditionBackfillJob.error }}
+            </div>
+          </div>
+        </el-form-item>
+        <el-form-item
+          v-if="prefetchJob"
+          :label="t('backtestPage.prefetch.title')"
+        >
+          <div class="prefetch-status">
+            <el-progress
+              :percentage="prefetchJob.progress"
+              :status="
+                prefetchJob.status === 'failed'
+                  ? 'exception'
+                  : prefetchJob.status === 'succeeded'
+                    ? 'success'
+                    : undefined
+              "
+            />
+            <div class="text-sm mt-1">
+              {{ t("backtestPage.prefetch.replay") }}:
+              {{ prefetchJob.replay_interval }}
+            </div>
+            <div class="text-sm">
+              {{ t("backtestPage.prefetch.intervals") }}:
+              {{ prefetchJob.intervals.join(", ") }}
+            </div>
+            <div class="text-sm">
+              {{ t("backtestPage.prefetch.warmup") }}:
+              {{ formatTime(prefetchJob.warmup_start_time) }}
+            </div>
+            <div class="text-sm text-gray-500">
+              {{ t("backtestPage.prefetch.rateLimit") }}
+            </div>
+            <div v-if="prefetchJob.status === 'succeeded'" class="text-sm">
+              {{
+                prefetchJob.remote_rows > 0
+                  ? t("backtestPage.prefetch.fetched", {
+                      rows: prefetchJob.remote_rows
+                    })
+                  : t("backtestPage.prefetch.local")
+              }}
+            </div>
+            <div v-if="prefetchJob.error" class="text-sm text-red-500">
+              {{ prefetchJob.error }}
+            </div>
+          </div>
+        </el-form-item>
       </el-form>
     </el-card>
 
@@ -507,7 +764,7 @@ onBeforeUnmount(() => {
           width="110"
         /><el-table-column
           prop="execution_interval"
-          :label="t('backtestPage.form.interval')"
+          :label="t('backtestPage.replayPrecision')"
           width="90"
         /><el-table-column
           :label="t('backtestPage.table.parameters')"
@@ -555,7 +812,7 @@ onBeforeUnmount(() => {
           }}</template></el-table-column
         ><el-table-column
           :label="t('backtestPage.table.operation')"
-          width="150"
+          width="210"
           fixed="right"
           ><template #default="{ row }"
             ><el-button link type="primary" @click="openDetail(row)">{{
@@ -567,6 +824,12 @@ onBeforeUnmount(() => {
               type="danger"
               @click="cancel(row)"
               >{{ t("backtestPage.button.cancel") }}</el-button
+            ><el-button
+              link
+              type="danger"
+              :disabled="isActiveRun(row.status)"
+              @click="removeRun(row)"
+              >{{ t("backtestPage.button.delete") }}</el-button
             ></template
           ></el-table-column
         ></el-table
@@ -595,7 +858,7 @@ onBeforeUnmount(() => {
         <el-descriptions-item :label="t('backtestPage.form.symbol')">{{
           paramsRun.symbol
         }}</el-descriptions-item>
-        <el-descriptions-item :label="t('backtestPage.form.interval')">{{
+        <el-descriptions-item :label="t('backtestPage.replayPrecision')">{{
           paramsRun.execution_interval
         }}</el-descriptions-item>
         <el-descriptions-item :label="t('backtestPage.form.range')" :span="2"
@@ -684,31 +947,10 @@ onBeforeUnmount(() => {
               >
               <div ref="chartEl" class="equity-chart" />
               <el-row :gutter="16" class="mt-4"
-                ><el-col :span="12"
+                ><el-col :span="24"
                   ><h4>{{ t("backtestPage.detail.bySide") }}</h4>
                   <el-table :data="detail.metrics.by_side" size="small"
                     ><el-table-column prop="key" label="Side" /><el-table-column
-                      prop="trade_count"
-                      :label="t('backtestPage.metric.trade_count')"
-                    /><el-table-column :label="t('backtestPage.metric.net_pnl')"
-                      ><template #default="{ row }">{{
-                        num(row.net_pnl)
-                      }}</template></el-table-column
-                    ><el-table-column :label="t('backtestPage.metric.win_rate')"
-                      ><template #default="{ row }">{{
-                        pct(row.win_rate)
-                      }}</template></el-table-column
-                    ></el-table
-                  ></el-col
-                ><el-col :span="12"
-                  ><h4>{{ t("backtestPage.detail.byRegime") }}</h4>
-                  <el-table
-                    :data="detail.metrics.by_market_condition"
-                    size="small"
-                    ><el-table-column
-                      prop="key"
-                      label="MarketCondition"
-                    /><el-table-column
                       prop="trade_count"
                       :label="t('backtestPage.metric.trade_count')"
                     /><el-table-column :label="t('backtestPage.metric.net_pnl')"
@@ -806,6 +1048,10 @@ onBeforeUnmount(() => {
 
 .form-grid {
   max-width: 980px;
+}
+
+.prefetch-status {
+  width: min(100%, 640px);
 }
 
 .equity-chart {
