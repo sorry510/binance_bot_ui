@@ -64,14 +64,10 @@ export default [
         }
       },
       {
-        path: "/ai/backtest",
-        name: "AgentBacktest",
-        component: () => import("@/views/ai/backtest.vue"),
-        meta: {
-          title: "menus.agentBacktest",
-          showLink: true,
-          showParent: true
-        }
+        path: "/ai/config",
+        name: "AgentAIConfig",
+        component: () => import("@/views/ai/aiConfig.vue"),
+        meta: { title: "menus.agentAIConfig", showLink: true, showParent: true }
       },
       {
         path: "/ai/llm-config",
@@ -120,16 +116,6 @@ export default [
         }
       },
       {
-        path: "/ai/controlled-trade",
-        name: "AgentControlledTrade",
-        component: () => import("@/views/ai/controlledTrade.vue"),
-        meta: {
-          title: "menus.agentControlledTrade",
-          showLink: true,
-          showParent: true
-        }
-      },
-      {
         path: "/ai/task-center",
         name: "AgentTaskCenter",
         component: () => import("@/views/ai/taskCenter.vue"),
@@ -158,12 +144,6 @@ export default [
           showLink: true,
           showParent: true
         }
-      },
-      {
-        path: "/ai/config",
-        name: "AgentAIConfig",
-        component: () => import("@/views/ai/aiConfig.vue"),
-        meta: { title: "menus.agentAIConfig", showLink: true, showParent: true }
       }
     ]
   }

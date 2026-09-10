@@ -5,21 +5,27 @@ import { useI18n } from "vue-i18n";
 import {
   approveAgentTradeProposal,
   checkAgentTradeRisk,
+  closeAgentTradeProposal,
   createAgentTradeProposal,
   executeAgentTradeProposal,
   getAgentTradeProposal,
   getAgentTradeProposals,
+  getFuturesOwnership,
   reconcileAgentTradeProposal,
+  reconcileFuturesOwnership,
   rejectAgentTradeProposal,
   type AgentTradeProposal,
   type AgentTradeProposalDetail,
-  type AgentTradeRiskResult
+  type AgentTradeRiskResult,
+  type FuturesOwnershipData
 } from "@/api/agent";
 
 defineOptions({ name: "AgentControlledTrade" });
 const { t } = useI18n();
 const loading = ref(false);
 const actionLoading = ref(false);
+const ownershipLoading = ref(false);
+const ownership = ref<FuturesOwnershipData | null>(null);
 const taskId = ref("");
 const rows = ref<AgentTradeProposal[]>([]);
 const total = ref(0);
@@ -35,6 +41,8 @@ const statusOptions = [
   "executed",
   "execution_failed",
   "execution_uncertain",
+  "protection_failed",
+  "closed",
   "expired"
 ];
 
@@ -49,6 +57,14 @@ const risk = computed<AgentTradeRiskResult | null>(() => {
   }
 });
 
+const ownershipNeedsReconcile = computed(() => {
+  const data = ownership.value;
+  return Boolean(
+    data?.positions?.some(item => item.status === "reconcile_required") ||
+      data?.orders?.some(item => item.status === "reconcile_required")
+  );
+});
+
 function formatTime(value?: number) {
   return value ? new Date(value).toLocaleString() : "-";
 }
@@ -60,9 +76,13 @@ function formatNumber(value?: number, digits = 6) {
 function statusType(status: string) {
   if (status === "executed") return "success";
   if (
-    ["risk_rejected", "rejected", "execution_failed", "expired"].includes(
-      status
-    )
+    [
+      "risk_rejected",
+      "rejected",
+      "execution_failed",
+      "protection_failed",
+      "expired"
+    ].includes(status)
   )
     return "danger";
   if (["approved", "executing", "execution_uncertain"].includes(status))
@@ -84,6 +104,51 @@ function statusLabel(status: string) {
   const key = `controlledTradePage.status.${status}`;
   const translated = t(key);
   return translated === key ? status : translated;
+}
+
+function ownerTagType(owner: string): "success" | "warning" | "info" {
+  if (owner === "unmanaged") return "warning";
+  if (owner === "agent_trade") return "success";
+  return "info";
+}
+
+function ownerLabel(owner?: string) {
+  if (!owner) return "-";
+  const key = `controlledTradePage.owner.${owner}`;
+  const translated = t(key);
+  return translated === key ? owner : translated;
+}
+
+async function fetchOwnership() {
+  ownershipLoading.value = true;
+  try {
+    const res = await getFuturesOwnership();
+    ownership.value = (res?.data || null) as FuturesOwnershipData | null;
+  } catch (error: any) {
+    ElMessage.error(
+      error?.message || t("controlledTradePage.message.ownershipLoadFailed")
+    );
+  } finally {
+    ownershipLoading.value = false;
+  }
+}
+
+async function runOwnershipReconcile() {
+  ownershipLoading.value = true;
+  try {
+    await reconcileFuturesOwnership();
+    ElMessage.success(
+      t("controlledTradePage.message.ownershipReconcileSuccess")
+    );
+    await fetchOwnership();
+  } catch (error: any) {
+    ElMessage.error(
+      error?.message ||
+        t("controlledTradePage.message.ownershipReconcileFailed")
+    );
+  } finally {
+    ownershipLoading.value = false;
+  }
 }
 
 async function fetchRows(showLoading = false) {
@@ -154,6 +219,37 @@ async function runAction(action: "risk" | "approve" | "execute" | "reconcile") {
     actionLoading.value = false;
   }
 }
+async function closeManagedPosition() {
+  if (!proposal.value) return;
+  try {
+    await ElMessageBox.confirm(
+      t("controlledTradePage.confirm.close"),
+      t("controlledTradePage.confirm.closeTitle"),
+      {
+        type: "error",
+        confirmButtonText: t("controlledTradePage.button.closePosition")
+      }
+    );
+    actionLoading.value = true;
+    await closeAgentTradeProposal(proposal.value.proposal_id);
+    ElMessage.success(t("controlledTradePage.message.closeSuccess"));
+    await Promise.all([
+      loadDetail(proposal.value.proposal_id),
+      fetchRows(),
+      fetchOwnership()
+    ]);
+  } catch (error: any) {
+    if (error === "cancel" || error === "close") return;
+    ElMessage.error(
+      error?.message || t("controlledTradePage.message.closeFailed")
+    );
+    if (proposal.value)
+      await loadDetail(proposal.value.proposal_id).catch(() => undefined);
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
 async function approve() {
   await ElMessageBox.confirm(
     t("controlledTradePage.confirm.approve"),
@@ -198,7 +294,7 @@ async function reject() {
   }
 }
 
-onMounted(() => fetchRows(true));
+onMounted(() => Promise.all([fetchRows(true), fetchOwnership()]));
 </script>
 
 <template>
@@ -243,6 +339,179 @@ onMounted(() => fetchRows(true));
       </div>
     </el-card>
 
+    <el-card v-loading="ownershipLoading" shadow="never" class="mb-4">
+      <template #header>
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="font-medium">
+              {{ t("controlledTradePage.ownership.title") }}
+            </div>
+            <div class="mt-1 text-sm text-gray-500">
+              {{ t("controlledTradePage.ownership.description") }}
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <el-button size="small" @click="fetchOwnership">{{
+              t("controlledTradePage.button.refresh")
+            }}</el-button>
+            <el-button
+              size="small"
+              type="primary"
+              plain
+              @click="runOwnershipReconcile"
+              >{{
+                t("controlledTradePage.button.reconcileOwnership")
+              }}</el-button
+            >
+          </div>
+        </div>
+      </template>
+      <el-alert
+        v-if="ownership?.account_error"
+        :title="ownership.account_error"
+        type="warning"
+        :closable="false"
+        show-icon
+        class="mb-3"
+      />
+      <el-alert
+        v-if="ownershipNeedsReconcile"
+        :title="t('controlledTradePage.ownership.reconcileRequiredWarning')"
+        type="error"
+        :closable="false"
+        show-icon
+        class="mb-3"
+      />
+      <el-tabs>
+        <el-tab-pane
+          :label="t('controlledTradePage.ownership.accountPositions')"
+        >
+          <el-table
+            :data="ownership?.account_positions || []"
+            size="small"
+            max-height="360"
+          >
+            <el-table-column
+              prop="symbol"
+              :label="t('controlledTradePage.table.symbol')"
+              width="130"
+            />
+            <el-table-column
+              prop="position_side"
+              :label="t('controlledTradePage.table.side')"
+              width="100"
+            />
+            <el-table-column
+              :label="t('controlledTradePage.ownership.accountQty')"
+              width="140"
+            >
+              <template #default="{ row }">{{
+                formatNumber(row.account_qty, 8)
+              }}</template>
+            </el-table-column>
+            <el-table-column
+              :label="t('controlledTradePage.ownership.owner')"
+              width="150"
+            >
+              <template #default="{ row }"
+                ><el-tag :type="ownerTagType(row.owner)" size="small">{{
+                  ownerLabel(row.owner)
+                }}</el-tag></template
+              >
+            </el-table-column>
+            <el-table-column
+              :label="t('controlledTradePage.ownership.managedQty')"
+              width="140"
+            >
+              <template #default="{ row }">{{
+                formatNumber(row.managed_qty, 8)
+              }}</template>
+            </el-table-column>
+            <el-table-column
+              prop="managed_status"
+              :label="t('controlledTradePage.table.status')"
+              width="160"
+            />
+            <el-table-column
+              prop="source_ref"
+              :label="t('controlledTradePage.ownership.sourceRef')"
+              min-width="190"
+            />
+            <el-table-column
+              :label="t('controlledTradePage.ownership.lastReconciled')"
+              width="180"
+            >
+              <template #default="{ row }">{{
+                formatTime(row.last_reconciled_at)
+              }}</template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+        <el-tab-pane :label="t('controlledTradePage.ownership.managedOrders')">
+          <el-table
+            :data="ownership?.orders || []"
+            size="small"
+            max-height="360"
+          >
+            <el-table-column
+              :label="t('controlledTradePage.ownership.owner')"
+              width="150"
+            >
+              <template #default="{ row }">
+                {{ ownerLabel(row.owner) }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="symbol"
+              :label="t('controlledTradePage.table.symbol')"
+              width="130"
+            />
+            <el-table-column
+              prop="position_side"
+              :label="t('controlledTradePage.table.side')"
+              width="100"
+            />
+            <el-table-column
+              prop="intent"
+              :label="t('controlledTradePage.ownership.intent')"
+              width="130"
+            />
+            <el-table-column
+              prop="status"
+              :label="t('controlledTradePage.table.status')"
+              width="160"
+            />
+            <el-table-column
+              prop="client_order_id"
+              label="Client Order ID"
+              min-width="210"
+            />
+            <el-table-column
+              prop="exchange_order_id"
+              label="Binance Order ID"
+              min-width="170"
+            />
+            <el-table-column
+              :label="t('controlledTradePage.ownership.requestedQty')"
+              width="140"
+            >
+              <template #default="{ row }">{{
+                formatNumber(row.requested_qty, 8)
+              }}</template>
+            </el-table-column>
+            <el-table-column
+              :label="t('controlledTradePage.ownership.filledQty')"
+              width="140"
+            >
+              <template #default="{ row }">{{
+                formatNumber(row.filled_qty, 8)
+              }}</template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+    </el-card>
+
     <el-card v-loading="loading" shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
@@ -282,7 +551,7 @@ onMounted(() => fetchRows(true));
       <el-table :data="rows" size="small">
         <el-table-column
           prop="proposal_id"
-          label="Proposal ID"
+          :label="t('controlledTradePage.table.proposalId')"
           min-width="210"
         />
         <el-table-column
@@ -414,19 +683,35 @@ onMounted(() => fetchRows(true));
           >
           <el-button
             v-if="
-              ['executing', 'execution_uncertain'].includes(proposal.status)
+              [
+                'executing',
+                'execution_uncertain',
+                'protection_failed'
+              ].includes(proposal.status)
             "
             type="warning"
             :loading="actionLoading"
             @click="runAction('reconcile')"
             >{{ t("controlledTradePage.button.reconcile") }}</el-button
           >
+          <el-button
+            v-if="
+              ['executed', 'protection_failed'].includes(proposal.status) &&
+              detail?.managed_position &&
+              detail.managed_position.status !== 'closed'
+            "
+            type="danger"
+            :loading="actionLoading"
+            @click="closeManagedPosition"
+            >{{ t("controlledTradePage.button.closePosition") }}</el-button
+          >
         </div>
 
         <el-descriptions :column="3" border class="mb-4">
-          <el-descriptions-item label="Proposal ID">{{
-            proposal.proposal_id
-          }}</el-descriptions-item>
+          <el-descriptions-item
+            :label="t('controlledTradePage.table.proposalId')"
+            >{{ proposal.proposal_id }}</el-descriptions-item
+          >
           <el-descriptions-item
             :label="t('controlledTradePage.table.taskId')"
             >{{ proposal.source_task_id }}</el-descriptions-item
@@ -543,6 +828,88 @@ onMounted(() => fetchRows(true));
             min-width="300"
           />
         </el-table>
+
+        <template
+          v-if="detail?.managed_position || detail?.managed_orders?.length"
+        >
+          <div class="section-title">
+            {{ t("controlledTradePage.detail.managedLifecycle") }}
+          </div>
+          <el-descriptions
+            v-if="detail?.managed_position"
+            :column="3"
+            border
+            class="mb-3"
+          >
+            <el-descriptions-item
+              :label="t('controlledTradePage.ownership.owner')"
+            >
+              {{ ownerLabel(detail.managed_position.owner) }}
+            </el-descriptions-item>
+            <el-descriptions-item
+              :label="t('controlledTradePage.ownership.managedQty')"
+            >
+              {{ formatNumber(detail.managed_position.managed_qty, 8) }}
+            </el-descriptions-item>
+            <el-descriptions-item
+              :label="t('controlledTradePage.table.status')"
+            >
+              {{ detail.managed_position.status }}
+            </el-descriptions-item>
+            <el-descriptions-item
+              :label="t('controlledTradePage.detail.entryPrice')"
+            >
+              {{ formatNumber(detail.managed_position.entry_price, 8) }}
+            </el-descriptions-item>
+            <el-descriptions-item
+              :label="t('controlledTradePage.ownership.lastReconciled')"
+            >
+              {{ formatTime(detail.managed_position.last_reconciled_at) }}
+            </el-descriptions-item>
+          </el-descriptions>
+          <el-table
+            :data="detail?.managed_orders || []"
+            size="small"
+            class="mb-4"
+          >
+            <el-table-column
+              prop="intent"
+              :label="t('controlledTradePage.ownership.intent')"
+              width="130"
+            />
+            <el-table-column
+              prop="status"
+              :label="t('controlledTradePage.table.status')"
+              width="160"
+            />
+            <el-table-column
+              prop="client_order_id"
+              label="Client Order ID"
+              min-width="210"
+            />
+            <el-table-column
+              prop="exchange_order_id"
+              label="Binance Order ID"
+              min-width="170"
+            />
+            <el-table-column
+              :label="t('controlledTradePage.ownership.requestedQty')"
+              width="140"
+            >
+              <template #default="{ row }">{{
+                formatNumber(row.requested_qty, 8)
+              }}</template>
+            </el-table-column>
+            <el-table-column
+              :label="t('controlledTradePage.ownership.filledQty')"
+              width="140"
+            >
+              <template #default="{ row }">{{
+                formatNumber(row.filled_qty, 8)
+              }}</template>
+            </el-table-column>
+          </el-table>
+        </template>
 
         <template v-if="detail?.execution">
           <div class="section-title">

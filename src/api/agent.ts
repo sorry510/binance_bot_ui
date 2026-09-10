@@ -1127,6 +1127,8 @@ export interface AgentTradeProposalListResult {
 export interface AgentTradeProposalDetail {
   proposal: AgentTradeProposal;
   execution?: AgentTradeExecution;
+  managed_position?: FuturesManagedPosition;
+  managed_orders?: FuturesManagedOrder[];
   audits: AgentTradeAudit[];
 }
 export const getAgentTradeProposals = (params: Query = {}) =>
@@ -1176,5 +1178,77 @@ export const reconcileAgentTradeProposal = (proposalId: string) =>
       `agents/trade/proposals/${encodeURIComponent(proposalId)}/reconcile`
     ),
     undefined,
+    { timeout: AGENT_API_TIMEOUT }
+  );
+
+export const closeAgentTradeProposal = (proposalId: string) =>
+  http.post<any, Query>(
+    baseUrlApi(
+      `agents/trade/proposals/${encodeURIComponent(proposalId)}/close`
+    ),
+    undefined,
+    { timeout: AGENT_API_TIMEOUT }
+  );
+
+export interface FuturesManagedPosition {
+  id: number;
+  owner: string;
+  symbol: string;
+  position_side: string;
+  managed_qty: number;
+  entry_price: number;
+  status: string;
+  source_ref?: string;
+  created_at: number;
+  updated_at: number;
+  closed_at: number;
+  last_reconciled_at: number;
+}
+
+export interface FuturesManagedOrder {
+  id: number;
+  owner: string;
+  symbol: string;
+  position_side: string;
+  intent: string;
+  client_order_id: string;
+  exchange_order_id?: string;
+  requested_qty: number;
+  filled_qty: number;
+  order_type: string;
+  status: string;
+  source_ref?: string;
+  created_at: number;
+  updated_at: number;
+  last_reconciled_at: number;
+}
+
+export interface AccountPositionOwnership {
+  symbol: string;
+  position_side: string;
+  account_qty: number;
+  owner: string;
+  managed_qty: number;
+  managed_status?: string;
+  source_ref?: string;
+  last_reconciled_at?: number;
+}
+
+export interface FuturesOwnershipData {
+  positions: FuturesManagedPosition[];
+  orders: FuturesManagedOrder[];
+  account_positions: AccountPositionOwnership[];
+  account_error?: string;
+}
+
+export const getFuturesOwnership = (owner = "") =>
+  http.get<any, Query>(baseUrlApi("agents/trade/ownership"), {
+    params: owner ? { owner } : {}
+  });
+
+export const reconcileFuturesOwnership = (owner = "") =>
+  http.post<any, Query>(
+    baseUrlApi("agents/trade/ownership/reconcile"),
+    { params: owner ? { owner } : {} },
     { timeout: AGENT_API_TIMEOUT }
   );

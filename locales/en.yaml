@@ -87,7 +87,7 @@ menus:
   agentSkillManagement: Skill Management
   agentTaskCenter: Task Center
   agentWorkflows: Workflows
-  agentControlledTrade: Controlled Trade
+  agentControlledTrade: Positions & Controlled Trade
   agentObservability: Observability
   agentMemoryManagement: Memory Management
   llmConfig: LLM Config
@@ -213,7 +213,7 @@ dashboard:
     testPush: Test Push
     openSkillManagement: Open Skill Management
     openTaskCenter: Open Task Center
-    openControlledTrade: Open Controlled Trade
+    openControlledTrade: Open Positions & Controlled Trade
   hint:
     autoUpdatePrice: Auto update price
     autoRefresh: Automatically updated by the AI Scheduler at the configured interval
@@ -343,7 +343,7 @@ dashboard:
     controlledTradeTitle: Enable AI Real Execution
     enableControlledTrade: Enable controlled real trading? Only Proposals that pass the deterministic Risk Engine and receive human approval can execute.
     futuresTradeTitle: "High Risk: Enable Futures Trading"
-    enableFuturesTrade: Once enabled, all futures positions and open orders in the current account will be managed by the automated trading system, except symbols configured under “Excluded Auto-Trading Symbols”. Are you sure you want to enable it?
+    enableFuturesTrade: Once enabled, automated trading only manages positions and orders it created and explicitly registered with ownership. Manual positions, other owners, and unknown positions remain unmanaged. Excluded Auto-Trading Symbols still have the highest priority. Continue?
     confirmEnableFuturesTrade: Enable
     cancel: Cancel
 agentTaskCenter:
@@ -2049,8 +2049,8 @@ workflowPage:
     startFailed: Failed to start workflow
 
 controlledTradePage:
-  title: AI Controlled Trade
-  subtitle: Proposals can only come from successful Symbol Analysis Tasks. Real execution requires deterministic Risk, human approval, and another Risk check immediately before execution.
+  title: Positions & Controlled Trade
+  subtitle: View futures position and order ownership in one place. Agent Proposals can only come from successful Symbol Analysis Tasks; real execution requires deterministic Risk, human approval, and another Risk check immediately before execution.
   history: Proposal History
   warning:
     title: Real Trading Is High Risk
@@ -2067,11 +2067,35 @@ controlledTradePage:
     reject: Reject
     execute: Execute Real Trade
     reconcile: Reconcile by Client Order ID
+    reconcileOwnership: Reconcile Ownership
+    closePosition: Close This Managed Position
+  ownership:
+    title: Futures Position / Order Ownership
+    description: The whole account is observed for conflicts and risk, but only explicitly managed quantity can be mutated by its recorded owner. Unmanaged positions are always read-only.
+    accountPositions: Account Position Ownership
+    managedOrders: Managed Orders
+    accountQty: Account Qty
+    managedQty: Managed Qty
+    owner: Owner
+    sourceRef: Source
+    intent: Intent
+    requestedQty: Requested Qty
+    filledQty: Filled Qty
+    lastReconciled: Last Reconciled
+    reconcileRequiredWarning: A position or order is in reconcile_required state and its result is not confirmed. Reconcile ownership before submitting another trade.
+  owner:
+    auto_strategy: Auto Strategy
+    new_coin_rush: New Coin Rush
+    notice_auto_order: Futures Notice Auto Order
+    funding_rate: Funding Rate Auto Order
+    agent_trade: AI Controlled Trade
+    unmanaged: Unmanaged
   placeholder:
     taskId: Enter a successful Symbol Analysis Task ID
     symbol: Symbol, for example BTCUSDT
     rejectReason: Enter rejection reason
   table:
+    proposalId: Proposal ID
     taskId: Source Task ID
     symbol: Symbol
     side: Side
@@ -2102,6 +2126,8 @@ controlledTradePage:
     clientOrderId: Client Order ID
     exchangeOrderId: Binance Order ID
     averagePrice: Average Price
+    managedLifecycle: Agent Managed Position / Orders
+    entryPrice: Managed Entry Price
     error: Error
     audit: Audit Trail
     time: Time
@@ -2117,6 +2143,8 @@ controlledTradePage:
     executed: Executed
     execution_failed: Execution Failed
     execution_uncertain: Execution Uncertain
+    protection_failed: Protection Failed
+    closed: Closed
     expired: Expired
   confirm:
     title: Human Approval
@@ -2125,6 +2153,8 @@ controlledTradePage:
     reject: Reject this Proposal. You may enter a reason.
     executeTitle: Real Trade Confirmation
     execute: A real Binance order may be submitted after another complete Risk check. Continue?
+    closeTitle: Close Agent Managed Position
+    close: Only the managed quantity owned by this agent_trade Proposal will be closed. Manual additions and other owners are not touched. Continue?
   message:
     taskRequired: Enter the source Task ID
     created: Proposal created and initial Risk check completed
@@ -2140,6 +2170,11 @@ controlledTradePage:
     executeFailed: Execution failed or is uncertain; inspect the details
     reconcileSuccess: Reconciliation completed
     reconcileFailed: Order result is still unconfirmed; do not resubmit
+    ownershipLoadFailed: Failed to load futures ownership
+    ownershipReconcileSuccess: Futures ownership reconciliation completed
+    ownershipReconcileFailed: Futures ownership reconciliation failed
+    closeSuccess: Agent managed position closed
+    closeFailed: Failed to close Agent managed position; inspect protection and reconciliation status
 aiConfigPage:
   title: AI Configuration
   subtitle: Manage AI alerts, scheduling, governance budgets, and controlled trading in one place.

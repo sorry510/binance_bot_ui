@@ -68,6 +68,24 @@ export default [
         }
       },
       {
+        path: "/ai/controlled-trade",
+        name: "AgentControlledTrade",
+        component: () => import("@/views/ai/controlledTrade.vue"),
+        meta: {
+          title: "menus.agentControlledTrade",
+          showLink: true
+        }
+      },
+      {
+        path: "/ai/backtest",
+        name: "AgentBacktest",
+        component: () => import("@/views/ai/backtest.vue"),
+        meta: {
+          title: "menus.agentBacktest",
+          showLink: true
+        }
+      },
+      {
         path: "/futures/liquidation-orders",
         name: "futuresLiquidationOrders",
         component: () => import("@/views/futures/liquidationOrder.vue"),
