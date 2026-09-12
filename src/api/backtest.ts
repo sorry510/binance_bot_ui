@@ -34,6 +34,16 @@ export interface BacktestGroupMetrics {
   funding: number;
   average_holding_ms: number;
 }
+export interface BacktestResolutionStats {
+  second_drilldown_minutes: number;
+  trade_drilldown_seconds: number;
+  second_cache_hits: number;
+  trade_cache_hits: number;
+  archive_cache_hits: number;
+  archive_downloads: number;
+  download_bytes: number;
+  unresolved: number;
+}
 export interface BacktestRun {
   run_id: string;
   dataset_id: string;
@@ -44,6 +54,9 @@ export interface BacktestRun {
   strategy_version: string;
   engine_version: string;
   market_condition_model: string;
+  resolution_mode: "standard_1m" | "adaptive";
+  resolution_model: string;
+  resolution_stats: BacktestResolutionStats;
   symbol: string;
   execution_interval: string;
   start_time: number;
@@ -90,6 +103,8 @@ export interface BacktestTrade {
   open_strategy_name?: string;
   close_strategy_name?: string;
   market_condition: number;
+  entry_resolution?: string;
+  exit_resolution?: string;
 }
 export interface BacktestEvent {
   sequence: number;
@@ -112,6 +127,7 @@ export interface BacktestEquityPoint {
 }
 export interface StartBacktestRequest {
   strategy_template_id: number;
+  resolution_mode: "standard_1m" | "adaptive";
   symbol: string;
   start_time: number;
   end_time: number;
@@ -206,15 +222,15 @@ export const deleteBacktest = (id: string) =>
     "delete",
     baseUrlApi(`agents/backtests/${encodeURIComponent(id)}`)
   );
-export const getBacktestTrades = (id: string) =>
+export const getBacktestTrades = (id: string, params: Query = {}) =>
   http.get<any, Query>(
     baseUrlApi(`agents/backtests/${encodeURIComponent(id)}/trades`),
-    { params: {} }
+    { params }
   );
-export const getBacktestEvents = (id: string) =>
+export const getBacktestEvents = (id: string, params: Query = {}) =>
   http.get<any, Query>(
     baseUrlApi(`agents/backtests/${encodeURIComponent(id)}/events`),
-    { params: {} }
+    { params }
   );
 export const getBacktestEquity = (id: string) =>
   http.get<any, Query>(

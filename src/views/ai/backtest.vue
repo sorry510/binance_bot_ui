@@ -80,6 +80,7 @@ const query = reactive({ page: 1, limit: 20 });
 const now = Date.now();
 const form = reactive({
   strategy_template_id: undefined as number | undefined,
+  resolution_mode: "standard_1m" as "standard_1m" | "adaptive",
   symbol: "",
   range: [new Date(now - 3 * 24 * 3600 * 1000), new Date(now)] as [Date, Date],
   initial_equity: 1000,
@@ -106,13 +107,19 @@ const detail = ref<BacktestRun | null>(null);
 const paramsVisible = ref(false);
 const paramsRun = ref<BacktestRun | null>(null);
 const trades = ref<BacktestTrade[]>([]);
+const tradeTotal = ref(0);
+const tradeLoading = ref(false);
+const tradeQuery = reactive({ page: 1, limit: 20 });
 const events = ref<BacktestEvent[]>([]);
-const loadedEventsRunId = ref("");
+const eventTotal = ref(0);
+const eventLoading = ref(false);
+const eventQuery = reactive({ page: 1, limit: 50 });
 const equity = ref<BacktestEquityPoint[]>([]);
 const detailTab = ref("summary");
 const chartEl = ref<HTMLElement>();
 let chart: EChartsType | undefined;
 let timer: ReturnType<typeof setTimeout> | undefined;
+const clock = ref(Date.now());
 const compareA = ref("");
 const compareB = ref("");
 const succeededRuns = computed(() =>
@@ -137,6 +144,30 @@ function isActiveRun(status: string) {
 function stageText(stage: string) {
   return t(`backtestPage.stage.${stage}`);
 }
+function isIntrabarStage(stage?: string) {
+  return [
+    "resolving_intrabar_data",
+    "downloading_intrabar_archive",
+    "parsing_intrabar_archive"
+  ].includes(stage || "");
+}
+function stageHint(stage?: string) {
+  return stage && isIntrabarStage(stage)
+    ? t(`backtestPage.stageHint.${stage}`)
+    : "";
+}
+function resolutionModeText(mode?: string) {
+  return t(`backtestPage.resolution.mode.${mode || "standard_1m"}`);
+}
+function resolutionText(value?: string) {
+  return t(`backtestPage.resolution.value.${value || "1m"}`);
+}
+function bytes(v?: number) {
+  const value = Number(v || 0);
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${num(value / 1024, 1)} KB`;
+  return `${num(value / 1024 / 1024, 1)} MB`;
+}
 function marketConditionStageText(stage: string) {
   const key = `backtestPage.marketCondition.stageValue.${stage}`;
   return t(key);
@@ -154,9 +185,27 @@ function metricPct(v?: number) {
   return `${num(v, 2)}%`;
 }
 function formatDuration(ms?: number) {
-  if (!ms) return "-";
-  const m = Math.round(ms / 60000);
-  return m >= 60 ? `${num(m / 60, 1)}h` : `${m}m`;
+  const value = Math.max(0, Number(ms || 0));
+  if (!value) return "-";
+  const totalSeconds = Math.floor(value / 1000);
+  if (totalSeconds < 1) return "<1s";
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const parts: string[] = [];
+  if (days) parts.push(`${days}d`);
+  if (hours) parts.push(`${hours}h`);
+  if (minutes) parts.push(`${minutes}m`);
+  if (seconds || !parts.length) parts.push(`${seconds}s`);
+  return parts.slice(0, 3).join(" ");
+}
+function runDuration(run?: BacktestRun | null) {
+  if (!run?.started_at) return "-";
+  const end =
+    run.completed_at ||
+    (isActiveRun(run.status) ? clock.value : run.updated_at || clock.value);
+  return formatDuration(Math.max(0, end - run.started_at));
 }
 async function fetchSymbols() {
   try {
@@ -312,6 +361,7 @@ async function submit() {
   try {
     const res = await startBacktest({
       strategy_template_id: Number(form.strategy_template_id),
+      resolution_mode: form.resolution_mode,
       symbol: form.symbol.trim().toUpperCase(),
       start_time: form.range[0].getTime(),
       end_time: form.range[1].getTime(),
@@ -341,44 +391,103 @@ function openParams(row: BacktestRun) {
   paramsVisible.value = true;
 }
 async function openDetail(row: BacktestRun) {
+  trades.value = [];
+  tradeTotal.value = 0;
+  tradeQuery.page = 1;
   events.value = [];
-  loadedEventsRunId.value = "";
+  eventTotal.value = 0;
+  eventQuery.page = 1;
+  equity.value = [];
   const res = await getBacktest(row.run_id);
   detail.value = (res?.data || row) as BacktestRun;
   detailVisible.value = true;
   detailTab.value = "summary";
   await loadResultData();
 }
+async function loadTrades() {
+  if (!detail.value || detail.value.status !== "succeeded") {
+    trades.value = [];
+    tradeTotal.value = 0;
+    return;
+  }
+  tradeLoading.value = true;
+  try {
+    const res = await getBacktestTrades(detail.value.run_id, { ...tradeQuery });
+    trades.value = res?.data?.list || [];
+    tradeTotal.value = Number(res?.data?.total || 0);
+  } finally {
+    tradeLoading.value = false;
+  }
+}
 async function loadResultData() {
   if (!detail.value) return;
-  const id = detail.value.run_id;
   if (detail.value.status === "succeeded") {
-    const [tr, eq] = await Promise.all([
-      getBacktestTrades(id),
-      getBacktestEquity(id)
-    ]);
-    trades.value = tr?.data || [];
+    const eqPromise = getBacktestEquity(detail.value.run_id);
+    await loadTrades();
+    const eq = await eqPromise;
     equity.value = eq?.data || [];
     await nextTick();
     renderChart();
   } else {
     trades.value = [];
+    tradeTotal.value = 0;
     equity.value = [];
   }
 }
 async function loadEvents() {
-  if (!detail.value) return;
-  const id = detail.value.run_id;
-  if (loadedEventsRunId.value === id) return;
-  const res = await getBacktestEvents(id);
-  events.value = res?.data || [];
-  loadedEventsRunId.value = id;
+  if (!detail.value || detail.value.status !== "succeeded") {
+    events.value = [];
+    eventTotal.value = 0;
+    return;
+  }
+  eventLoading.value = true;
+  try {
+    const res = await getBacktestEvents(detail.value.run_id, { ...eventQuery });
+    events.value = res?.data?.list || [];
+    eventTotal.value = Number(res?.data?.total || 0);
+  } finally {
+    eventLoading.value = false;
+  }
+}
+async function handleDetailTabChange(name: string | number) {
+  if (name === "summary") {
+    await nextTick();
+    renderChart();
+    chart?.resize();
+  }
+  if (name === "trades") await loadTrades();
+  if (name === "events") await loadEvents();
+}
+async function handleDetailOpened() {
+  await nextTick();
+  renderChart();
+  chart?.resize();
+}
+function handleDetailClosed() {
+  chart?.dispose();
+  chart = undefined;
+}
+async function changeTradePage(page: number) {
+  tradeQuery.page = page;
+  await loadTrades();
+}
+async function changeEventPage(page: number) {
+  eventQuery.page = page;
+  await loadEvents();
 }
 async function refreshDetail() {
   if (!detail.value) return;
+  const wasSucceeded = detail.value.status === "succeeded";
   const res = await getBacktest(detail.value.run_id);
   detail.value = (res?.data || detail.value) as BacktestRun;
-  if (detail.value.status === "succeeded") await loadResultData();
+  if (!wasSucceeded && detail.value.status === "succeeded") {
+    tradeQuery.page = 1;
+    eventQuery.page = 1;
+    events.value = [];
+    eventTotal.value = 0;
+    await loadResultData();
+    if (detailTab.value === "events") await loadEvents();
+  }
 }
 async function cancel(row: BacktestRun) {
   try {
@@ -409,7 +518,6 @@ async function removeRun(row: BacktestRun) {
       trades.value = [];
       events.value = [];
       equity.value = [];
-      loadedEventsRunId.value = "";
     }
     if (paramsRun.value?.run_id === row.run_id) {
       paramsVisible.value = false;
@@ -430,7 +538,12 @@ async function removeRun(row: BacktestRun) {
 }
 function renderChart() {
   if (!chartEl.value || !equity.value.length) return;
+  if (chart && chart.getDom() !== chartEl.value) {
+    chart.dispose();
+    chart = undefined;
+  }
   if (!chart) chart = initECharts(chartEl.value);
+  chart.clear();
   chart.setOption({
     tooltip: { trigger: "axis" },
     legend: {
@@ -461,6 +574,7 @@ function renderChart() {
       }
     ]
   });
+  requestAnimationFrame(() => chart?.resize());
 }
 function metricRows(m?: BacktestMetrics) {
   if (!m) return [];
@@ -480,18 +594,18 @@ function metricRows(m?: BacktestMetrics) {
 }
 function schedule(delay?: number) {
   if (timer) clearTimeout(timer);
+  const hasActiveDetail =
+    detailVisible.value && detail.value && isActiveRun(detail.value.status);
   const wait =
-    delay ?? (runs.value.some(x => isActiveRun(x.status)) ? 750 : 3000);
+    delay ??
+    (runs.value.some(x => isActiveRun(x.status)) || hasActiveDetail
+      ? 750
+      : 3000);
   timer = setTimeout(async () => {
-    if (runs.value.some(x => isActiveRun(x.status))) {
-      await fetchRuns();
-      if (
-        detailVisible.value &&
-        detail.value &&
-        isActiveRun(detail.value.status)
-      )
-        await refreshDetail();
-    }
+    clock.value = Date.now();
+    if (runs.value.some(x => isActiveRun(x.status))) await fetchRuns();
+    if (detailVisible.value && detail.value && isActiveRun(detail.value.status))
+      await refreshDetail();
     schedule();
   }, wait);
 }
@@ -557,6 +671,22 @@ onBeforeUnmount(() => {
             :disabled="prefetching"
             style="width: 440px"
         /></el-form-item>
+        <el-form-item :label="t('backtestPage.form.resolutionMode')">
+          <el-radio-group
+            v-model="form.resolution_mode"
+            :disabled="prefetching"
+          >
+            <el-radio-button value="standard_1m">{{
+              t("backtestPage.resolution.mode.standard_1m")
+            }}</el-radio-button>
+            <el-radio-button value="adaptive">{{
+              t("backtestPage.resolution.mode.adaptive")
+            }}</el-radio-button>
+          </el-radio-group>
+          <div class="resolution-help text-xs text-gray-500">
+            {{ t(`backtestPage.resolution.help.${form.resolution_mode}`) }}
+          </div>
+        </el-form-item>
         <el-form-item :label="t('backtestPage.form.initialEquity')"
           ><el-input-number v-model="form.initial_equity" :min="1"
         /></el-form-item>
@@ -763,12 +893,12 @@ onBeforeUnmount(() => {
           label="Symbol"
           width="110"
         /><el-table-column
-          prop="execution_interval"
           :label="t('backtestPage.replayPrecision')"
-          width="90"
-        /><el-table-column
-          :label="t('backtestPage.table.parameters')"
-          width="90"
+          width="140"
+          ><template #default="{ row }">{{
+            resolutionModeText(row.resolution_mode)
+          }}</template></el-table-column
+        ><el-table-column :label="t('backtestPage.table.parameters')" width="90"
           ><template #default="{ row }"
             ><el-button link type="primary" @click="openParams(row)">{{
               t("backtestPage.button.parameters")
@@ -792,10 +922,27 @@ onBeforeUnmount(() => {
                     : undefined
               "
             />
-            <div class="text-xs text-gray-400 mt-1">
+            <div
+              class="text-xs mt-1"
+              :class="
+                isIntrabarStage(row.stage) ? 'text-warning' : 'text-gray-400'
+              "
+            >
               {{ stageText(row.stage) }}
+              <el-tag
+                v-if="isIntrabarStage(row.stage)"
+                type="warning"
+                size="small"
+                effect="plain"
+                class="ml-1"
+                >{{ t("backtestPage.intrabar.active") }}</el-tag
+              >
             </div></template
           ></el-table-column
+        ><el-table-column :label="t('backtestPage.table.duration')" width="130"
+          ><template #default="{ row }">{{
+            runDuration(row)
+          }}</template></el-table-column
         ><el-table-column :label="t('backtestPage.metric.net_pnl')" width="120"
           ><template #default="{ row }">{{
             row.metrics ? num(row.metrics.net_pnl) : "-"
@@ -859,7 +1006,7 @@ onBeforeUnmount(() => {
           paramsRun.symbol
         }}</el-descriptions-item>
         <el-descriptions-item :label="t('backtestPage.replayPrecision')">{{
-          paramsRun.execution_interval
+          resolutionModeText(paramsRun.resolution_mode)
         }}</el-descriptions-item>
         <el-descriptions-item :label="t('backtestPage.form.range')" :span="2"
           >{{ formatTime(paramsRun.start_time) }} -
@@ -893,6 +1040,8 @@ onBeforeUnmount(() => {
       v-model="detailVisible"
       :title="t('backtestPage.detail.title')"
       size="75%"
+      @opened="handleDetailOpened"
+      @closed="handleDetailClosed"
       ><template v-if="detail"
         ><el-descriptions :column="3" border class="mb-4"
           ><el-descriptions-item label="Run ID">{{
@@ -912,11 +1061,25 @@ onBeforeUnmount(() => {
           ><el-descriptions-item label="Engine">{{
             detail.engine_version
           }}</el-descriptions-item
+          ><el-descriptions-item
+            :label="t('backtestPage.resolution.modeLabel')"
+            >{{
+              resolutionModeText(detail.resolution_mode)
+            }}</el-descriptions-item
+          ><el-descriptions-item
+            :label="t('backtestPage.resolution.modelLabel')"
+            >{{ detail.resolution_model || "-" }}</el-descriptions-item
           ><el-descriptions-item :label="t('backtestPage.table.status')">{{
             detail.status
           }}</el-descriptions-item
           ><el-descriptions-item :label="t('backtestPage.table.progress')"
             >{{ detail.progress }}%</el-descriptions-item
+          ><el-descriptions-item :label="t('backtestPage.detail.stage')">{{
+            stageText(detail.stage)
+          }}</el-descriptions-item
+          ><el-descriptions-item :label="t('backtestPage.table.duration')">{{
+            runDuration(detail)
+          }}</el-descriptions-item
           ><el-descriptions-item
             v-if="detail.error"
             :span="3"
@@ -924,9 +1087,15 @@ onBeforeUnmount(() => {
             >{{ detail.error }}</el-descriptions-item
           ></el-descriptions
         >
-        <el-tabs
-          v-model="detailTab"
-          @tab-change="x => x === 'events' && loadEvents()"
+        <el-alert
+          v-if="detail.status === 'running' && isIntrabarStage(detail.stage)"
+          type="warning"
+          :closable="false"
+          show-icon
+          class="mb-4"
+          :title="stageText(detail.stage)"
+          :description="stageHint(detail.stage)" />
+        <el-tabs v-model="detailTab" @tab-change="handleDetailTabChange"
           ><el-tab-pane :label="t('backtestPage.detail.summary')" name="summary"
             ><template v-if="detail.metrics"
               ><el-row :gutter="12" class="mb-4"
@@ -945,6 +1114,62 @@ onBeforeUnmount(() => {
                   ></el-col
                 ></el-row
               >
+              <el-descriptions
+                v-if="detail.resolution_mode === 'adaptive'"
+                :column="4"
+                border
+                size="small"
+                class="mb-4"
+              >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.secondMinutes')"
+                  >{{
+                    detail.resolution_stats?.second_drilldown_minutes || 0
+                  }}</el-descriptions-item
+                >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.tradeSeconds')"
+                  >{{
+                    detail.resolution_stats?.trade_drilldown_seconds || 0
+                  }}</el-descriptions-item
+                >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.downloads')"
+                  >{{
+                    detail.resolution_stats?.archive_downloads || 0
+                  }}</el-descriptions-item
+                >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.downloadBytes')"
+                  >{{
+                    bytes(detail.resolution_stats?.download_bytes)
+                  }}</el-descriptions-item
+                >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.secondCacheHits')"
+                  >{{
+                    detail.resolution_stats?.second_cache_hits || 0
+                  }}</el-descriptions-item
+                >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.tradeCacheHits')"
+                  >{{
+                    detail.resolution_stats?.trade_cache_hits || 0
+                  }}</el-descriptions-item
+                >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.archiveCacheHits')"
+                  >{{
+                    detail.resolution_stats?.archive_cache_hits || 0
+                  }}</el-descriptions-item
+                >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.unresolved')"
+                  >{{
+                    detail.resolution_stats?.unresolved || 0
+                  }}</el-descriptions-item
+                >
+              </el-descriptions>
               <div ref="chartEl" class="equity-chart" />
               <el-row :gutter="16" class="mt-4"
                 ><el-col :span="24"
@@ -968,7 +1193,7 @@ onBeforeUnmount(() => {
             ><el-empty v-else :description="detail.status"
           /></el-tab-pane>
           <el-tab-pane :label="t('backtestPage.detail.trades')" name="trades"
-            ><el-table :data="trades" size="small"
+            ><el-table v-loading="tradeLoading" :data="trades" size="small"
               ><el-table-column
                 prop="sequence"
                 label="#"
@@ -982,14 +1207,20 @@ onBeforeUnmount(() => {
                 width="180"
                 ><template #default="{ row }"
                   >{{ formatTime(row.entry_time) }} @
-                  {{ num(row.entry_price, 6) }}</template
+                  {{ num(row.entry_price, 6) }}
+                  <el-tag size="small" effect="plain" class="ml-1">{{
+                    resolutionText(row.entry_resolution)
+                  }}</el-tag></template
                 ></el-table-column
               ><el-table-column
                 :label="t('backtestPage.detail.exit')"
                 width="180"
                 ><template #default="{ row }"
                   >{{ formatTime(row.exit_time) }} @
-                  {{ num(row.exit_price, 6) }}</template
+                  {{ num(row.exit_price, 6) }}
+                  <el-tag size="small" effect="plain" class="ml-1">{{
+                    resolutionText(row.exit_resolution)
+                  }}</el-tag></template
                 ></el-table-column
               ><el-table-column
                 prop="exit_reason"
@@ -1007,10 +1238,16 @@ onBeforeUnmount(() => {
                   num(row.funding_pnl, 4)
                 }}</template></el-table-column
               ></el-table
-            ></el-tab-pane
-          >
+            ><el-pagination
+              v-model:current-page="tradeQuery.page"
+              class="mt-3 justify-end"
+              layout="total, prev, pager, next"
+              :total="tradeTotal"
+              :page-size="tradeQuery.limit"
+              @current-change="changeTradePage"
+          /></el-tab-pane>
           <el-tab-pane :label="t('backtestPage.detail.events')" name="events"
-            ><el-table :data="events" size="small"
+            ><el-table v-loading="eventLoading" :data="events" size="small"
               ><el-table-column
                 prop="sequence"
                 label="#"
@@ -1033,12 +1270,27 @@ onBeforeUnmount(() => {
                 ><template #default="{ row }">{{
                   num(row.price, 6)
                 }}</template></el-table-column
-              ></el-table
-            ></el-tab-pane
-          ></el-tabs
-        ></template
-      ></el-drawer
-    >
+              ><el-table-column
+                :label="t('backtestPage.detail.evidence')"
+                min-width="220"
+              >
+                <template #default="{ row }">
+                  <pre v-if="row.data" class="event-data">{{
+                    JSON.stringify(row.data, null, 2)
+                  }}</pre>
+                  <span v-else>-</span>
+                </template>
+              </el-table-column></el-table
+            ><el-pagination
+              v-model:current-page="eventQuery.page"
+              class="mt-3 justify-end"
+              layout="total, prev, pager, next"
+              :total="eventTotal"
+              :page-size="eventQuery.limit"
+              @current-change="
+                changeEventPage
+              " /></el-tab-pane></el-tabs></template
+    ></el-drawer>
   </div>
 </template>
 <style scoped>
@@ -1052,6 +1304,19 @@ onBeforeUnmount(() => {
 
 .prefetch-status {
   width: min(100%, 640px);
+}
+
+.resolution-help {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.event-data {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  word-break: break-all;
+  white-space: pre-wrap;
 }
 
 .equity-chart {

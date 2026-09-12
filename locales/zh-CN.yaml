@@ -1478,6 +1478,7 @@ listenFundingRatePage:
     operation: 操作
     rate: 资金费率
     price: 价格
+    evidence: 审计证据
   state:
     yes: 是
     no: 否
@@ -2180,13 +2181,35 @@ aiConfigPage:
   subtitle: 集中管理 AI 报警、调度、治理预算和受控交易参数。
 backtestPage:
   title: 历史回测
-  subtitle: 回放精度固定为 1m，用于近似真实交易的秒级执行策略判定。指标 K 线周期仍然由策略模板的 Technology 配置决定。
+  subtitle: 主时间轴仍为 1m；自适应精度只在价格路径存在歧义或 ROI Gate 可能在分钟内触发时按需下钻 1s / trades。指标 K 线周期仍由策略模板的 Technology 配置决定。
   replayPrecision: 回放精度
   history: 回测历史
+  resolution:
+    modeLabel: 精度模式
+    modelLabel: 精度模型
+    mode:
+      standard_1m: 标准 1m
+      adaptive: 自适应精度
+    help:
+      standard_1m: 完全使用现有 1m 回放语义，便于与历史 V6 结果对照。
+      adaptive: 仍以 1m 为主；只有路径歧义或 ROI Gate 候选分钟才按需读取 1s，必要时继续下钻逐笔 trades。
+    value:
+      1m: 1m
+      1s: 1s
+      trades: Trades
+    secondMinutes: 1s 下钻分钟
+    tradeSeconds: Trades 下钻秒
+    downloads: Archive 下载次数
+    downloadBytes: 下载量
+    secondCacheHits: 1s Cache 命中
+    tradeCacheHits: Trades Cache 命中
+    archiveCacheHits: Archive Cache 命中
+    unresolved: 未解析冲突
   form:
     template: 策略模板
     symbol: 合约
     range: 回测时间
+    resolutionMode: 精度模式
     initialEquity: 初始资金
     positionSize: 仓位比例
     leverage: 杠杆
@@ -2195,7 +2218,7 @@ backtestPage:
     stopLoss: 止损触发 ROI (%)
     takeProfit: 止盈触发 ROI (%)
   button:
-    marketConditionBackfill: 补充 MarketCondition 历史
+    marketConditionBackfill: 补充市场环境历史
     prefetch: 获取历史数据
     start: 开始回测
     refresh: 刷新
@@ -2208,6 +2231,7 @@ backtestPage:
     parameters: 参数
     status: 状态
     progress: 进度
+    duration: 耗时
     createdAt: 创建时间
     operation: 操作
   parameters:
@@ -2227,9 +2251,9 @@ backtestPage:
     prefetchLocal: 本地历史数据已完整，无需请求 Binance
     prefetchFailed: 获取历史数据失败
   marketCondition:
-    title: MarketCondition 历史
-    confirmTitle: 补充 MarketCondition 历史
-    confirm: 将从 Binance 补齐 BTCUSDT/ETHUSDT 从各自上线至今的 1h K 线，并据此推断每小时 MarketCondition。过程可能需要较长时间，是否继续？
+    title: 市场环境历史
+    confirmTitle: 补充市场环境历史
+    confirm: 将从 Binance 补齐 BTCUSDT/ETHUSDT 从各自上线至今的 1h K 线，并据此推断每小时市场环境。过程可能需要较长时间，是否继续？
     stage: 阶段
     stageValue:
       queued: 等待执行
@@ -2243,9 +2267,9 @@ backtestPage:
     inferred: 推断
     inserted: 新增
     skipped: 已存在跳过
-    note: 推断数据不会覆盖同小时已存在的真实 MarketCondition；Binance 历史 REST 请求继续使用全局限频。
-    succeeded: MarketCondition 历史补充完成：新增 {inserted} 条，跳过已有 {skipped} 条
-    failed: 补充 MarketCondition 历史失败
+    note: 推断数据不会覆盖同小时已存在的真实市场环境；Binance 历史 REST 请求继续使用全局限频。
+    succeeded: 市场环境历史补充完成：新增 {inserted} 条，跳过已有 {skipped} 条
+    failed: 补充市场环境历史失败
   prefetch:
     title: 历史数据
     replay: 回放精度
@@ -2258,11 +2282,20 @@ backtestPage:
     queued: 等待执行
     building_dataset: 准备历史数据
     running_backtest: 回放历史 K 线
+    resolving_intrabar_data: 读取高精度分钟内数据
+    downloading_intrabar_archive: 下载高精度 ZIP 数据
+    parsing_intrabar_archive: 解析高精度 ZIP 数据
     saving_results: 保存回测结果
     completed: 已完成
     failed: 失败
     cancelled: 已取消
     interrupted: 已中断
+  stageHint:
+    resolving_intrabar_data: 正在读取本地 1s / Trades 缓存；缺失时会自动使用 Binance Public Data。
+    downloading_intrabar_archive: 正在从 Binance Public Data 下载并校验 1s / Trades 日级 ZIP，完成后会继续回放。
+    parsing_intrabar_archive: 正在顺序解压并解析高精度 ZIP，只保存本次回放实际需要的 1s / Trades 范围。
+  intrabar:
+    active: 高精度数据
   compare:
     title: 结果对比
     metric: 指标
@@ -2277,6 +2310,7 @@ backtestPage:
     trades: 交易
     events: 审计事件
     error: 错误
+    stage: 当前阶段
     bySide: 按 LONG / SHORT
     entry: 开仓
     exit: 平仓

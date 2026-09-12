@@ -1007,6 +1007,7 @@ futuresSymbolPage:
     strategy: Strategy
     change24h: 24h Change
     price: Price
+    evidence: Audit Evidence
     quoteVolume: 24h Volume
     marginType: Margin Type
     usdt: Funds
@@ -2180,13 +2181,35 @@ aiConfigPage:
   subtitle: Manage AI alerts, scheduling, governance budgets, and controlled trading in one place.
 backtestPage:
   title: Historical Backtest
-  subtitle: Replay is fixed at 1m to approximate the live second-level strategy loop. Indicator K-line intervals still come from the Strategy Template.
+  subtitle: The main replay timeline remains 1m. Adaptive mode drills into 1s / trades only for ambiguous price paths or minutes where the ROI gate may have triggered intrabar. Indicator intervals still come from the Strategy Template.
   history: Backtest History
+  resolution:
+    modeLabel: Resolution Mode
+    modelLabel: Resolution Model
+    mode:
+      standard_1m: Standard 1m
+      adaptive: Adaptive Resolution
+    help:
+      standard_1m: Uses the existing 1m replay semantics unchanged for V6 comparison.
+      adaptive: Keeps 1m as the main timeline and lazily drills into 1s for ambiguous paths or ROI-gate candidate minutes, then into trades only when needed.
+    value:
+      1m: 1m
+      1s: 1s
+      trades: Trades
+    secondMinutes: 1s Drill-down Minutes
+    tradeSeconds: Trade Drill-down Seconds
+    downloads: Archive Downloads
+    downloadBytes: Downloaded Bytes
+    secondCacheHits: 1s Cache Hits
+    tradeCacheHits: Trade Cache Hits
+    archiveCacheHits: Archive Cache Hits
+    unresolved: Unresolved Conflicts
   replayPrecision: Replay Precision
   form:
     template: Strategy Template
     symbol: Contract
     range: Time Range
+    resolutionMode: Resolution Mode
     initialEquity: Initial Equity
     positionSize: Position Size
     leverage: Leverage
@@ -2195,7 +2218,7 @@ backtestPage:
     stopLoss: Loss Trigger ROI (%)
     takeProfit: Profit Trigger ROI (%)
   button:
-    marketConditionBackfill: Backfill MarketCondition
+    marketConditionBackfill: Backfill Market Condition History
     prefetch: Fetch Historical Data
     start: Start Backtest
     refresh: Refresh
@@ -2208,6 +2231,7 @@ backtestPage:
     parameters: Parameters
     status: Status
     progress: Progress
+    duration: Duration
     createdAt: Created At
     operation: Operation
   parameters:
@@ -2227,9 +2251,9 @@ backtestPage:
     prefetchLocal: Historical data is already complete locally
     prefetchFailed: Failed to fetch historical data
   marketCondition:
-    title: MarketCondition History
-    confirmTitle: Backfill MarketCondition History
-    confirm: Fetch BTCUSDT/ETHUSDT 1h K-lines from their first Binance Futures listing through now, then infer hourly MarketCondition values. This may take a while. Continue?
+    title: Market Condition History
+    confirmTitle: Backfill Market Condition History
+    confirm: Fetch BTCUSDT/ETHUSDT 1h K-lines from their first Binance Futures listing through now, then infer hourly market conditions. This may take a while. Continue?
     stage: Stage
     stageValue:
       queued: Queued
@@ -2243,9 +2267,9 @@ backtestPage:
     inferred: Inferred
     inserted: Inserted
     skipped: Existing skipped
-    note: Inferred rows never overwrite an existing MarketCondition in the same hour; Binance historical REST requests remain globally rate-limited.
-    succeeded: "MarketCondition history completed: {inserted} inserted, {skipped} existing rows skipped"
-    failed: MarketCondition history backfill failed
+    note: Inferred rows never overwrite an existing market condition in the same hour; Binance historical REST requests remain globally rate-limited.
+    succeeded: "Market condition history completed: {inserted} inserted, {skipped} existing rows skipped"
+    failed: Market condition history backfill failed
   prefetch:
     title: Historical Data
     replay: Replay precision
@@ -2258,11 +2282,20 @@ backtestPage:
     queued: Queued
     building_dataset: Preparing historical data
     running_backtest: Replaying historical bars
+    resolving_intrabar_data: Reading intrabar high-resolution data
+    downloading_intrabar_archive: Downloading high-resolution ZIP data
+    parsing_intrabar_archive: Parsing high-resolution ZIP data
     saving_results: Saving results
     completed: Completed
     failed: Failed
     cancelled: Cancelled
     interrupted: Interrupted
+  stageHint:
+    resolving_intrabar_data: Reading local 1s / Trades cache; missing ranges are fetched automatically from Binance Public Data.
+    downloading_intrabar_archive: Downloading and verifying daily 1s / Trades ZIP data from Binance Public Data before replay continues.
+    parsing_intrabar_archive: Sequentially decompressing and parsing the high-resolution ZIP; only ranges required by this replay are persisted.
+  intrabar:
+    active: High-resolution data
   compare:
     title: Compare Results
     metric: Metric
@@ -2277,6 +2310,7 @@ backtestPage:
     trades: Trades
     events: Audit Events
     error: Error
+    stage: Current Stage
     bySide: By LONG / SHORT
     entry: Entry
     exit: Exit
