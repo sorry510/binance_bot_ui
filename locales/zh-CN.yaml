@@ -199,7 +199,6 @@ dashboard:
     marketConditionAuto: 市场趋势自动更新
     marketAnalysisProgress: AI 分析进度
     latestMarketAnalysis: 最近分析
-    excludeSymbols: 排除自动交易的币
     orderType: 下单类型
     testStrategy: 测试策略
     testAutoTradeLimit: 测试自动转换次数限制
@@ -342,9 +341,6 @@ dashboard:
   confirm:
     controlledTradeTitle: 开启 AI 真实执行
     enableControlledTrade: 确认开启受控真实交易吗？只有通过确定性 Risk Engine 且经人工批准的 Proposal 才能执行。
-    futuresTradeTitle: 高风险：开启合约交易
-    enableFuturesTrade: 开启后，自动交易只管理本系统自己创建并已登记 ownership 的仓位和订单；手工仓位、其它模块仓位和来源不明仓位不会被接管。“排除自动交易的币”仍具有最高优先级。你确定要打开吗？
-    confirmEnableFuturesTrade: 确定打开
     cancel: 取消
 agentTaskCenter:
   governance:

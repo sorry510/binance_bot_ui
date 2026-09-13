@@ -199,7 +199,6 @@ dashboard:
     marketConditionAuto: Auto Update Market Condition
     marketAnalysisProgress: AI Analysis Progress
     latestMarketAnalysis: Latest Analysis
-    excludeSymbols: Exclude Symbols
     orderType: Order Type
     testStrategy: Test Strategy
     testAutoTradeLimit: Future test auto trade count limit
@@ -342,9 +341,6 @@ dashboard:
   confirm:
     controlledTradeTitle: Enable AI Real Execution
     enableControlledTrade: Enable controlled real trading? Only Proposals that pass the deterministic Risk Engine and receive human approval can execute.
-    futuresTradeTitle: "High Risk: Enable Futures Trading"
-    enableFuturesTrade: Once enabled, automated trading only manages positions and orders it created and explicitly registered with ownership. Manual positions, other owners, and unknown positions remain unmanaged. Excluded Auto-Trading Symbols still have the highest priority. Continue?
-    confirmEnableFuturesTrade: Enable
     cancel: Cancel
 agentTaskCenter:
   governance:

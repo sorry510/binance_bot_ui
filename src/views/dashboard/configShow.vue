@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { getFeaturesOptions } from "../../api/trade";
 import {
   editData,
   getMarketConditionUpdateTask,
@@ -20,8 +19,6 @@ defineOptions({
 const router = useRouter();
 const { t } = useI18n();
 const loading = ref(false);
-const symbols = ref<string[]>([]);
-const excludeSymbols = ref<string[]>([]);
 const marketAnalysis = ref<{
   source: string;
   confidence: number;
@@ -114,10 +111,6 @@ async function fetchConfig() {
     const res = await getServiceConfig();
     const data = res?.data || {};
     Object.assign(config, data);
-    excludeSymbols.value = String(data.coinExcludeSymbols || "")
-      .split(",")
-      .map((item: string) => item.trim())
-      .filter(Boolean);
     try {
       config.externalLinks = JSON.parse(data.externalLinks || "[]");
     } catch {
@@ -139,30 +132,6 @@ async function saveField(field: string, value: any) {
   } finally {
     loading.value = false;
   }
-}
-
-async function onTradeFutureEnableChange(value: number | string | boolean) {
-  const enabled = Number(value) === 1;
-  if (enabled) {
-    try {
-      await ElMessageBox.confirm(
-        t("dashboard.confirm.enableFuturesTrade"),
-        t("dashboard.confirm.futuresTradeTitle"),
-        {
-          type: "warning",
-          confirmButtonText: t("dashboard.confirm.confirmEnableFuturesTrade"),
-          cancelButtonText: t("dashboard.confirm.cancel")
-        }
-      );
-    } catch {
-      return;
-    }
-  }
-  await saveField("future_enable", enabled ? 1 : 0);
-}
-
-async function onExcludeChange() {
-  await saveField("future_exclude_symbols", excludeSymbols.value.join(","));
 }
 
 async function onTestPusher() {
@@ -271,17 +240,12 @@ function clearMarketProgressTimer() {
   }
 }
 
-async function fetchSymbols() {
-  const res = await getFeaturesOptions();
-  symbols.value = res?.data || [];
-}
-
 function gotoTestStrategyResult() {
   router.push({ name: "testStrategyResult" });
 }
 
 onMounted(async () => {
-  await Promise.all([fetchConfig(), fetchSymbols()]);
+  await fetchConfig();
 });
 
 onBeforeUnmount(() => {
@@ -311,7 +275,7 @@ onBeforeUnmount(() => {
               :model-value="config.tradeFutureEnable"
               :active-value="1"
               :inactive-value="0"
-              @change="onTradeFutureEnableChange"
+              @change="value => saveField('future_enable', value)"
             />
           </div>
         </template>
@@ -678,27 +642,6 @@ onBeforeUnmount(() => {
                 {{ marketAnalysis.reason }}
               </div>
             </div>
-          </div>
-
-          <div class="field-row field-row-top">
-            <span class="field-label">{{
-              t("dashboard.field.excludeSymbols")
-            }}</span>
-            <el-select
-              v-model="excludeSymbols"
-              multiple
-              filterable
-              clearable
-              class="wide-select"
-              @change="onExcludeChange"
-            >
-              <el-option
-                v-for="symbol in symbols"
-                :key="symbol"
-                :label="symbol"
-                :value="symbol"
-              />
-            </el-select>
           </div>
 
           <div class="field-row">
