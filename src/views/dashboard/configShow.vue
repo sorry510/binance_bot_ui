@@ -851,7 +851,8 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .dashboard-container {
-  background-color: #fff;
+  color: var(--el-text-color-primary);
+  background-color: var(--el-bg-color);
 }
 
 .dashboard-body {

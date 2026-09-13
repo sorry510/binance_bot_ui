@@ -792,7 +792,8 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .ai-config-page {
-  background-color: #fff;
+  color: var(--el-text-color-primary);
+  background-color: var(--el-bg-color);
 }
 
 .dashboard-body {
