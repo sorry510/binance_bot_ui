@@ -134,12 +134,13 @@ const compareRuns = computed(
 );
 function statusType(status: string) {
   if (status === "succeeded") return "success";
-  if (["failed", "interrupted"].includes(status)) return "danger";
-  if (status === "running") return "warning";
+  if (["failed", "interrupted", "delete_failed"].includes(status))
+    return "danger";
+  if (["running", "deleting"].includes(status)) return "warning";
   return "info";
 }
 function isActiveRun(status: string) {
-  return ["queued", "running"].includes(status);
+  return ["queued", "running", "deleting"].includes(status);
 }
 function stageText(stage: string) {
   return t(`backtestPage.stage.${stage}`);
@@ -170,6 +171,10 @@ function bytes(v?: number) {
 }
 function marketConditionStageText(stage: string) {
   const key = `backtestPage.marketCondition.stageValue.${stage}`;
+  return t(key);
+}
+function prefetchStageText(stage: string) {
+  const key = `backtestPage.prefetch.stageValue.${stage}`;
   return t(key);
 }
 function formatTime(v?: number) {
@@ -525,7 +530,7 @@ async function removeRun(row: BacktestRun) {
     }
     if (compareA.value === row.run_id) compareA.value = "";
     if (compareB.value === row.run_id) compareB.value = "";
-    ElMessage.success(t("backtestPage.message.deleted"));
+    ElMessage.success(t("backtestPage.message.deleteStarted"));
     await fetchRuns();
     if (!runs.value.length && query.page > 1) {
       query.page -= 1;
@@ -545,32 +550,39 @@ function renderChart() {
   if (!chart) chart = initECharts(chartEl.value);
   chart.clear();
   chart.setOption({
+    animation: false,
     tooltip: { trigger: "axis" },
     legend: {
       data: [t("backtestPage.chart.equity"), t("backtestPage.chart.drawdown")]
     },
+    grid: { left: 64, right: 64, top: 48, bottom: 72 },
     xAxis: {
-      type: "category",
-      data: equity.value.map(x => new Date(x.bar_time).toLocaleString()),
-      axisLabel: { show: false }
+      type: "time",
+      axisLabel: { hideOverlap: true }
     },
     yAxis: [
       { type: "value", name: t("backtestPage.chart.equity") },
       { type: "value", name: "%" }
+    ],
+    dataZoom: [
+      { type: "inside", xAxisIndex: 0, start: 0, end: 100 },
+      { type: "slider", xAxisIndex: 0, start: 0, end: 100, bottom: 18 }
     ],
     series: [
       {
         name: t("backtestPage.chart.equity"),
         type: "line",
         showSymbol: false,
-        data: equity.value.map(x => x.equity)
+        sampling: "lttb",
+        data: equity.value.map(x => [x.bar_time, x.equity])
       },
       {
         name: t("backtestPage.chart.drawdown"),
         type: "line",
         showSymbol: false,
+        sampling: "lttb",
         yAxisIndex: 1,
-        data: equity.value.map(x => x.drawdown_pct)
+        data: equity.value.map(x => [x.bar_time, x.drawdown_pct])
       }
     ]
   });
@@ -804,6 +816,14 @@ onBeforeUnmount(() => {
               "
             />
             <div class="text-sm mt-1">
+              {{ t("backtestPage.prefetch.stage") }}:
+              {{ prefetchStageText(prefetchJob.stage) }}
+            </div>
+            <div class="text-sm">
+              {{ t("backtestPage.prefetch.lastUpdate") }}:
+              {{ formatTime(prefetchJob.updated_at) }}
+            </div>
+            <div class="text-sm">
               {{ t("backtestPage.prefetch.replay") }}:
               {{ prefetchJob.replay_interval }}
             </div>
@@ -915,7 +935,7 @@ onBeforeUnmount(() => {
             ><el-progress
               :percentage="row.progress"
               :status="
-                row.status === 'failed'
+                ['failed', 'delete_failed'].includes(row.status)
                   ? 'exception'
                   : row.status === 'succeeded'
                     ? 'success'
@@ -976,7 +996,11 @@ onBeforeUnmount(() => {
               type="danger"
               :disabled="isActiveRun(row.status)"
               @click="removeRun(row)"
-              >{{ t("backtestPage.button.delete") }}</el-button
+              >{{
+                row.status === "deleting"
+                  ? t("backtestPage.button.deleting")
+                  : t("backtestPage.button.delete")
+              }}</el-button
             ></template
           ></el-table-column
         ></el-table

@@ -2222,6 +2222,7 @@ backtestPage:
     parameters: Parameters
     cancel: Cancel
     delete: Delete
+    deleting: Deleting
   table:
     strategy: Strategy
     parameters: Parameters
@@ -2242,6 +2243,7 @@ backtestPage:
     deleteTitle: Delete Backtest Run
     deleteConfirm: Delete “{strategy} / {symbol}” and its trades, events, and equity curve? Historical market cache will be kept.
     deleted: Backtest run deleted
+    deleteStarted: Deletion started and will continue in the background
     deleteFailed: Failed to delete backtest run
     prefetchFetched: Historical data ready; fetched {rows} rows from Binance
     prefetchLocal: Historical data is already complete locally
@@ -2268,6 +2270,13 @@ backtestPage:
     failed: Market condition history backfill failed
   prefetch:
     title: Historical Data
+    stage: Stage
+    lastUpdate: Last update
+    stageValue:
+      queued: Queued
+      fetching: Fetching and persisting historical data in chunks
+      completed: Completed
+      failed: Failed
     replay: Replay precision
     intervals: Required target intervals
     warmup: Warmup start
@@ -2286,6 +2295,11 @@ backtestPage:
     failed: Failed
     cancelled: Cancelled
     interrupted: Interrupted
+    deleting_equity: Deleting equity curve
+    deleting_events: Deleting audit events
+    deleting_trades: Deleting trades
+    finalizing_delete: Cleaning up backtest metadata
+    delete_failed: Delete failed
   stageHint:
     resolving_intrabar_data: Reading local 1s / Trades cache; missing ranges are fetched automatically from Binance Public Data.
     downloading_intrabar_archive: Downloading and verifying daily 1s / Trades ZIP data from Binance Public Data before replay continues.

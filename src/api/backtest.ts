@@ -148,6 +148,7 @@ export interface BacktestPrefetch {
   warmup_start_time: number;
   remote_calls: number;
   remote_rows: number;
+  updated_at: number;
   error?: string;
 }
 
