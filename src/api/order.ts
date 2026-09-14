@@ -6,8 +6,8 @@ export const getOrders = (params: Query = {}) => {
   return http.get<any, Query>(baseUrlApi("orders"), { params });
 };
 
-export const delAllTrade = () => {
-  return http.request<any>("delete", baseUrlApi("orders"));
+export const delTradesByQuery = (params: Query = {}) => {
+  return http.request<any>("delete", baseUrlApi("orders"), { params });
 };
 
 export const delTrade = (id: number | string) => {

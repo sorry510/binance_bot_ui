@@ -1493,7 +1493,7 @@ orderPage:
   button:
     search: Search
     delete: Delete
-    deleteAll: Delete All
+    deleteFiltered: Delete Filtered
   placeholder:
     symbol: Symbol
     status: Status
@@ -1516,7 +1516,7 @@ orderPage:
     amount: Amount
     leverage: Leverage
     avgPrice: Avg Price
-    nowPrice: Current Price
+    nowPrice: Current / Close Price
     profit: Profit
     profitRate: Profit Rate
     period: Holding Duration
@@ -1524,10 +1524,12 @@ orderPage:
     operation: Operation
   confirm:
     title: Confirm
-    delete: Confirm deleting {symbol} ?
-    deleteAll: Confirm deleting all order records?
+    delete: Delete {symbol} and its linked close order?
+    deleteFiltered: Delete open orders matching the current filters and their linked close orders?
   message:
     deleteSuccess: Deleted successfully
+    searchRequired: Set at least one search condition before deleting
+    deleteFilteredSuccess: Deleted {count} open orders and their linked close orders
 testOrderPage:
   button:
     search: Search

@@ -1493,7 +1493,7 @@ orderPage:
   button:
     search: 查询
     delete: 删除
-    deleteAll: 删除全部
+    deleteFiltered: 删除筛选结果
   placeholder:
     symbol: 币种
     status: 状态
@@ -1516,7 +1516,7 @@ orderPage:
     amount: 数量
     leverage: 杠杆
     avgPrice: 均价
-    nowPrice: 现价
+    nowPrice: 现价 / 平仓价
     profit: 盈亏
     profitRate: 收益率(%)
     period: 持仓时长
@@ -1524,10 +1524,12 @@ orderPage:
     operation: 操作
   confirm:
     title: 提示
-    delete: 确认删除 {symbol} ?
-    deleteAll: 确认删除全部订单记录?
+    delete: 确认删除 {symbol} 及其对应的平仓记录?
+    deleteFiltered: 确认删除当前筛选条件命中的开仓记录及其对应平仓记录?
   message:
     deleteSuccess: 删除成功
+    searchRequired: 请至少设置一个查询条件后再删除
+    deleteFilteredSuccess: 已删除 {count} 条开仓记录及其对应平仓记录
 testOrderPage:
   button:
     search: 查询

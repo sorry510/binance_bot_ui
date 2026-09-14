@@ -3,7 +3,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from "vue-i18n";
 import dayjs from "dayjs";
-import { delAllTrade, delTrade, getOrders } from "../../api/order";
+import { delTrade, delTradesByQuery, getOrders } from "../../api/order";
 
 defineOptions({ name: "OrderList" });
 const { t } = useI18n();
@@ -27,6 +27,27 @@ const allProfit = computed(() =>
     .toFixed(2)
 );
 
+const searchParams = computed(() => ({
+  symbol: query.symbol?.trim() || undefined,
+  type: query.type && query.type !== "all" ? query.type : undefined,
+  position_side:
+    query.position_side && query.position_side !== "all"
+      ? query.position_side
+      : undefined,
+  start_time: query.start_time ? +new Date(query.start_time) : undefined,
+  end_time: query.end_time ? +new Date(query.end_time) : undefined
+}));
+
+const hasSearchCondition = computed(() =>
+  Boolean(
+    searchParams.value.symbol ||
+      searchParams.value.type ||
+      searchParams.value.position_side ||
+      searchParams.value.start_time ||
+      searchParams.value.end_time
+  )
+);
+
 function formatTime(ts: number | string) {
   if (!ts) return "-";
   return dayjs(Number(ts)).format("YYYY-MM-DD HH:mm:ss");
@@ -38,12 +59,28 @@ function toPeriod(endTime: number, startTime: number) {
   return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
 }
 
+function isClosed(row: any) {
+  return Number(row.closeOrderId || 0) > 0;
+}
+
+function rowPrice(row: any) {
+  const value = Number(isClosed(row) ? row.closedPrice : row.now_price);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
 function profitPercent(row: any) {
-  let delta = Number(row.now_price) - Number(row.avg_price);
-  if (row.positionSide === "SHORT") delta = -delta;
-  return Number(row.now_price)
-    ? ((delta / Number(row.now_price)) * Number(row.leverage) * 100).toFixed(3)
-    : "0";
+  const price = rowPrice(row);
+  const amount = Math.abs(Number(row.amount || 0));
+  const leverage = Number(row.leverage || 0);
+  const profit = Number(row.inexact_profit || 0);
+  if (!price || !amount || !leverage || !Number.isFinite(profit)) return "-";
+  return ((profit / (amount * price)) * leverage * 100).toFixed(3);
+}
+
+function formatProfit(value: number | string) {
+  const profit = Number(value);
+  if (!Number.isFinite(profit)) return "-";
+  return profit.toFixed(8).replace(/\.?0+$/, "");
 }
 
 async function fetchData(resetPage = false) {
@@ -58,13 +95,14 @@ async function fetchData(resetPage = false) {
     const data = res?.data || {};
     list.value = (data.list || []).map((item: any) => {
       const row = { ...item };
-      if (row.closedTime) {
+      if (isClosed(row)) {
         row.period = toPeriod(row.closedTime, row.updateTime);
       } else {
         let delta = Number(row.now_price) - Number(row.avg_price);
         if (row.positionSide === "SHORT") delta = -delta;
-        row.inexact_profit = delta * Number(row.amount || 0);
+        row.inexact_profit = delta * Math.abs(Number(row.amount || 0));
       }
+      row.display_price = isClosed(row) ? row.closedPrice : row.now_price;
       row.profit_percent = profitPercent(row);
       return row;
     });
@@ -85,15 +123,23 @@ async function onDelete(row: any) {
   await fetchData();
 }
 
-async function onDeleteAll() {
+async function onDeleteFiltered() {
+  if (!hasSearchCondition.value) {
+    ElMessage.warning(t("orderPage.message.searchRequired"));
+    return;
+  }
   await ElMessageBox.confirm(
-    t("orderPage.confirm.deleteAll"),
+    t("orderPage.confirm.deleteFiltered"),
     t("orderPage.confirm.title"),
     { type: "warning" }
   );
-  await delAllTrade();
-  ElMessage.success(t("orderPage.message.deleteSuccess"));
-  await fetchData();
+  const res = await delTradesByQuery(searchParams.value);
+  ElMessage.success(
+    t("orderPage.message.deleteFilteredSuccess", {
+      count: Number(res?.data?.deleted || 0)
+    })
+  );
+  await fetchData(true);
 }
 
 onMounted(fetchData);
@@ -143,9 +189,13 @@ onMounted(fetchData);
       <el-button type="primary" :loading="loading" @click="fetchData(true)">{{
         t("orderPage.button.search")
       }}</el-button>
-      <el-button type="danger" :loading="loading" @click="onDeleteAll">{{
-        t("orderPage.button.deleteAll")
-      }}</el-button>
+      <el-button
+        type="danger"
+        :loading="loading"
+        :disabled="!hasSearchCondition"
+        @click="onDeleteFiltered"
+        >{{ t("orderPage.button.deleteFiltered") }}</el-button
+      >
       <span class="ml-auto"
         >{{ t("orderPage.label.currentProfit") }}: {{ allProfit }}</span
       >
@@ -177,15 +227,15 @@ onMounted(fetchData);
         min-width="110"
       />
       <el-table-column
-        prop="now_price"
+        prop="display_price"
         :label="t('orderPage.table.nowPrice')"
-        min-width="110"
+        min-width="130"
       />
-      <el-table-column
-        prop="inexact_profit"
-        :label="t('orderPage.table.profit')"
-        min-width="110"
-      />
+      <el-table-column :label="t('orderPage.table.profit')" min-width="110">
+        <template #default="{ row }">{{
+          formatProfit(row.inexact_profit)
+        }}</template>
+      </el-table-column>
       <el-table-column
         prop="profit_percent"
         :label="t('orderPage.table.profitRate')"
