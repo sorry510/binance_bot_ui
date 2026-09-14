@@ -1038,6 +1038,61 @@ export interface AgentTradeRiskCheck {
   message?: string;
 }
 
+export interface AgentOpportunity {
+  id: number;
+  opportunity_id: string;
+  symbol: string;
+  direction: "long" | "short" | "neutral" | string;
+  source_type: string;
+  source_id: string;
+  analysis_task_id?: string;
+  summary?: string;
+  confidence: number;
+  market_condition: number;
+  analysis_status: string;
+  analysis_error?: string;
+  status: "new" | "reviewed" | "expired" | string;
+  expires_at: number;
+  reviewed_at?: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AgentOpportunityListResult {
+  page: number;
+  limit: number;
+  total: number;
+  list: AgentOpportunity[];
+}
+
+export interface AgentOpportunityDetail {
+  opportunity: AgentOpportunity;
+  proposal_eligible: boolean;
+  trade_proposal?: AgentTradeProposal;
+}
+
+export const getAgentOpportunities = (params: Query = {}) =>
+  http.get<any, Query>(baseUrlApi("agents/opportunities"), { params });
+
+export const getAgentOpportunity = (opportunityId: string) =>
+  http.get<any, Query>(
+    baseUrlApi(`agents/opportunities/${encodeURIComponent(opportunityId)}`)
+  );
+
+export const reviewAgentOpportunity = (opportunityId: string) =>
+  http.post<any, Query>(
+    baseUrlApi(
+      `agents/opportunities/${encodeURIComponent(opportunityId)}/review`
+    )
+  );
+
+export const createProposalFromOpportunity = (opportunityId: string) =>
+  http.post<any, Query>(
+    baseUrlApi(
+      `agents/opportunities/${encodeURIComponent(opportunityId)}/proposal`
+    )
+  );
+
 export interface AgentTradeRiskResult {
   status: "pass" | "fail" | string;
   checks: AgentTradeRiskCheck[];

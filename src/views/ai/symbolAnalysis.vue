@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
+import { useRoute } from "vue-router";
 import { getFeaturesOptions } from "../../api/trade";
 import {
   getAgentTask,
@@ -15,6 +16,7 @@ import {
 defineOptions({ name: "SymbolAnalysis" });
 
 const { t } = useI18n();
+const route = useRoute();
 const symbols = ref<string[]>([]);
 const symbol = ref("");
 const prompt = ref("");
@@ -199,6 +201,12 @@ function openHistory(row: SymbolAnalysisHistoryItem) {
 }
 
 onMounted(async () => {
+  const querySymbol = String(route.query.symbol || "")
+    .toUpperCase()
+    .trim();
+  const queryPrompt = String(route.query.prompt || "").trim();
+  if (querySymbol) symbol.value = querySymbol;
+  if (queryPrompt) prompt.value = queryPrompt;
   await fetchSymbols();
 });
 

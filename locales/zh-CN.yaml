@@ -83,6 +83,7 @@ menus:
   ai: AI
   agentChat: 对话
   symbolAnalysis: 单币分析
+  agentOpportunities: 机会
   agentBacktest: 历史回测
   agentSkillManagement: Skill 管理
   agentTaskCenter: 任务中心
@@ -140,6 +141,7 @@ dashboard:
   section:
     futures: 合约交易
     aiAlert: AI 事件报警
+    aiOpportunity: AI 机会发现
     aiScheduler: AI 调度任务
     aiGovernance: AI 治理与预算
     aiTrade: AI 受控交易
@@ -165,6 +167,9 @@ dashboard:
     alertMinSeverity: 最低报警级别
     alertCooldownSec: 信号报警冷却(秒)
     alertMaxConcurrent: AI 报警最大并发
+    opportunityWatchEnable: Opportunity Watch
+    opportunityScanIntervalMin: 市场机会扫描周期(分钟)
+    opportunityMinConfidence: 最低机会置信度
     marketRegimeScheduleEnable: 市场趋势调度器
     marketRegimeIntervalMin: 市场趋势执行周期(分钟)
     dailyMarketBriefScheduleEnable: 每日市场摘要调度器
@@ -218,6 +223,7 @@ dashboard:
     autoRefresh: 由 AI 调度器按配置周期自动更新
     alertPipeline: 快速波动和强平仅使用新报警链路；关闭时仍计算信号，但不发送这两类报警。
     alertAIFallback: AI 关闭、超预算或失败时自动使用确定性规则通知，不影响 WebSocket。
+    opportunityWatch: 自动消费快速波动、强平、市场事件和定时 Market Scan；只负责发现、分析和提醒，不会自动批准或执行真实交易。
     marketRegimeSchedule: 仅在市场趋势自动更新开启时运行；使用统一智能体任务，重启后仍可查询历史。
     dailyMarketBriefSchedule: 默认关闭；开启后使用固定结构的市场摘要，默认每 1440 分钟运行一次。
     tradeDisabled: 交易 Tool 全局禁用
@@ -2339,3 +2345,60 @@ backtestPage:
     fees: 手续费
     funding: Funding
     average_holding_ms: 平均持仓时间
+
+opportunityPage:
+  title: 交易机会
+  subtitle: Opportunity Watch 自动发现并深入分析值得关注的合约；真实交易仍必须经过 Proposal、Risk 与人工批准。
+  reanalysisPrompt: '基于新的市场数据重新分析这个机会，原始来源：{source}'
+  filter:
+    symbol: 合约
+    status: 机会状态
+    analysisStatus: 分析状态
+    source: 来源
+  table:
+    symbol: 合约
+    direction: 方向
+    confidence: 置信度
+    source: 来源
+    marketCondition: 市场趋势
+    summary: 摘要
+    analysisStatus: 分析状态
+    status: 状态
+    createdAt: 发现时间
+    operation: 操作
+  direction:
+    long: 做多
+    short: 做空
+    neutral: 中性
+  status:
+    new: 新机会
+    reviewed: 已查看
+    expired: 已过期
+  analysisStatus:
+    pending: 分析中
+    succeeded: 成功
+    partial: 部分完成
+    data_missing: 数据缺失
+    failed: 失败
+  source:
+    fast_move: 快速波动
+    liquidation_spike: 大额强平
+    market_scan: 定时市场扫描
+    market_event: 市场事件 / 公告
+  button:
+    search: 查询
+    detail: 详情
+    reanalyze: 重新分析
+    createProposal: 创建受控交易 Proposal
+    openControlledTrade: 打开仓位与受控交易
+  detail:
+    title: 机会详情
+    expiresAt: 过期时间
+    error: 分析错误
+    tradingPlan: 完整 Trading Plan
+    proposalExists: 已创建受控交易 Proposal：{id}
+  message:
+    loadFailed: 加载机会列表失败
+    detailFailed: 加载机会详情失败
+    proposalCreated: 受控交易 Proposal 已创建，并已执行确定性 Risk 检查
+    proposalFailed: 创建受控交易 Proposal 失败

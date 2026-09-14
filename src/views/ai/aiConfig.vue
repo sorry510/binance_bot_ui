@@ -31,6 +31,9 @@ const config = reactive<Record<string, any>>({
   AgentMarketRegimeIntervalMin: 60,
   AgentDailyMarketBriefScheduleEnable: 0,
   AgentDailyMarketBriefIntervalMin: 1440,
+  AgentOpportunityWatchEnable: 0,
+  AgentOpportunityScanIntervalMin: 60,
+  AgentOpportunityMinConfidence: 0.7,
   AgentMaxStartsPerMinute: 30,
   AgentMaxStartsPerHour: 300,
   AgentMaxRoundsPerTask: 15,
@@ -160,7 +163,13 @@ onBeforeUnmount(() => {
     </el-card>
     <el-collapse
       v-loading="loading"
-      :model-value="['ai_alert', 'ai_scheduler', 'ai_governance', 'ai_trade']"
+      :model-value="[
+        'ai_alert',
+        'ai_opportunity',
+        'ai_scheduler',
+        'ai_governance',
+        'ai_trade'
+      ]"
     >
       <el-collapse-item name="ai_alert">
         <template #title>
@@ -387,6 +396,83 @@ onBeforeUnmount(() => {
                 </template>
               </el-table-column>
             </el-table>
+          </div>
+        </div>
+      </el-collapse-item>
+
+      <el-collapse-item name="ai_opportunity">
+        <template #title>
+          <div class="dashboard-text flex items-center gap-3">
+            <span>{{ t("dashboard.section.aiOpportunity") }}</span>
+            <el-tag
+              :type="
+                config.AgentOpportunityWatchEnable === 1 ? 'success' : 'info'
+              "
+              size="small"
+            >
+              {{
+                config.AgentOpportunityWatchEnable === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="dashboard-body">
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.opportunityWatchEnable")
+            }}</span>
+            <el-switch
+              :model-value="config.AgentOpportunityWatchEnable"
+              :active-value="1"
+              :inactive-value="0"
+              @change="
+                value => saveField('agent_opportunity_watch_enable', value)
+              "
+            />
+            <span class="hint">{{ t("dashboard.hint.opportunityWatch") }}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.opportunityScanIntervalMin")
+            }}</span>
+            <el-input
+              v-model="config.AgentOpportunityScanIntervalMin"
+              type="number"
+              min="1"
+              class="compact-input"
+              @change="
+                value =>
+                  saveField(
+                    'agent_opportunity_scan_interval_min',
+                    Number(value)
+                  )
+              "
+            />
+            <span class="hint">{{ t("dashboard.unit.minute") }}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.opportunityMinConfidence")
+            }}</span>
+            <el-input
+              :model-value="
+                Number(config.AgentOpportunityMinConfidence || 0) * 100
+              "
+              type="number"
+              min="0"
+              max="100"
+              class="compact-input"
+              @change="
+                value =>
+                  saveField(
+                    'agent_opportunity_min_confidence',
+                    Number(value) / 100
+                  )
+              "
+            />
+            <span class="hint">%</span>
           </div>
         </div>
       </el-collapse-item>

@@ -83,6 +83,7 @@ menus:
   ai: AI
   agentChat: Chat
   symbolAnalysis: Symbol Analysis
+  agentOpportunities: Opportunities
   agentBacktest: Historical Backtest
   agentSkillManagement: Skill Management
   agentTaskCenter: Task Center
@@ -140,6 +141,7 @@ dashboard:
   section:
     futures: Futures Trade
     aiAlert: AI Event Alerts
+    aiOpportunity: AI Opportunity Watch
     aiScheduler: AI Scheduler
     aiGovernance: AI Governance & Budgets
     aiTrade: AI Controlled Trade
@@ -165,6 +167,9 @@ dashboard:
     alertMinSeverity: Minimum alert severity
     alertCooldownSec: Signal alert cooldown (sec)
     alertMaxConcurrent: Max concurrent AI alerts
+    opportunityWatchEnable: Opportunity Watch
+    opportunityScanIntervalMin: Opportunity Scan Interval (min)
+    opportunityMinConfidence: Minimum Opportunity Confidence
     marketRegimeScheduleEnable: Market regime Scheduler
     marketRegimeIntervalMin: Market regime interval (min)
     dailyMarketBriefScheduleEnable: Daily market brief Scheduler
@@ -218,6 +223,7 @@ dashboard:
     autoRefresh: Automatically updated by the AI Scheduler at the configured interval
     alertPipeline: FastMove and liquidation alerts use only the new Pipeline; when off, Signals are still evaluated but these alerts are not sent.
     alertAIFallback: If AI is disabled, over budget, or fails, deterministic fallback notifications continue without blocking WebSocket processing.
+    opportunityWatch: Consumes fast moves, liquidations, market events, and scheduled Market Scan; it only discovers, analyzes, and notifies, and never auto-approves or executes a real trade.
     marketRegimeSchedule: Runs only when automatic market-condition updates are enabled; uses persistent Agent Tasks.
     dailyMarketBriefSchedule: Disabled by default. When enabled, runs a fixed-structure market brief every 1440 minutes by default.
     tradeDisabled: Trade Tools globally disabled
@@ -2339,3 +2345,60 @@ backtestPage:
     fees: Fees
     funding: Funding
     average_holding_ms: Avg Holding Time
+
+opportunityPage:
+  title: Trading Opportunities
+  subtitle: Opportunity Watch automatically discovers and analyzes noteworthy futures setups. Real trades still require Proposal, Risk, and explicit user approval.
+  reanalysisPrompt: 'Reanalyze this opportunity using fresh market data. Original source: {source}'
+  filter:
+    symbol: Symbol
+    status: Opportunity status
+    analysisStatus: Analysis status
+    source: Source
+  table:
+    symbol: Symbol
+    direction: Direction
+    confidence: Confidence
+    source: Source
+    marketCondition: Market Condition
+    summary: Summary
+    analysisStatus: Analysis Status
+    status: Status
+    createdAt: Discovered At
+    operation: Operation
+  direction:
+    long: Long
+    short: Short
+    neutral: Neutral
+  status:
+    new: New
+    reviewed: Reviewed
+    expired: Expired
+  analysisStatus:
+    pending: Analyzing
+    succeeded: Succeeded
+    partial: Partial
+    data_missing: Data Missing
+    failed: Failed
+  source:
+    fast_move: Fast Move
+    liquidation_spike: Liquidation Spike
+    market_scan: Scheduled Market Scan
+    market_event: Market Event / Announcement
+  button:
+    search: Search
+    detail: Detail
+    reanalyze: Reanalyze
+    createProposal: Create Controlled Trade Proposal
+    openControlledTrade: Open Positions & Controlled Trade
+  detail:
+    title: Opportunity Detail
+    expiresAt: Expires At
+    error: Analysis Error
+    tradingPlan: Full Trading Plan
+    proposalExists: 'Controlled Trade Proposal already exists: {id}'
+  message:
+    loadFailed: Failed to load opportunities
+    detailFailed: Failed to load opportunity detail
+    proposalCreated: Controlled Trade Proposal created and deterministic Risk check completed
+    proposalFailed: Failed to create Controlled Trade Proposal

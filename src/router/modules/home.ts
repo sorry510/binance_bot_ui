@@ -64,6 +64,16 @@ export default [
         }
       },
       {
+        path: "/ai/opportunities",
+        name: "AgentOpportunities",
+        component: () => import("@/views/ai/opportunities.vue"),
+        meta: {
+          title: "menus.agentOpportunities",
+          showLink: true,
+          showParent: true
+        }
+      },
+      {
         path: "/ai/config",
         name: "AgentAIConfig",
         component: () => import("@/views/ai/aiConfig.vue"),
