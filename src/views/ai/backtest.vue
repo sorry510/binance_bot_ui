@@ -77,20 +77,156 @@ const marketConditionBackfillJob = ref<MarketConditionBackfill | null>(null);
 let prefetchGeneration = 0;
 let marketConditionBackfillGeneration = 0;
 const query = reactive({ page: 1, limit: 20 });
+const BACKTEST_FORM_CACHE_KEY = "go_binance_futures:backtest:form:v1";
+type BacktestFormCache = {
+  strategy_template_id?: number;
+  strategy_template_name?: string;
+  resolution_mode?: "standard_1m" | "adaptive";
+  symbol?: string;
+  range?: [number, number];
+  initial_equity?: number;
+  position_size_pct?: number;
+  leverage?: number;
+  fee_rate?: number;
+  slippage_bps?: number;
+  stop_loss_pct?: number;
+  take_profit_pct?: number;
+};
+
+function readBacktestFormCache(): BacktestFormCache | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(BACKTEST_FORM_CACHE_KEY);
+    if (!raw) return null;
+    const value = JSON.parse(raw);
+    return value && typeof value === "object" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+const cachedForm = readBacktestFormCache();
+let cachedTemplateName = cachedForm?.strategy_template_name || "";
 const now = Date.now();
+const cachedRange = cachedForm?.range;
+const validCachedRange =
+  Array.isArray(cachedRange) &&
+  cachedRange.length === 2 &&
+  Number.isFinite(cachedRange[0]) &&
+  Number.isFinite(cachedRange[1]) &&
+  cachedRange[0] > 0 &&
+  cachedRange[1] > cachedRange[0];
 const form = reactive({
-  strategy_template_id: undefined as number | undefined,
-  resolution_mode: "standard_1m" as "standard_1m" | "adaptive",
-  symbol: "",
-  range: [new Date(now - 3 * 24 * 3600 * 1000), new Date(now)] as [Date, Date],
-  initial_equity: 1000,
-  position_size_pct: 1,
-  leverage: 1,
-  fee_rate: 0.0005,
-  slippage_bps: 5,
-  stop_loss_pct: 0,
-  take_profit_pct: 0
+  strategy_template_id:
+    Number(cachedForm?.strategy_template_id) > 0
+      ? Number(cachedForm?.strategy_template_id)
+      : (undefined as number | undefined),
+  resolution_mode: (cachedForm?.resolution_mode === "adaptive"
+    ? "adaptive"
+    : "standard_1m") as "standard_1m" | "adaptive",
+  symbol:
+    typeof cachedForm?.symbol === "string"
+      ? cachedForm.symbol.trim().toUpperCase()
+      : "",
+  range: (validCachedRange
+    ? [new Date(cachedRange![0]), new Date(cachedRange![1])]
+    : [new Date(now - 3 * 24 * 3600 * 1000), new Date(now)]) as [Date, Date],
+  initial_equity:
+    Number(cachedForm?.initial_equity) > 0
+      ? Number(cachedForm?.initial_equity)
+      : 1000,
+  position_size_pct:
+    Number(cachedForm?.position_size_pct) >= 0.01 &&
+    Number(cachedForm?.position_size_pct) <= 1
+      ? Number(cachedForm?.position_size_pct)
+      : 1,
+  leverage:
+    Number(cachedForm?.leverage) >= 1 && Number(cachedForm?.leverage) <= 125
+      ? Number(cachedForm?.leverage)
+      : 1,
+  fee_rate:
+    Number(cachedForm?.fee_rate) >= 0 && Number(cachedForm?.fee_rate) <= 0.02
+      ? Number(cachedForm?.fee_rate)
+      : 0.0005,
+  slippage_bps:
+    Number(cachedForm?.slippage_bps) >= 0 &&
+    Number(cachedForm?.slippage_bps) <= 1000
+      ? Number(cachedForm?.slippage_bps)
+      : 5,
+  stop_loss_pct:
+    Number(cachedForm?.stop_loss_pct) >= 0 &&
+    Number(cachedForm?.stop_loss_pct) <= 100
+      ? Number(cachedForm?.stop_loss_pct)
+      : 0,
+  take_profit_pct:
+    Number(cachedForm?.take_profit_pct) >= 0 &&
+    Number(cachedForm?.take_profit_pct) <= 1000
+      ? Number(cachedForm?.take_profit_pct)
+      : 0
 });
+
+function persistBacktestForm() {
+  if (typeof window === "undefined") return;
+  const selectedTemplate = templateOptions.value.find(
+    item => item.id === form.strategy_template_id
+  );
+  if (selectedTemplate) cachedTemplateName = selectedTemplate.name;
+  const payload: BacktestFormCache = {
+    strategy_template_id: form.strategy_template_id,
+    strategy_template_name: cachedTemplateName || undefined,
+    resolution_mode: form.resolution_mode,
+    symbol: form.symbol,
+    range:
+      form.range?.[0] && form.range?.[1]
+        ? [form.range[0].getTime(), form.range[1].getTime()]
+        : undefined,
+    initial_equity: Number(form.initial_equity),
+    position_size_pct: Number(form.position_size_pct),
+    leverage: Number(form.leverage),
+    fee_rate: Number(form.fee_rate),
+    slippage_bps: Number(form.slippage_bps),
+    stop_loss_pct: Number(form.stop_loss_pct),
+    take_profit_pct: Number(form.take_profit_pct)
+  };
+  try {
+    window.localStorage.setItem(
+      BACKTEST_FORM_CACHE_KEY,
+      JSON.stringify(payload)
+    );
+  } catch {
+    // localStorage can be unavailable in private/restricted browser contexts.
+  }
+}
+
+function ensureCachedTemplateOption() {
+  if (!form.strategy_template_id || !cachedTemplateName) return;
+  if (templateOptions.value.some(item => item.id === form.strategy_template_id))
+    return;
+  templateOptions.value.unshift({
+    id: form.strategy_template_id,
+    name: cachedTemplateName,
+    strategy: "",
+    technology: ""
+  });
+}
+
+watch(
+  () => [
+    form.strategy_template_id,
+    form.resolution_mode,
+    form.symbol,
+    form.range?.[0]?.getTime?.() || 0,
+    form.range?.[1]?.getTime?.() || 0,
+    form.initial_equity,
+    form.position_size_pct,
+    form.leverage,
+    form.fee_rate,
+    form.slippage_bps,
+    form.stop_loss_pct,
+    form.take_profit_pct
+  ],
+  () => persistBacktestForm()
+);
 watch(
   () => [
     form.strategy_template_id,
@@ -623,10 +759,13 @@ function schedule(delay?: number) {
 }
 onMounted(async () => {
   await Promise.all([loadFirstPage(), fetchSymbols(), fetchRuns(true)]);
+  ensureCachedTemplateOption();
+  persistBacktestForm();
   schedule();
   window.addEventListener("resize", () => chart?.resize());
 });
 onBeforeUnmount(() => {
+  persistBacktestForm();
   prefetchGeneration += 1;
   marketConditionBackfillGeneration += 1;
   if (timer) clearTimeout(timer);
