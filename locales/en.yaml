@@ -85,6 +85,7 @@ menus:
   symbolAnalysis: Symbol Analysis
   agentOpportunities: Opportunities
   agentBacktest: Historical Backtest
+  outcomeReview: Outcome Review
   agentSkillManagement: Skill Management
   agentTaskCenter: Task Center
   agentWorkflows: Workflows
@@ -2349,7 +2350,7 @@ backtestPage:
 opportunityPage:
   title: Trading Opportunities
   subtitle: Opportunity Watch automatically discovers and analyzes noteworthy futures setups. Real trades still require Proposal, Risk, and explicit user approval.
-  reanalysisPrompt: 'Reanalyze this opportunity using fresh market data. Original source: {source}'
+  reanalysisPrompt: "Reanalyze this opportunity using fresh market data. Original source: {source}"
   filter:
     symbol: Symbol
     status: Opportunity status
@@ -2396,9 +2397,65 @@ opportunityPage:
     expiresAt: Expires At
     error: Analysis Error
     tradingPlan: Full Trading Plan
-    proposalExists: 'Controlled Trade Proposal already exists: {id}'
+    proposalExists: "Controlled Trade Proposal already exists: {id}"
   message:
     loadFailed: Failed to load opportunities
     detailFailed: Failed to load opportunity detail
     proposalCreated: Controlled Trade Proposal created and deterministic Risk check completed
     proposalFailed: Failed to create Controlled Trade Proposal
+outcomeReview:
+  title: Outcome Review
+  subtitle: Review historical backtests, paper trading, and controlled live trading separately without mixing returns.
+  tab:
+    backtest: Historical Backtest
+    paper: Paper Trading
+    live: Live Trading
+  filter:
+    range: Time Range
+    strategy: Strategy Template
+    symbol: Symbol
+    side: Side
+  button:
+    search: Search
+    reset: Reset
+  hint:
+    separate: Backtest, paper, and live trading use different execution environments, so their returns are never merged.
+    livePnl: Live trading currently shows controlled-trade lifecycle statistics only. Net PnL is not shown until fees and funding can be attributed reliably.
+    backtestBasis: Across multiple runs, Return is ΣNet PnL / ΣInitial Equity, a starting-capital-weighted run return rather than a combined equity curve. Max Drawdown is the maximum matching run drawdown; it is shown as - when a trade-subset filter cannot determine it reliably.
+  metric:
+    netPnl: Net PnL
+    return: Return
+    winRate: Win Rate
+    profitFactor: PF
+    maxDrawdown: Max Drawdown
+    trades: Trades
+    fees: Fees
+    avgHolding: Avg Holding
+    closed: Closed
+    open: Open
+    avgPnl: Avg PnL
+    proposals: Proposals
+    executed: Executed
+    openPositions: Open Managed Positions
+    closedPositions: Closed Positions
+    managedOrders: Managed Orders
+  group:
+    symbol: By Symbol
+    side: By Side
+    market: By Market Condition
+  compare:
+    title: Strategy Comparison
+    button: Compare
+    backtestReturn: Backtest Return
+    paperPnl: Paper Net PnL
+    paperWinRate: Paper Win Rate
+  live:
+    recentProposals: Recent Controlled Trade Proposals
+    traceHint: Open Details to trace Proposal → Risk → Execution → Managed Position → Audit on this page.
+    detailTitle: Live Trade Trace
+  table:
+    group: Group
+  message:
+    loadFailed: Failed to load outcome review
+    compareRequired: Select at least two strategies
+    liveDetailFailed: Failed to load live trade trace
