@@ -9,10 +9,18 @@ import {
   type AgentObservationTrace,
   type AgentObservabilitySummary
 } from "@/api/agent";
+import {
+  getSystemHealth,
+  type HealthStatus,
+  type SystemHealthCheck,
+  type SystemHealthReport
+} from "@/api/system";
 
-defineOptions({ name: "AgentObservability" });
+defineOptions({ name: "SystemDashboard" });
 const { t } = useI18n();
 const loading = ref(false);
+const healthLoading = ref(false);
+const health = ref<SystemHealthReport | null>(null);
 const traceLoading = ref(false);
 const changeLoading = ref(false);
 const period = ref("24h");
@@ -66,6 +74,30 @@ function pretty(value: unknown) {
     return String(value ?? "");
   }
 }
+function healthTagType(status?: HealthStatus | string) {
+  if (status === "healthy") return "success";
+  if (status === "warning" || status === "unknown") return "warning";
+  if (status === "error") return "danger";
+  return "info";
+}
+function healthStatusLabel(status?: string) {
+  const key = `systemDashboard.health.status.${status || "unknown"}`;
+  const translated = t(key);
+  return translated === key ? status || "unknown" : translated;
+}
+function healthMessage(check?: SystemHealthCheck) {
+  if (!check) return "-";
+  return check.last_error || check.message || "-";
+}
+async function fetchHealth() {
+  healthLoading.value = true;
+  try {
+    const res = await getSystemHealth();
+    health.value = (res?.data || null) as SystemHealthReport | null;
+  } finally {
+    healthLoading.value = false;
+  }
+}
 
 async function fetchSummary() {
   loading.value = true;
@@ -103,7 +135,12 @@ async function fetchChanges() {
   }
 }
 async function refreshAll() {
-  await Promise.all([fetchSummary(), fetchTraces(), fetchChanges()]);
+  await Promise.all([
+    fetchHealth(),
+    fetchSummary(),
+    fetchTraces(),
+    fetchChanges()
+  ]);
 }
 function changePeriod() {
   traceQuery.page = 1;
@@ -148,6 +185,196 @@ onMounted(refreshAll);
           }}</el-button>
         </div>
       </div>
+    </el-card>
+
+    <el-card v-loading="healthLoading" shadow="never" class="mb-4">
+      <template #header>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div class="font-medium">
+              {{ t("systemDashboard.health.title") }}
+            </div>
+            <div class="text-xs text-gray-500 mt-1">
+              {{ t("systemDashboard.health.subtitle") }}
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500">{{
+              formatTime(health?.generated_at)
+            }}</span>
+            <el-tag :type="healthTagType(health?.overall)">
+              {{ healthStatusLabel(health?.overall) }}
+            </el-tag>
+          </div>
+        </div>
+      </template>
+
+      <div class="health-grid">
+        <div
+          v-for="item in [
+            { key: 'database', check: health?.database },
+            { key: 'binanceRest', check: health?.binance_rest },
+            { key: 'futuresWs', check: health?.futures_ws },
+            { key: 'announcementWs', check: health?.announcement_ws },
+            { key: 'marketIntelligence', check: health?.market_intelligence },
+            { key: 'mcp', check: health?.mcp },
+            { key: 'llm', check: health?.llm },
+            { key: 'scheduler', check: health?.scheduler },
+            { key: 'agent', check: health?.agent },
+            { key: 'trade', check: health?.trade }
+          ]"
+          :key="item.key"
+          class="health-item"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <span class="health-name">{{
+              t(`systemDashboard.health.component.${item.key}`)
+            }}</span>
+            <el-tag size="small" :type="healthTagType(item.check?.status)">
+              {{ healthStatusLabel(item.check?.status) }}
+            </el-tag>
+          </div>
+          <div class="health-message">{{ healthMessage(item.check) }}</div>
+        </div>
+      </div>
+
+      <el-row :gutter="12" class="mt-4">
+        <el-col :xs="24" :lg="8">
+          <div class="health-detail-title">
+            {{ t("systemDashboard.health.marketSources") }}
+          </div>
+          <el-table
+            :data="health?.market_sources || []"
+            size="small"
+            max-height="260"
+          >
+            <el-table-column
+              prop="source"
+              :label="t('systemDashboard.health.name')"
+              min-width="150"
+            />
+            <el-table-column
+              :label="t('systemDashboard.health.state')"
+              width="100"
+            >
+              <template #default="{ row }">
+                <el-tag size="small" :type="healthTagType(row.status)">{{
+                  healthStatusLabel(row.status)
+                }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('systemDashboard.health.lastSuccess')"
+              min-width="170"
+            >
+              <template #default="{ row }">{{
+                formatTime(row.last_success_at)
+              }}</template>
+            </el-table-column>
+          </el-table>
+        </el-col>
+        <el-col :xs="24" :lg="8">
+          <div class="health-detail-title">
+            {{ t("systemDashboard.health.mcpServers") }}
+          </div>
+          <el-table
+            :data="health?.mcp_servers || []"
+            size="small"
+            max-height="260"
+          >
+            <el-table-column
+              prop="name"
+              :label="t('systemDashboard.health.name')"
+              min-width="150"
+            />
+            <el-table-column
+              :label="t('systemDashboard.health.state')"
+              width="100"
+            >
+              <template #default="{ row }">
+                <el-tag size="small" :type="healthTagType(row.status)">{{
+                  healthStatusLabel(row.status)
+                }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('systemDashboard.health.lastSuccess')"
+              min-width="170"
+            >
+              <template #default="{ row }">{{
+                formatTime(row.last_success_at)
+              }}</template>
+            </el-table-column>
+          </el-table>
+        </el-col>
+        <el-col :xs="24" :lg="8">
+          <div class="health-detail-title">
+            {{ t("systemDashboard.health.schedulerJobs") }}
+          </div>
+          <el-table
+            :data="health?.scheduler_jobs || []"
+            size="small"
+            max-height="260"
+          >
+            <el-table-column
+              prop="name"
+              :label="t('systemDashboard.health.name')"
+              min-width="170"
+            />
+            <el-table-column
+              :label="t('systemDashboard.health.state')"
+              width="110"
+            >
+              <template #default="{ row }">
+                <el-tag
+                  size="small"
+                  :type="
+                    row.enabled
+                      ? healthTagType(
+                          row.last_status === 'failed' ? 'warning' : 'healthy'
+                        )
+                      : 'info'
+                  "
+                >
+                  {{
+                    row.enabled
+                      ? row.running
+                        ? t("systemDashboard.health.running")
+                        : row.last_status || t("systemDashboard.health.enabled")
+                      : t("systemDashboard.health.status.disabled")
+                  }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('systemDashboard.health.lastRun')"
+              min-width="170"
+            >
+              <template #default="{ row }">{{
+                formatTime(row.last_run_at)
+              }}</template>
+            </el-table-column>
+          </el-table>
+        </el-col>
+      </el-row>
+
+      <el-descriptions
+        v-if="health?.trade"
+        :column="3"
+        border
+        size="small"
+        class="mt-4"
+      >
+        <el-descriptions-item label="execution_uncertain">{{
+          health.trade.execution_uncertain
+        }}</el-descriptions-item>
+        <el-descriptions-item label="protection_failed">{{
+          health.trade.protection_failed
+        }}</el-descriptions-item>
+        <el-descriptions-item label="reconcile_required">{{
+          health.trade.reconcile_required
+        }}</el-descriptions-item>
+      </el-descriptions>
     </el-card>
 
     <el-row v-loading="loading" :gutter="12" class="mb-4">
@@ -735,6 +962,36 @@ onMounted(refreshAll);
 </template>
 
 <style scoped>
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.health-item {
+  min-width: 0;
+  padding: 12px;
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+}
+
+.health-name {
+  font-weight: 600;
+}
+
+.health-message {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  overflow-wrap: anywhere;
+}
+
+.health-detail-title {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
 .metric-label {
   font-size: 13px;
   color: var(--el-text-color-secondary);

@@ -90,7 +90,7 @@ menus:
   agentTaskCenter: Task Center
   agentWorkflows: Workflows
   agentControlledTrade: Positions & Controlled Trade
-  agentObservability: Observability
+  systemDashboard: System Dashboard
   agentMemoryManagement: Memory Management
   llmConfig: LLM Config
   agentMCPManagement: MCP Management
@@ -1892,8 +1892,8 @@ agentMemoryPage:
     delete: Permanently delete this Memory?
 
 agentObservabilityPage:
-  title: AI Observability & Long-term Metrics
-  subtitle: Observe Agent, LLM, Tool, MCP, Context, and Eval independently from the trading-loop metrics.
+  title: System Dashboard
+  subtitle: View system health, trade safety, and Agent/LLM/Tool/MCP observability in one place.
   tab:
     overview: Operations
     traces: Trace
@@ -2461,3 +2461,34 @@ outcomeReview:
     loadFailed: Failed to load outcome review
     compareRequired: Select at least two strategies
     liveDetailFailed: Failed to load live trade trace
+
+systemDashboard:
+  health:
+    title: System Health
+    subtitle: Read-only checks for core dependencies, scheduler, and trade safety. It never places orders, reconciles positions, or migrates the database.
+    status:
+      healthy: Healthy
+      warning: Warning
+      error: Error
+      disabled: Disabled
+      unknown: Unknown
+    component:
+      database: Database
+      binanceRest: Binance REST
+      futuresWs: Futures WS
+      announcementWs: Announcement WS
+      marketIntelligence: Market Intelligence
+      mcp: MCP
+      llm: LLM Gateway
+      scheduler: Scheduler
+      agent: Agent Runtime
+      trade: Trade Safety
+    marketSources: Market Intelligence Sources
+    mcpServers: MCP Servers
+    schedulerJobs: Scheduler Jobs
+    name: Name
+    state: Status
+    lastSuccess: Last Success
+    lastRun: Last Run
+    running: Running
+    enabled: Enabled

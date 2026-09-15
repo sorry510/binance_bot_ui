@@ -90,7 +90,7 @@ menus:
   agentTaskCenter: 任务中心
   agentWorkflows: 业务 Workflow
   agentControlledTrade: 仓位与受控交易
-  agentObservability: 可观测性
+  systemDashboard: 系统看板
   agentMemoryManagement: Memory 管理
   llmConfig: 模型配置
   agentMCPManagement: MCP 管理
@@ -1892,8 +1892,8 @@ agentMemoryPage:
     delete: 确定永久删除这条 Memory 吗？
 
 agentObservabilityPage:
-  title: AI 可观测性与长期指标
-  subtitle: 独立观察 Agent/LLM/Tool/MCP/Context/Eval，不与交易主循环指标混合。
+  title: 系统看板
+  subtitle: 集中查看系统健康、交易安全与 Agent/LLM/Tool/MCP 可观测性。
   tab:
     overview: 运营概览
     traces: Trace
@@ -2461,3 +2461,34 @@ outcomeReview:
     loadFailed: 加载交易复盘失败
     compareRequired: 请至少选择两个策略
     liveDetailFailed: 加载真实交易追踪详情失败
+
+systemDashboard:
+  health:
+    title: 系统健康
+    subtitle: 只读检查核心依赖、调度和交易安全状态；不会触发下单、Reconcile 或数据库迁移。
+    status:
+      healthy: 正常
+      warning: 警告
+      error: 异常
+      disabled: 未启用
+      unknown: 未知
+    component:
+      database: 数据库
+      binanceRest: Binance REST
+      futuresWs: Futures WS
+      announcementWs: Announcement WS
+      marketIntelligence: Market Intelligence
+      mcp: MCP
+      llm: LLM Gateway
+      scheduler: Scheduler
+      agent: Agent Runtime
+      trade: 交易安全
+    marketSources: Market Intelligence Sources
+    mcpServers: MCP Servers
+    schedulerJobs: Scheduler Jobs
+    name: 名称
+    state: 状态
+    lastSuccess: 最后成功
+    lastRun: 最后运行
+    running: 运行中
+    enabled: 已启用

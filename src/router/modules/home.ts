@@ -15,6 +15,28 @@ export default [
     }
   },
   {
+    path: "/system-dashboard",
+    name: "SystemDashboard",
+    component: Layout,
+    redirect: "/system-dashboard/overview",
+    meta: {
+      icon: "ep/monitor",
+      title: "menus.systemDashboard",
+      rank: 0.1
+    },
+    children: [
+      {
+        path: "/system-dashboard/overview",
+        name: "SystemDashboardOverview",
+        component: () => import("@/views/ai/observability.vue"),
+        meta: {
+          title: "menus.systemDashboard",
+          showLink: true
+        }
+      }
+    ]
+  },
+  {
     path: "/config-center",
     name: "ConfigCenter",
     component: Layout,
@@ -131,16 +153,6 @@ export default [
         component: () => import("@/views/ai/taskCenter.vue"),
         meta: {
           title: "menus.agentTaskCenter",
-          showLink: true,
-          showParent: true
-        }
-      },
-      {
-        path: "/ai/observability",
-        name: "AgentObservability",
-        component: () => import("@/views/ai/observability.vue"),
-        meta: {
-          title: "menus.agentObservability",
           showLink: true,
           showParent: true
         }
