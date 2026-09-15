@@ -771,6 +771,7 @@ llmConfigPage:
     longContext: 长上下文
     nativeTools: 原生工具
   health:
+    schemaVersion: 当前 Schema v{current} / 二进制要求 v{required}
     unknown: 暂无样本
     closed: 正常
     open: 熔断

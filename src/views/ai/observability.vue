@@ -987,6 +987,12 @@ onMounted(refreshAll);
   overflow-wrap: anywhere;
 }
 
+.health-schema {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
 .health-detail-title {
   margin-bottom: 8px;
   font-weight: 600;

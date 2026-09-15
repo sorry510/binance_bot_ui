@@ -771,6 +771,7 @@ llmConfigPage:
     longContext: Long Context
     nativeTools: Native Tools
   health:
+    schemaVersion: Current Schema v{current} / Required v{required}
     unknown: No Samples
     closed: Healthy
     open: Circuit Open
