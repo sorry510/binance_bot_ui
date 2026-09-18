@@ -29,6 +29,7 @@ const reservedIndicatorNames = new Set([
   "NowSymbolOpen",
   "NowSymbolLow",
   "NowSymbolHigh",
+  "FundingRate",
   "BasicTrend",
   "KdjSimple",
   "IsAsc",

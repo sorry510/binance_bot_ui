@@ -289,6 +289,9 @@ const codeEditorExtensions = computed(() => {
     "NowSymbolOpen",
     "NowSymbolLow",
     "NowSymbolHigh",
+    "FundingRate",
+    "FundingRate.Data",
+    "FundingRate.Time",
     "BasicTrend"
   ]);
 
