@@ -2228,11 +2228,28 @@ backtestPage:
     prefetch: Fetch Historical Data
     start: Start Backtest
     refresh: Refresh
+    search: Search
+    reset: Reset
     detail: Detail
     parameters: Parameters
     cancel: Cancel
     delete: Delete
     deleting: Deleting
+  filter:
+    strategy: Strategy
+    symbol: Symbol
+    status: Status
+    resolutionMode: Resolution Mode
+    createdAt: Created At
+    statusValue:
+      queued: Queued
+      running: Running
+      succeeded: Succeeded
+      failed: Failed
+      cancelled: Cancelled
+      interrupted: Interrupted
+      deleting: Deleting
+      delete_failed: Delete Failed
   table:
     strategy: Strategy
     parameters: Parameters

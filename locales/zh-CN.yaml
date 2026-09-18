@@ -2228,11 +2228,28 @@ backtestPage:
     prefetch: 获取历史数据
     start: 开始回测
     refresh: 刷新
+    search: 查询
+    reset: 重置
     detail: 详情
     parameters: 参数
     cancel: 取消
     delete: 删除
     deleting: 删除中
+  filter:
+    strategy: 策略
+    symbol: 币种
+    status: 状态
+    resolutionMode: 精度模式
+    createdAt: 创建时间
+    statusValue:
+      queued: 等待执行
+      running: 运行中
+      succeeded: 已完成
+      failed: 失败
+      cancelled: 已取消
+      interrupted: 已中断
+      deleting: 删除中
+      delete_failed: 删除失败
   table:
     strategy: 策略
     parameters: 参数

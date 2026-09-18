@@ -65,6 +65,13 @@ const {
   search: searchTemplates,
   onPopupScroll
 } = useStrategyTemplateOptions();
+const {
+  options: historyTemplateOptions,
+  selectLoading: historyTemplateLoading,
+  loadFirstPage: loadHistoryTemplateFirstPage,
+  search: searchHistoryTemplates,
+  onPopupScroll: onHistoryTemplatePopupScroll
+} = useStrategyTemplateOptions();
 const symbols = ref<string[]>([]);
 const runs = ref<BacktestRun[]>([]);
 const total = ref(0);
@@ -76,7 +83,15 @@ const marketConditionBackfilling = ref(false);
 const marketConditionBackfillJob = ref<MarketConditionBackfill | null>(null);
 let prefetchGeneration = 0;
 let marketConditionBackfillGeneration = 0;
-const query = reactive({ page: 1, limit: 20 });
+const query = reactive({
+  page: 1,
+  limit: 20,
+  strategy_template_id: undefined as number | undefined,
+  symbol: "",
+  status: "",
+  resolution_mode: ""
+});
+const historyCreatedRange = ref<[Date, Date] | null>(null);
 const BACKTEST_FORM_CACHE_KEY = "go_binance_futures:backtest:form:v1";
 type BacktestFormCache = {
   strategy_template_id?: number;
@@ -364,12 +379,38 @@ async function fetchSymbols() {
 async function fetchRuns(show = false) {
   if (show) loading.value = true;
   try {
-    const res = await getBacktests({ ...query });
+    const params: Record<string, string | number> = {
+      page: query.page,
+      limit: query.limit
+    };
+    if (query.strategy_template_id)
+      params.strategy_template_id = query.strategy_template_id;
+    if (query.symbol.trim()) params.symbol = query.symbol.trim().toUpperCase();
+    if (query.status) params.status = query.status;
+    if (query.resolution_mode) params.resolution_mode = query.resolution_mode;
+    if (historyCreatedRange.value?.[0])
+      params.created_from = historyCreatedRange.value[0].getTime();
+    if (historyCreatedRange.value?.[1])
+      params.created_to = historyCreatedRange.value[1].getTime();
+    const res = await getBacktests(params);
     runs.value = (res?.data?.list || []) as BacktestRun[];
     total.value = Number(res?.data?.total || 0);
   } finally {
     if (show) loading.value = false;
   }
+}
+async function applyHistoryFilters() {
+  query.page = 1;
+  await fetchRuns(true);
+}
+async function resetHistoryFilters() {
+  query.strategy_template_id = undefined;
+  query.symbol = "";
+  query.status = "";
+  query.resolution_mode = "";
+  historyCreatedRange.value = null;
+  query.page = 1;
+  await Promise.all([loadHistoryTemplateFirstPage(), fetchRuns(true)]);
 }
 async function prefetchData() {
   if (!form.strategy_template_id) {
@@ -758,7 +799,12 @@ function schedule(delay?: number) {
   }, wait);
 }
 onMounted(async () => {
-  await Promise.all([loadFirstPage(), fetchSymbols(), fetchRuns(true)]);
+  await Promise.all([
+    loadFirstPage(),
+    loadHistoryTemplateFirstPage(),
+    fetchSymbols(),
+    fetchRuns(true)
+  ]);
   ensureCachedTemplateOption();
   persistBacktestForm();
   schedule();
@@ -1042,6 +1088,95 @@ onBeforeUnmount(() => {
           }}</el-button>
         </div></template
       >
+      <el-form :inline="true" class="history-filter">
+        <el-form-item :label="t('backtestPage.filter.strategy')">
+          <el-select
+            v-model="query.strategy_template_id"
+            filterable
+            remote
+            clearable
+            :remote-method="searchHistoryTemplates"
+            :loading="historyTemplateLoading"
+            :popper-class="strategyTemplatePopperClass"
+            style="width: 260px"
+            @popup-scroll="onHistoryTemplatePopupScroll"
+          >
+            <el-option
+              v-for="x in historyTemplateOptions"
+              :key="x.id"
+              :label="`${x.name} (#${x.id})`"
+              :value="x.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="t('backtestPage.filter.symbol')">
+          <el-select
+            v-model="query.symbol"
+            filterable
+            clearable
+            allow-create
+            default-first-option
+            style="width: 160px"
+          >
+            <el-option
+              v-for="item in symbols"
+              :key="item"
+              :label="item"
+              :value="item"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="t('backtestPage.filter.status')">
+          <el-select v-model="query.status" clearable style="width: 150px">
+            <el-option
+              v-for="item in [
+                'queued',
+                'running',
+                'succeeded',
+                'failed',
+                'cancelled',
+                'interrupted',
+                'deleting',
+                'delete_failed'
+              ]"
+              :key="item"
+              :label="t(`backtestPage.filter.statusValue.${item}`)"
+              :value="item"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="t('backtestPage.filter.resolutionMode')">
+          <el-select
+            v-model="query.resolution_mode"
+            clearable
+            style="width: 170px"
+          >
+            <el-option
+              :label="t('backtestPage.resolution.mode.standard_1m')"
+              value="standard_1m"
+            />
+            <el-option
+              :label="t('backtestPage.resolution.mode.adaptive')"
+              value="adaptive"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="t('backtestPage.filter.createdAt')">
+          <el-date-picker
+            v-model="historyCreatedRange"
+            type="datetimerange"
+            style="width: 360px"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="applyHistoryFilters">{{
+            t("backtestPage.button.search")
+          }}</el-button>
+          <el-button @click="resetHistoryFilters">{{
+            t("backtestPage.button.reset")
+          }}</el-button>
+        </el-form-item>
+      </el-form>
       <el-table :data="runs" size="small"
         ><el-table-column
           prop="strategy_template_name"
