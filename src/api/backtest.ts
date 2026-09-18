@@ -137,6 +137,7 @@ export interface BacktestPrefetch {
   job_id: string;
   status: string;
   stage: string;
+  stage_detail?: string;
   progress: number;
   strategy_template_id: number;
   strategy_template_name: string;
@@ -188,7 +189,8 @@ export const startBacktestPrefetch = (data: StartBacktestPrefetchRequest) =>
 export const getBacktestPrefetch = (id: string) =>
   http.get<any, Query>(
     baseUrlApi(`agents/backtests/prefetch/${encodeURIComponent(id)}`),
-    { params: {} }
+    { params: {} },
+    { timeout: 5000 }
   );
 
 export const startMarketConditionBackfill = () =>

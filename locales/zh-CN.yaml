@@ -2301,13 +2301,18 @@ backtestPage:
     lastUpdate: 最近更新
     stageValue:
       queued: 等待执行
+      checking: 检查本地历史数据
+      public_data_downloading: 下载 Binance 月度归档
+      public_data_importing: 解析并写入月度归档
+      rest_fallback: 使用 Binance REST 补齐缺口
+      funding: 获取 Funding 历史
       fetching: 正在分块获取并写入历史数据
       completed: 已完成
       failed: 失败
     replay: 回放精度
     intervals: 目标所需 K 线周期
     warmup: Warmup 起始时间
-    rateLimit: Binance 历史 REST 请求全局串行节流，请求起始间隔至少 300ms。
+    rateLimit: 完整历史月份的 1m K 线优先使用 Binance 官方月度 ZIP；仅当前月份或归档缺口回退到 REST，REST 仍保持全局限频。
     fetched: 已从 Binance 补齐 {rows} 条历史数据
     local: 本地数据已完整，未请求 Binance
   stage:

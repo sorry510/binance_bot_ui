@@ -2301,13 +2301,18 @@ backtestPage:
     lastUpdate: Last update
     stageValue:
       queued: Queued
+      checking: Checking local historical data
+      public_data_downloading: Downloading Binance monthly archive
+      public_data_importing: Parsing and persisting monthly archive
+      rest_fallback: Filling gaps with Binance REST
+      funding: Fetching funding history
       fetching: Fetching and persisting historical data in chunks
       completed: Completed
       failed: Failed
     replay: Replay precision
     intervals: Required target intervals
     warmup: Warmup start
-    rateLimit: Binance historical REST requests are globally throttled with at least 300ms between request starts.
+    rateLimit: Complete historical months of 1m K-lines use Binance monthly archives first; only the current month or remaining gaps fall back to globally rate-limited REST.
     fetched: Fetched {rows} rows from Binance
     local: Local data was already complete; Binance was not requested
   stage:

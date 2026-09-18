@@ -437,16 +437,24 @@ async function prefetchData() {
     if (Number(res?.code) !== 200)
       throw new Error(res?.msg || "prefetch failed");
     prefetchJob.value = res?.data as BacktestPrefetch;
+    let consecutivePollErrors = 0;
     while (
       generation === prefetchGeneration &&
       prefetchJob.value &&
       ["queued", "running"].includes(prefetchJob.value.status)
     ) {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      const status = await getBacktestPrefetch(prefetchJob.value.job_id);
-      if (Number(status?.code) !== 200)
-        throw new Error(status?.msg || "prefetch status failed");
-      prefetchJob.value = status?.data as BacktestPrefetch;
+      try {
+        const status = await getBacktestPrefetch(prefetchJob.value.job_id);
+        if (Number(status?.code) !== 200)
+          throw new Error(status?.msg || "prefetch status failed");
+        prefetchJob.value = status?.data as BacktestPrefetch;
+        consecutivePollErrors = 0;
+      } catch (e: any) {
+        consecutivePollErrors += 1;
+        if (consecutivePollErrors >= 6) throw e;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
     if (generation !== prefetchGeneration || !prefetchJob.value) return;
     if (prefetchJob.value.status === "succeeded") {
@@ -1003,6 +1011,9 @@ onBeforeUnmount(() => {
             <div class="text-sm mt-1">
               {{ t("backtestPage.prefetch.stage") }}:
               {{ prefetchStageText(prefetchJob.stage) }}
+              <span v-if="prefetchJob.stage_detail">
+                ({{ prefetchJob.stage_detail }})
+              </span>
             </div>
             <div class="text-sm">
               {{ t("backtestPage.prefetch.lastUpdate") }}:
