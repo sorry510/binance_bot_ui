@@ -73,6 +73,8 @@ const {
   onPopupScroll: onHistoryTemplatePopupScroll
 } = useStrategyTemplateOptions();
 const symbols = ref<string[]>([]);
+const recentSymbols = ref<string[]>([]);
+const quickStartingSymbol = ref("");
 const runs = ref<BacktestRun[]>([]);
 const total = ref(0);
 const loading = ref(false);
@@ -376,6 +378,35 @@ async function fetchSymbols() {
     symbols.value = [];
   }
 }
+async function fetchRecentSymbols() {
+  try {
+    const seen = new Set<string>();
+    const recent: string[] = [];
+    let page = 1;
+    const limit = 100;
+    let total = Number.POSITIVE_INFINITY;
+    while (recent.length < 10 && (page - 1) * limit < total) {
+      const res = await getBacktests({ page, limit });
+      const list = (res?.data?.list || []) as BacktestRun[];
+      total = Number(res?.data?.total || 0);
+      for (const run of list) {
+        const symbol = String(run.symbol || "")
+          .trim()
+          .toUpperCase();
+        if (!symbol || seen.has(symbol)) continue;
+        seen.add(symbol);
+        recent.push(symbol);
+        if (recent.length >= 10) break;
+      }
+      if (!list.length) break;
+      page += 1;
+    }
+    recentSymbols.value = recent;
+  } catch {
+    recentSymbols.value = [];
+  }
+}
+
 async function fetchRuns(show = false) {
   if (show) loading.value = true;
   try {
@@ -534,7 +565,8 @@ async function backfillMarketCondition() {
   }
 }
 
-async function submit() {
+async function submit(symbolOverride = "", openResult = true) {
+  if (symbolOverride) form.symbol = symbolOverride;
   if (!form.strategy_template_id) {
     ElMessage.error(t("backtestPage.message.templateRequired"));
     return;
@@ -548,6 +580,7 @@ async function submit() {
     return;
   }
   starting.value = true;
+  quickStartingSymbol.value = symbolOverride;
   try {
     const res = await startBacktest({
       strategy_template_id: Number(form.strategy_template_id),
@@ -567,14 +600,18 @@ async function submit() {
     });
     if (Number(res?.code) !== 200) throw new Error(res?.msg || "start failed");
     ElMessage.success(t("backtestPage.message.started"));
-    await fetchRuns();
+    await Promise.all([fetchRuns(), fetchRecentSymbols()]);
     schedule(500);
-    if (res?.data?.run_id) await openDetail(res.data);
+    if (openResult && res?.data?.run_id) await openDetail(res.data);
   } catch (e: any) {
     ElMessage.error(e?.message || t("backtestPage.message.startFailed"));
   } finally {
     starting.value = false;
+    quickStartingSymbol.value = "";
   }
+}
+function quickStart(symbol: string) {
+  return submit(symbol, false);
 }
 function openParams(row: BacktestRun) {
   paramsRun.value = row;
@@ -716,7 +753,7 @@ async function removeRun(row: BacktestRun) {
     if (compareA.value === row.run_id) compareA.value = "";
     if (compareB.value === row.run_id) compareB.value = "";
     ElMessage.success(t("backtestPage.message.deleteStarted"));
-    await fetchRuns();
+    await Promise.all([fetchRuns(), fetchRecentSymbols()]);
     if (!runs.value.length && query.page > 1) {
       query.page -= 1;
       await fetchRuns();
@@ -811,7 +848,8 @@ onMounted(async () => {
     loadFirstPage(),
     loadHistoryTemplateFirstPage(),
     fetchSymbols(),
-    fetchRuns(true)
+    fetchRuns(true),
+    fetchRecentSymbols()
   ]);
   ensureCachedTemplateOption();
   persistBacktestForm();
@@ -947,10 +985,33 @@ onBeforeUnmount(() => {
             type="primary"
             :loading="starting"
             :disabled="prefetching"
-            @click="submit"
+            @click="submit()"
             >{{ t("backtestPage.button.start") }}</el-button
           ></el-form-item
         >
+        <el-form-item
+          v-if="recentSymbols.length"
+          :label="t('backtestPage.form.quickTest')"
+        >
+          <div>
+            <div class="quick-test-buttons">
+              <el-button
+                v-for="item in recentSymbols"
+                :key="item"
+                type="primary"
+                plain
+                :loading="starting && quickStartingSymbol === item"
+                :disabled="prefetching || starting"
+                @click="quickStart(item)"
+              >
+                {{ item }}
+              </el-button>
+            </div>
+            <div class="text-xs text-gray-500 mt-2">
+              {{ t("backtestPage.form.quickTestHint") }}
+            </div>
+          </div>
+        </el-form-item>
         <el-form-item
           v-if="marketConditionBackfillJob"
           :label="t('backtestPage.marketCondition.title')"
@@ -1618,6 +1679,17 @@ onBeforeUnmount(() => {
 .resolution-help {
   width: 100%;
   margin-top: 6px;
+}
+
+.quick-test-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 760px;
+}
+
+.quick-test-buttons :deep(.el-button + .el-button) {
+  margin-left: 0;
 }
 
 .event-data {

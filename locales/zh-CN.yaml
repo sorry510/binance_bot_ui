@@ -2214,6 +2214,8 @@ backtestPage:
   form:
     template: 策略模板
     symbol: 合约
+    quickTest: 快捷测试
+    quickTestHint: 点击币种后会直接使用当前策略、时间范围和参数创建回测
     range: 回测时间
     resolutionMode: 精度模式
     initialEquity: 初始资金

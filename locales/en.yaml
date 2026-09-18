@@ -2214,6 +2214,8 @@ backtestPage:
   form:
     template: Strategy Template
     symbol: Contract
+    quickTest: Quick Test
+    quickTestHint: Click a symbol to start a backtest immediately with the current strategy, time range, and parameters
     range: Time Range
     resolutionMode: Resolution Mode
     initialEquity: Initial Equity
