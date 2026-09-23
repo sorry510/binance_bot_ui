@@ -308,6 +308,25 @@ dashboard:
     coin4: coin4
     coin5: coin5
     coin6: coin6
+    smart_local_v2: Smart Local Selector V2
+  selectorPreview:
+    button: Preview Candidates
+    title: Smart Local Selector V2 Preview
+    localOnly: Candidates use only local symbols / WebSocket data and local order cooldowns. No Binance REST request is made.
+    source: Source
+    cooldown: Cooldown
+    freshness: Market Freshness
+    symbol: Symbol
+    score: Score
+    volume: 24h Quote Volume
+    trades: 24h Trades
+    change: 24h Change
+    momentum: Local Momentum
+    reasons: Reasons
+    risks: Risks
+    excluded: "Excluded {count} symbols"
+    excludedReason: Exclusion Reason
+    loadFailed: Failed to load Smart Local V2 candidates
   market:
     "1": Strong Bull
     "2": Bull
@@ -660,6 +679,71 @@ agentSkillPage:
     symbol_analysis:
       displayName: Symbol Analysis
       description: Analyzes a USDT perpetual contract and returns a structured trading plan.
+
+agentSkillStudio:
+  title: "Skill Studio: {name}"
+  draftsTitle: Skill Drafts
+  sourceVersion: "Source Revision #{id}"
+  files: Files
+  unsaved: Unsaved
+  emptyFile: Select a file
+  emptyDrafts: No Skill drafts
+  button:
+    drafts: Drafts
+    newSkill: New Standard Skill
+    editNewVersion: Edit as New Version
+    newFile: New Text File
+    uploadAsset: Upload Asset
+    save: Save File
+    validate: Validate
+    publish: Publish New Version
+    publishActivate: Publish & Activate
+    deleteFile: Delete File
+    resume: Resume
+  table:
+    sourceVersion: Source Revision
+    updatedAt: Updated At
+  mode:
+    edit: Edit
+    preview: Raw Preview
+  validation:
+    title: Package Validation
+    valid: Validation passed
+    version: Version
+    hash: Package Hash
+    files: File Count
+    size: Package Size
+    tools: Requested Tools
+    diagnostics: Diagnostics
+    empty: Save and click Validate to inspect standard compatibility, references, and requested permissions
+  prompt:
+    skillName: Enter a standard Skill name using lowercase letters, digits, and single hyphens
+    filePath: Enter a relative file path
+    uploadPath: Enter the Asset path inside the Skill package
+  confirm:
+    title: Confirm
+    discard: This file has unsaved changes. Discard them and switch files?
+    deleteFile: "Delete file {path}?"
+    deleteDraft: "Delete Skill draft {name}?"
+  message:
+    loadFailed: Failed to load Skill Draft
+    fileLoadFailed: Failed to read Draft file; binary Assets cannot be edited online
+    saved: Draft file saved
+    saveFailed: Failed to save Draft file
+    pathRequired: Enter a relative file path
+    deleteFileFailed: Failed to delete Draft file
+    uploadFailed: Failed to upload Draft Asset
+    uploaded: Draft Asset uploaded
+    validateFailed: Draft validation request failed
+    valid: Skill Package validation passed
+    invalid: Skill Package validation failed
+    publishFailed: Failed to publish Skill version
+    published: New Skill version published
+    publishedActivated: New Skill version published and activated
+    createFailed: Failed to create Skill Draft
+    nameInvalid: Invalid Skill name
+    noVersion: This Portable Skill has no revision to edit
+    deleteDraftFailed: Failed to delete Skill Draft
 
 llmConfigPage:
   title: LLM Model Configuration

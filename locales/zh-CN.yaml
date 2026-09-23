@@ -308,6 +308,25 @@ dashboard:
     coin4: coin4
     coin5: coin5
     coin6: coin6
+    smart_local_v2: 智能本地选币 V2
+  selectorPreview:
+    button: 预览候选
+    title: 智能本地选币 V2 候选预览
+    localOnly: 候选仅使用本地 symbols / WS 数据和本地订单冷却，不会产生 Binance REST 请求。
+    source: 数据源
+    cooldown: 冷却
+    freshness: 行情新鲜度
+    symbol: 合约
+    score: 分数
+    volume: 24h 成交额
+    trades: 24h 成交笔数
+    change: 24h 涨跌
+    momentum: 本地动量
+    reasons: 入选理由
+    risks: 风险
+    excluded: "已过滤 {count} 个合约"
+    excludedReason: 过滤原因
+    loadFailed: 加载智能本地选币候选失败
   market:
     "1": 强多头
     "2": 偏多头
@@ -660,6 +679,71 @@ agentSkillPage:
     symbol_analysis:
       displayName: 单币分析
       description: 分析指定 USDT 永续合约并输出结构化交易计划。
+
+agentSkillStudio:
+  title: "Skill Studio：{name}"
+  draftsTitle: Skill 草稿
+  sourceVersion: "来源 Revision #{id}"
+  files: 文件
+  unsaved: 未保存
+  emptyFile: 请选择文件
+  emptyDrafts: 暂无 Skill 草稿
+  button:
+    drafts: 草稿
+    newSkill: 新建标准 Skill
+    editNewVersion: 编辑为新版本
+    newFile: 新建文本文件
+    uploadAsset: 上传 Asset
+    save: 保存文件
+    validate: 校验
+    publish: 发布新版本
+    publishActivate: 发布并激活
+    deleteFile: 删除文件
+    resume: 继续编辑
+  table:
+    sourceVersion: 来源 Revision
+    updatedAt: 更新时间
+  mode:
+    edit: 编辑
+    preview: Raw Preview
+  validation:
+    title: Package 校验
+    valid: 校验通过
+    version: 版本
+    hash: Package Hash
+    files: 文件数
+    size: Package 大小
+    tools: Requested Tools
+    diagnostics: Diagnostics
+    empty: 保存后点击“校验”查看标准兼容性、引用和权限请求
+  prompt:
+    skillName: 输入标准 Skill 名称，只允许小写字母、数字和单连字符
+    filePath: 输入相对文件路径
+    uploadPath: 输入 Asset 在 Skill Package 中的相对路径
+  confirm:
+    title: 提示
+    discard: 当前文件有未保存修改，确定放弃并切换文件？
+    deleteFile: "确认删除文件 {path}？"
+    deleteDraft: "确认删除 Skill 草稿 {name}？"
+  message:
+    loadFailed: 加载 Skill Draft 失败
+    fileLoadFailed: 读取 Draft 文件失败；二进制 Asset 不能在线编辑
+    saved: Draft 文件已保存
+    saveFailed: 保存 Draft 文件失败
+    pathRequired: 请输入相对文件路径
+    deleteFileFailed: 删除 Draft 文件失败
+    uploadFailed: 上传 Draft Asset 失败
+    uploaded: Draft Asset 已上传
+    validateFailed: Draft 校验请求失败
+    valid: Skill Package 校验通过
+    invalid: Skill Package 校验失败
+    publishFailed: 发布 Skill 新版本失败
+    published: Skill 新版本已发布
+    publishedActivated: Skill 新版本已发布并激活
+    createFailed: 创建 Skill Draft 失败
+    nameInvalid: Skill 名称格式不正确
+    noVersion: 该 Portable Skill 没有可编辑的 Revision
+    deleteDraftFailed: 删除 Skill Draft 失败
 
 llmConfigPage:
   title: 模型配置

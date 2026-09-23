@@ -634,6 +634,110 @@ export interface AgentSkillVersionDetail {
   files: string[];
 }
 
+export interface AgentSkillDraft {
+  id: string;
+  skill_name: string;
+  source_version_id?: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AgentSkillDraftDetail extends AgentSkillDraft {
+  files: string[];
+}
+
+export interface AgentSkillDraftValidation {
+  valid: boolean;
+  error?: string;
+  name?: string;
+  description?: string;
+  version?: string;
+  package_hash?: string;
+  requested_tools: string[];
+  diagnostics: Array<{
+    level: string;
+    code: string;
+    message: string;
+    path?: string;
+  }>;
+  files: string[];
+  file_count: number;
+  total_bytes: number;
+}
+
+export const getAgentSkillDrafts = () =>
+  http.get<any, Query>(baseUrlApi("agents/skills/drafts"));
+
+export const createAgentSkillDraft = (data: {
+  name?: string;
+  source_version_id?: number;
+}) => http.post<any, typeof data>(baseUrlApi("agents/skills/drafts"), { data });
+
+export const getAgentSkillDraft = (draftId: string) =>
+  http.get<any, Query>(
+    baseUrlApi(`agents/skills/drafts/${encodeURIComponent(draftId)}`)
+  );
+
+export const deleteAgentSkillDraft = (draftId: string) =>
+  http.request<any>(
+    "delete",
+    baseUrlApi(`agents/skills/drafts/${encodeURIComponent(draftId)}`)
+  );
+
+export const getAgentSkillDraftFile = (draftId: string, path: string) =>
+  http.get<any, Query>(
+    baseUrlApi(`agents/skills/drafts/${encodeURIComponent(draftId)}/file`),
+    { params: { path } }
+  );
+
+export const saveAgentSkillDraftFile = (
+  draftId: string,
+  path: string,
+  content: string
+) =>
+  http.request<any>(
+    "put",
+    baseUrlApi(`agents/skills/drafts/${encodeURIComponent(draftId)}/file`),
+    { data: { path, content } }
+  );
+
+export const deleteAgentSkillDraftFile = (draftId: string, path: string) =>
+  http.request<any>(
+    "delete",
+    baseUrlApi(`agents/skills/drafts/${encodeURIComponent(draftId)}/file`),
+    { params: { path } }
+  );
+
+export const uploadAgentSkillDraftFile = (
+  draftId: string,
+  file: File,
+  path: string
+) => {
+  const data = new FormData();
+  data.append("file", file);
+  data.append("path", path);
+  return http.request<any>(
+    "post",
+    baseUrlApi(`agents/skills/drafts/${encodeURIComponent(draftId)}/upload`),
+    { data, timeout: 120000 } as any
+  );
+};
+
+export const validateAgentSkillDraft = (draftId: string) =>
+  http.post<any, Query>(
+    baseUrlApi(`agents/skills/drafts/${encodeURIComponent(draftId)}/validate`)
+  );
+
+export const publishAgentSkillDraft = (
+  draftId: string,
+  data: { activate: boolean; delete_draft?: boolean }
+) =>
+  http.post<any, typeof data>(
+    baseUrlApi(`agents/skills/drafts/${encodeURIComponent(draftId)}/publish`),
+    { data },
+    { timeout: 120000 }
+  );
+
 export const importAgentSkillFile = (file: File, activate = false) => {
   const data = new FormData();
   data.append("file", file);

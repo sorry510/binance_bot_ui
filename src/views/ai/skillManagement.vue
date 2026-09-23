@@ -5,7 +5,10 @@ import { useI18n } from "vue-i18n";
 import {
   activateAgentSkillVersion,
   createAgentSkill,
+  createAgentSkillDraft,
   deleteAgentSkill,
+  deleteAgentSkillDraft,
+  getAgentSkillDrafts,
   getAgentSkillImplementations,
   getAgentSkills,
   getAgentSkillVersionDetail,
@@ -16,10 +19,12 @@ import {
   updateAgentSkill,
   updateAgentSkillPermission,
   type AgentSkillConfig,
+  type AgentSkillDraft,
   type AgentSkillImplementation,
   type AgentSkillVersion,
   type AgentSkillVersionDetail
 } from "@/api/agent";
+import SkillStudioDialog from "./skillStudioDialog.vue";
 
 defineOptions({ name: "AgentSkillManagement" });
 const { t } = useI18n();
@@ -35,6 +40,11 @@ const configuredSkillNames = ref<Set<string>>(new Set());
 const dialogVisible = ref(false);
 const importVisible = ref(false);
 const importing = ref(false);
+const draftsVisible = ref(false);
+const draftsLoading = ref(false);
+const drafts = ref<AgentSkillDraft[]>([]);
+const studioVisible = ref(false);
+const studioDraftId = ref("");
 const versionsVisible = ref(false);
 const versionLoading = ref(false);
 const fileVisible = ref(false);
@@ -80,6 +90,10 @@ function formatBytes(value?: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+function formatTime(value?: number) {
+  if (!value) return "-";
+  return new Date(value).toLocaleString();
 }
 async function fetchData() {
   loading.value = true;
@@ -273,6 +287,105 @@ async function importPortable() {
     importing.value = false;
   }
 }
+
+async function fetchDrafts() {
+  draftsLoading.value = true;
+  try {
+    const res = await getAgentSkillDrafts();
+    assertBusinessSuccess(res, t("agentSkillStudio.message.loadFailed"));
+    drafts.value = (res?.data || []) as AgentSkillDraft[];
+  } catch (error: any) {
+    ElMessage.error(error?.message || t("agentSkillStudio.message.loadFailed"));
+  } finally {
+    draftsLoading.value = false;
+  }
+}
+
+async function openDrafts() {
+  draftsVisible.value = true;
+  await fetchDrafts();
+}
+
+function resumeDraft(row: AgentSkillDraft) {
+  studioDraftId.value = row.id;
+  studioVisible.value = true;
+}
+
+async function createPortableDraft() {
+  try {
+    const result = await ElMessageBox.prompt(
+      t("agentSkillStudio.prompt.skillName"),
+      t("agentSkillStudio.button.newSkill"),
+      {
+        inputPlaceholder: "my-skill",
+        inputPattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+        inputErrorMessage: t("agentSkillStudio.message.nameInvalid")
+      }
+    );
+    const name = String(result.value || "").trim();
+    const res = await createAgentSkillDraft({ name });
+    assertBusinessSuccess(res, t("agentSkillStudio.message.createFailed"));
+    studioDraftId.value = String(res?.data?.id || "");
+    if (!studioDraftId.value)
+      throw new Error(t("agentSkillStudio.message.createFailed"));
+    studioVisible.value = true;
+    activeTab.value = "portable";
+  } catch (error: any) {
+    if (error === "cancel" || error === "close") return;
+    ElMessage.error(
+      error?.message || t("agentSkillStudio.message.createFailed")
+    );
+  }
+}
+
+async function editPortableAsDraft(row: AgentSkillConfig) {
+  try {
+    const res = await getAgentSkillVersions(row.id);
+    assertBusinessSuccess(res, t("agentSkillStudio.message.loadFailed"));
+    const list = (res?.data || []) as AgentSkillVersion[];
+    const source =
+      list.find(item => item.id === row.active_version_id) || list[0];
+    if (!source) throw new Error(t("agentSkillStudio.message.noVersion"));
+    const draftRes = await createAgentSkillDraft({
+      source_version_id: source.id
+    });
+    assertBusinessSuccess(draftRes, t("agentSkillStudio.message.createFailed"));
+    studioDraftId.value = String(draftRes?.data?.id || "");
+    if (!studioDraftId.value)
+      throw new Error(t("agentSkillStudio.message.createFailed"));
+    studioVisible.value = true;
+  } catch (error: any) {
+    ElMessage.error(
+      error?.message || t("agentSkillStudio.message.createFailed")
+    );
+  }
+}
+
+async function removeDraft(row: AgentSkillDraft) {
+  try {
+    await ElMessageBox.confirm(
+      t("agentSkillStudio.confirm.deleteDraft", { name: row.skill_name }),
+      t("agentSkillStudio.confirm.title"),
+      { type: "warning" }
+    );
+    const res = await deleteAgentSkillDraft(row.id);
+    assertBusinessSuccess(res, t("agentSkillStudio.message.deleteDraftFailed"));
+    await fetchDrafts();
+  } catch (error: any) {
+    if (error === "cancel" || error === "close") return;
+    ElMessage.error(
+      error?.message || t("agentSkillStudio.message.deleteDraftFailed")
+    );
+  }
+}
+
+async function onStudioPublished() {
+  activeTab.value = "portable";
+  page.value = 1;
+  await fetchData();
+  if (draftsVisible.value) await fetchDrafts();
+}
+
 async function openVersions(row: AgentSkillConfig) {
   currentSkill.value = row;
   versionsVisible.value = true;
@@ -352,10 +465,16 @@ onMounted(fetchData);
         ><div class="flex items-center justify-between">
           <span>{{ t("agentSkillPage.title") }}</span>
           <div class="flex gap-2">
+            <el-button @click="openDrafts">{{
+              t("agentSkillStudio.button.drafts")
+            }}</el-button>
+            <el-button type="primary" plain @click="createPortableDraft">{{
+              t("agentSkillStudio.button.newSkill")
+            }}</el-button>
             <el-button @click="openImport">{{
               t("agentSkillPage.button.import")
-            }}</el-button
-            ><el-button type="primary" @click="openCreate">{{
+            }}</el-button>
+            <el-button type="primary" @click="openCreate">{{
               t("agentSkillPage.button.add")
             }}</el-button>
           </div>
@@ -461,23 +580,34 @@ onMounted(fetchData);
         ></el-table-column>
         <el-table-column
           :label="t('agentSkillPage.table.operation')"
-          width="245"
+          width="390"
           fixed="right"
-          ><template #default="{ row }"
-            ><el-button
+          ><template #default="{ row }">
+            <el-button
+              v-if="row.type === 'portable'"
+              size="small"
+              type="primary"
+              plain
+              @click="editPortableAsDraft(row)"
+            >
+              {{ t("agentSkillStudio.button.editNewVersion") }}
+            </el-button>
+            <el-button
               v-if="row.type === 'portable'"
               size="small"
               type="warning"
               plain
               @click="openVersions(row)"
-              >{{ t("agentSkillPage.button.versions") }}</el-button
-            ><el-button size="small" @click="openEdit(row)">{{
-              t("agentSkillPage.button.edit")
-            }}</el-button
-            ><el-button size="small" type="danger" @click="remove(row)">{{
-              t("agentSkillPage.button.delete")
-            }}</el-button></template
-          ></el-table-column
+            >
+              {{ t("agentSkillPage.button.versions") }}
+            </el-button>
+            <el-button size="small" @click="openEdit(row)">
+              {{ t("agentSkillPage.button.edit") }}
+            </el-button>
+            <el-button size="small" type="danger" @click="remove(row)">
+              {{ t("agentSkillPage.button.delete") }}
+            </el-button>
+          </template></el-table-column
         >
       </el-table>
       <div class="skill-pagination">
@@ -724,11 +854,65 @@ onMounted(fetchData);
         >
       </div>
     </el-dialog>
-    <el-dialog v-model="fileVisible" :title="selectedFile" width="900px"
-      ><div v-loading="fileLoading">
+    <el-dialog v-model="fileVisible" :title="selectedFile" width="900px">
+      <div v-loading="fileLoading">
         <pre class="file-preview">{{ selectedFileContent }}</pre>
-      </div></el-dialog
+      </div>
+    </el-dialog>
+
+    <el-dialog
+      v-model="draftsVisible"
+      :title="t('agentSkillStudio.draftsTitle')"
+      width="820px"
     >
+      <el-table v-loading="draftsLoading" :data="drafts" size="small">
+        <el-table-column
+          prop="skill_name"
+          :label="t('agentSkillPage.table.skill')"
+          min-width="180"
+        />
+        <el-table-column
+          :label="t('agentSkillStudio.table.sourceVersion')"
+          width="150"
+        >
+          <template #default="{ row }">
+            {{ row.source_version_id ? `#${row.source_version_id}` : "-" }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="t('agentSkillStudio.table.updatedAt')"
+          width="190"
+        >
+          <template #default="{ row }">{{
+            formatTime(row.updated_at)
+          }}</template>
+        </el-table-column>
+        <el-table-column
+          :label="t('agentSkillPage.table.operation')"
+          width="170"
+          fixed="right"
+        >
+          <template #default="{ row }">
+            <el-button size="small" type="primary" @click="resumeDraft(row)">
+              {{ t("agentSkillStudio.button.resume") }}
+            </el-button>
+            <el-button size="small" type="danger" @click="removeDraft(row)">
+              {{ t("agentSkillPage.button.delete") }}
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty
+        v-if="!draftsLoading && drafts.length === 0"
+        :description="t('agentSkillStudio.emptyDrafts')"
+      />
+    </el-dialog>
+
+    <SkillStudioDialog
+      v-model="studioVisible"
+      :draft-id="studioDraftId"
+      @published="onStudioPublished"
+    />
   </div>
 </template>
 

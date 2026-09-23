@@ -47,12 +47,49 @@ export interface AlertPipelineStatus {
   traces: AlertPipelineTrace[];
 }
 
+export interface SmartLocalV2Candidate {
+  rank: number;
+  symbol: string;
+  score: number;
+  grade: string;
+  price: number;
+  percent_change_24h: number;
+  quote_volume_24h: number;
+  trade_count_24h: number;
+  local_momentum_pct: number;
+  reasons: string[];
+  risks: string[];
+  missing: string[];
+  last_update_time: number;
+}
+
+export interface SmartLocalV2Exclusion {
+  symbol: string;
+  reason: string;
+}
+
+export interface SmartLocalV2Result {
+  selector: string;
+  generated_at: number;
+  source: string;
+  candidates: SmartLocalV2Candidate[];
+  excluded: SmartLocalV2Exclusion[];
+  data_missing: string[];
+  meta: Record<string, any>;
+}
+
 export const getServiceConfig = (params: Query = {}) => {
   return http.get<any, Query>(baseUrlApi("service/config"), { params });
 };
 
 export const editData = (data: Query) => {
   return http.request<any>("put", baseUrlApi("service/config"), { data });
+};
+
+export const getSmartLocalV2Preview = (limit = 5) => {
+  return http.get<any, Query>(baseUrlApi("futures/selectors/smart-local-v2"), {
+    params: { limit }
+  });
 };
 
 export const testPusher = (params: Query = {}) => {
