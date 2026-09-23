@@ -83,3 +83,86 @@ export interface SystemHealthReport {
 
 export const getSystemHealth = () =>
   http.get<any, Record<string, never>>(baseUrlApi("system/health"));
+
+export interface BinanceAPIWindowSummary {
+  window_seconds: number;
+  request_count: number;
+  estimated_weight: number;
+  error_count: number;
+  count_429: number;
+  count_418: number;
+  average_latency_ms: number;
+  p95_latency_ms: number;
+}
+
+export interface BinanceAPIExchangeLimit {
+  product: string;
+  environment: string;
+  used_weight_1m: number;
+  order_count_10s: number;
+  order_count_1m: number;
+  weight_limit_1m: number;
+  weight_percent_1m: number;
+  limit_source: string;
+  retry_after?: string;
+  last_status_code: number;
+  last_response_at: number;
+  last_rate_limited_at?: number;
+}
+
+export interface BinanceAPIEndpointStat {
+  product: string;
+  environment: string;
+  source: string;
+  request_type: "read" | "trade" | string;
+  method: string;
+  path: string;
+  count: number;
+  estimated_weight: number;
+  error_count: number;
+  count_429: number;
+  count_418: number;
+  average_latency_ms: number;
+  p95_latency_ms: number;
+  last_error?: string;
+  last_error_at?: number;
+}
+
+export interface BinanceAPISourceStat {
+  source: string;
+  count: number;
+  estimated_weight: number;
+  count_429: number;
+  count_418: number;
+}
+
+export interface BinanceAPIRateLimitEvent {
+  at: number;
+  product: string;
+  environment: string;
+  source: string;
+  request_type: "read" | "trade" | string;
+  method: string;
+  path: string;
+  status_code: number;
+  retry_after?: string;
+}
+
+export interface BinanceAPIUsageSnapshot {
+  generated_at: number;
+  window_10s: BinanceAPIWindowSummary;
+  window_1m: BinanceAPIWindowSummary;
+  window_5m: BinanceAPIWindowSummary;
+  exchange_limits: BinanceAPIExchangeLimit[];
+  top_endpoints_by_count: BinanceAPIEndpointStat[];
+  top_endpoints_by_weight: BinanceAPIEndpointStat[];
+  sources_5m: BinanceAPISourceStat[];
+  recent_rate_limits: BinanceAPIRateLimitEvent[];
+  retained_events: number;
+  dropped_events: number;
+  last_dropped_at?: number;
+  truncated: boolean;
+}
+
+export const getBinanceAPIUsage = () =>
+  http.get<any, Record<string, never>>(baseUrlApi("system/binance-api-usage"));

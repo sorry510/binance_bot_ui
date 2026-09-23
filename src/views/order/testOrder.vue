@@ -8,6 +8,8 @@ import {
   delResultsByQuery,
   getResults
 } from "../../api/testStrategyResult";
+import SmartLocalV2PreviewDialog from "@/components/SmartLocalV2PreviewDialog.vue";
+import { getServiceConfig } from "@/api/service";
 
 defineOptions({ name: "testStrategyResult" });
 const { t } = useI18n();
@@ -17,6 +19,8 @@ const total = ref(0);
 const currentProfit = ref("0.00");
 const loading = ref(false);
 const deleting = ref(false);
+const selectorPreviewVisible = ref(false);
+const activeCoinSelector = ref("");
 const statsTab = ref("template");
 
 interface ReviewStatsGroup {
@@ -298,7 +302,19 @@ async function onDeleteFiltered() {
   }
 }
 
-onMounted(fetchData);
+async function fetchActiveCoinSelector() {
+  try {
+    const res = await getServiceConfig();
+    activeCoinSelector.value = String(res?.data?.tradeStrategyCoin || "");
+  } catch {
+    activeCoinSelector.value = "";
+  }
+}
+
+onMounted(() => {
+  void fetchData();
+  void fetchActiveCoinSelector();
+});
 </script>
 
 <template>
@@ -374,6 +390,12 @@ onMounted(fetchData);
         @click="onDeleteFiltered"
         >{{ t("testOrderPage.button.deleteFiltered") }}</el-button
       >
+      <el-button
+        v-if="activeCoinSelector === 'smart_local_v2'"
+        @click="selectorPreviewVisible = true"
+      >
+        {{ t("testOrderPage.button.selectorPreview") }}
+      </el-button>
       <span class="ml-auto"
         >{{ t("testOrderPage.label.currentProfit") }}: {{ currentProfit }}</span
       >
@@ -726,5 +748,7 @@ onMounted(fetchData);
         "
       />
     </div>
+
+    <SmartLocalV2PreviewDialog v-model="selectorPreviewVisible" mode="test" />
   </div>
 </template>

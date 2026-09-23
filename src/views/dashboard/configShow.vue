@@ -7,12 +7,11 @@ import {
   editData,
   getMarketConditionUpdateTask,
   getServiceConfig,
-  getSmartLocalV2Preview,
   testPusher,
   updateMarketCondition,
-  type MarketConditionUpdateTask,
-  type SmartLocalV2Result
+  type MarketConditionUpdateTask
 } from "../../api/service";
+import SmartLocalV2PreviewDialog from "@/components/SmartLocalV2PreviewDialog.vue";
 
 defineOptions({
   name: "Dashboard"
@@ -22,8 +21,6 @@ const router = useRouter();
 const { t } = useI18n();
 const loading = ref(false);
 const selectorPreviewVisible = ref(false);
-const selectorPreviewLoading = ref(false);
-const selectorPreview = ref<SmartLocalV2Result | null>(null);
 const marketAnalysis = ref<{
   source: string;
   confidence: number;
@@ -140,31 +137,8 @@ async function saveField(field: string, value: any) {
   }
 }
 
-async function openSmartLocalV2Preview() {
+function openSmartLocalV2Preview() {
   selectorPreviewVisible.value = true;
-  selectorPreviewLoading.value = true;
-  try {
-    const res = await getSmartLocalV2Preview(5);
-    if (res?.code !== 200 || !res?.data) {
-      throw new Error(res?.msg || t("dashboard.selectorPreview.loadFailed"));
-    }
-    selectorPreview.value = res.data as SmartLocalV2Result;
-  } catch (error: any) {
-    selectorPreview.value = null;
-    ElMessage.error(
-      error?.message || t("dashboard.selectorPreview.loadFailed")
-    );
-  } finally {
-    selectorPreviewLoading.value = false;
-  }
-}
-
-function formatCompactNumber(value: number) {
-  const n = Number(value || 0);
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(Math.round(n));
 }
 
 async function onTestPusher() {
@@ -889,149 +863,7 @@ onBeforeUnmount(() => {
       </el-collapse-item>
     </el-collapse>
 
-    <el-dialog
-      v-model="selectorPreviewVisible"
-      :title="t('dashboard.selectorPreview.title')"
-      width="92%"
-      top="5vh"
-    >
-      <div v-loading="selectorPreviewLoading" class="selector-preview">
-        <el-alert
-          type="info"
-          :closable="false"
-          show-icon
-          :title="t('dashboard.selectorPreview.localOnly')"
-        />
-        <div v-if="selectorPreview" class="selector-preview-meta">
-          <el-tag effect="plain">
-            {{ t("dashboard.selectorPreview.source") }}:
-            {{ selectorPreview.source }}
-          </el-tag>
-          <el-tag type="success" effect="plain">
-            REST: {{ selectorPreview.meta?.rest_api_used ? "yes" : "no" }}
-          </el-tag>
-          <el-tag effect="plain">
-            {{ t("dashboard.selectorPreview.cooldown") }}:
-            {{ selectorPreview.meta?.cooldown_minute }}m
-          </el-tag>
-          <el-tag effect="plain">
-            {{ t("dashboard.selectorPreview.freshness") }}:
-            {{ Number(selectorPreview.meta?.max_data_age_ms || 0) / 1000 }}s
-          </el-tag>
-        </div>
-
-        <el-table
-          v-if="selectorPreview"
-          :data="selectorPreview.candidates"
-          size="small"
-          border
-          class="selector-candidate-table"
-        >
-          <el-table-column prop="rank" label="#" width="56" />
-          <el-table-column
-            prop="symbol"
-            :label="t('dashboard.selectorPreview.symbol')"
-            width="130"
-          />
-          <el-table-column
-            prop="score"
-            :label="t('dashboard.selectorPreview.score')"
-            width="85"
-          />
-          <el-table-column
-            :label="t('dashboard.selectorPreview.volume')"
-            width="110"
-          >
-            <template #default="{ row }">
-              {{ formatCompactNumber(row.quote_volume_24h) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            :label="t('dashboard.selectorPreview.trades')"
-            width="105"
-          >
-            <template #default="{ row }">
-              {{ formatCompactNumber(row.trade_count_24h) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            :label="t('dashboard.selectorPreview.change')"
-            width="95"
-          >
-            <template #default="{ row }">
-              {{ Number(row.percent_change_24h).toFixed(2) }}%
-            </template>
-          </el-table-column>
-          <el-table-column
-            :label="t('dashboard.selectorPreview.momentum')"
-            width="100"
-          >
-            <template #default="{ row }">
-              {{ Number(row.local_momentum_pct).toFixed(3) }}%
-            </template>
-          </el-table-column>
-          <el-table-column
-            :label="t('dashboard.selectorPreview.reasons')"
-            min-width="260"
-          >
-            <template #default="{ row }">
-              <div class="selector-reason-list">
-                <el-tag
-                  v-for="reason in row.reasons"
-                  :key="reason"
-                  size="small"
-                  type="success"
-                  effect="plain"
-                >
-                  {{ reason }}
-                </el-tag>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column
-            :label="t('dashboard.selectorPreview.risks')"
-            min-width="220"
-          >
-            <template #default="{ row }">
-              <div class="selector-reason-list">
-                <el-tag
-                  v-for="risk in row.risks"
-                  :key="risk"
-                  size="small"
-                  type="warning"
-                  effect="plain"
-                >
-                  {{ risk }}
-                </el-tag>
-              </div>
-            </template>
-          </el-table-column>
-        </el-table>
-
-        <el-collapse v-if="selectorPreview" class="selector-excluded">
-          <el-collapse-item name="excluded">
-            <template #title>
-              {{
-                t("dashboard.selectorPreview.excluded", {
-                  count: selectorPreview.excluded?.length || 0
-                })
-              }}
-            </template>
-            <el-table
-              :data="selectorPreview.excluded"
-              size="small"
-              max-height="300"
-            >
-              <el-table-column prop="symbol" label="Symbol" width="160" />
-              <el-table-column
-                prop="reason"
-                :label="t('dashboard.selectorPreview.excludedReason')"
-              />
-            </el-table>
-          </el-collapse-item>
-        </el-collapse>
-      </div>
-    </el-dialog>
+    <SmartLocalV2PreviewDialog v-model="selectorPreviewVisible" mode="trade" />
   </div>
 </template>
 
@@ -1079,28 +911,6 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 8px;
   align-items: center;
-}
-
-.selector-preview-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0;
-}
-
-.selector-candidate-table {
-  margin-top: 12px;
-}
-
-.selector-reason-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 4px 0;
-}
-
-.selector-excluded {
-  margin-top: 14px;
 }
 
 .market-select {

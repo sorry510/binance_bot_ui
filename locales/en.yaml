@@ -308,14 +308,26 @@ dashboard:
     coin4: coin4
     coin5: coin5
     coin6: coin6
-    smart_local_v2: Smart Local Selector V2
+    smart_local_v2: Smart Local Selector V2 (Top60 Round Robin)
   selectorPreview:
     button: Preview Candidates
     title: Smart Local Selector V2 Preview
-    localOnly: Candidates use only local symbols / WebSocket data and local order cooldowns. No Binance REST request is made.
+    titleWithMode: "Smart Local Selector V2 Preview - {mode}"
+    mode: Mode
+    modeTrade: Live Trading
+    modeTest: Test Trading
+    localOnly: Build and rank a Top60 candidate pool, then pass only 5 symbols per round to the existing strategy. Live and test trading share the same scoring and rotation algorithm and use only local data, with no Binance REST request.
     source: Source
     cooldown: Cooldown
     freshness: Market Freshness
+    minVolume: Min 24h Quote Volume
+    pool: Candidate Pool
+    batch: Batch Size
+    sequence: Completed Batches
+    nextRanks: Next Ranks
+    nextBatch: Next Batch
+    rotation: Rotation
+    next: Next
     symbol: Symbol
     score: Score
     volume: 24h Quote Volume
@@ -2611,3 +2623,31 @@ systemDashboard:
     lastRun: Last Run
     running: Running
     enabled: Enabled
+  binanceApi:
+    title: Binance API Usage
+    subtitle: Unified rolling observability for Futures / Spot / Delivery REST. Used Weight and Order Count come from Binance response headers when available. Estimated weight is only for endpoint ranking, not authoritative limit usage.
+    requests1m: Requests in 1m
+    estimatedWeight1m: Estimated Weight in 1m
+    rateLimited: 429 / 418 (5m)
+    exchangeLimits: Binance Response Header Limits
+    product: Product
+    environment: Environment
+    usedWeight1m: Used Weight 1m
+    orderCount10s: Order Count 10s
+    orderCount1m: Order Count 1m
+    lastResponse: Last Response
+    topByWeight: Top Endpoints by Estimated Weight (5m)
+    topByCount: Top Endpoints by Request Count (5m)
+    endpoint: Endpoint
+    source: Source
+    requestType: Type
+    count: Requests
+    weight: Est. Weight
+    errors: Errors
+    sources: Call Sources (5m)
+    recentRateLimits: Recent 429 / 418
+    time: Time
+    status: HTTP
+    retainedEvents: Retained Events
+    droppedEvents: Dropped Events
+    truncated: "The last 5-minute window exceeded the in-memory cap. {count} events have been dropped during this process lifetime; current window totals may be lower than actual usage."

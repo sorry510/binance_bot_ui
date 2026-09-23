@@ -10,7 +10,9 @@ import {
   type AgentObservabilitySummary
 } from "@/api/agent";
 import {
+  getBinanceAPIUsage,
   getSystemHealth,
+  type BinanceAPIUsageSnapshot,
   type HealthStatus,
   type SystemHealthCheck,
   type SystemHealthReport
@@ -21,6 +23,8 @@ const { t } = useI18n();
 const loading = ref(false);
 const healthLoading = ref(false);
 const health = ref<SystemHealthReport | null>(null);
+const binanceUsageLoading = ref(false);
+const binanceUsage = ref<BinanceAPIUsageSnapshot | null>(null);
 const traceLoading = ref(false);
 const changeLoading = ref(false);
 const period = ref("24h");
@@ -89,6 +93,18 @@ function healthMessage(check?: SystemHealthCheck) {
   if (!check) return "-";
   return check.last_error || check.message || "-";
 }
+function apiUsagePercent(value?: number) {
+  return Math.max(0, Math.min(100, Number(value || 0)));
+}
+function apiUsageStatus(value?: number): "success" | "warning" | "exception" {
+  const percent = Number(value || 0);
+  if (percent >= 90) return "exception";
+  if (percent >= 75) return "warning";
+  return "success";
+}
+function apiEndpointLabel(row: { method?: string; path?: string }) {
+  return `${row.method || ""} ${row.path || ""}`.trim();
+}
 async function fetchHealth() {
   healthLoading.value = true;
   try {
@@ -96,6 +112,16 @@ async function fetchHealth() {
     health.value = (res?.data || null) as SystemHealthReport | null;
   } finally {
     healthLoading.value = false;
+  }
+}
+
+async function fetchBinanceUsage() {
+  binanceUsageLoading.value = true;
+  try {
+    const res = await getBinanceAPIUsage();
+    binanceUsage.value = (res?.data || null) as BinanceAPIUsageSnapshot | null;
+  } finally {
+    binanceUsageLoading.value = false;
   }
 }
 
@@ -137,6 +163,7 @@ async function fetchChanges() {
 async function refreshAll() {
   await Promise.all([
     fetchHealth(),
+    fetchBinanceUsage(),
     fetchSummary(),
     fetchTraces(),
     fetchChanges()
@@ -375,6 +402,337 @@ onMounted(refreshAll);
           health.trade.reconcile_required
         }}</el-descriptions-item>
       </el-descriptions>
+    </el-card>
+
+    <el-card v-loading="binanceUsageLoading" shadow="never" class="mb-4">
+      <template #header>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div class="font-medium">
+              {{ t("systemDashboard.binanceApi.title") }}
+            </div>
+            <div class="text-xs text-gray-500 mt-1">
+              {{ t("systemDashboard.binanceApi.subtitle") }}
+            </div>
+          </div>
+          <span class="text-xs text-gray-500">{{
+            formatTime(binanceUsage?.generated_at)
+          }}</span>
+        </div>
+      </template>
+
+      <el-alert
+        v-if="binanceUsage?.truncated"
+        type="warning"
+        :closable="false"
+        show-icon
+        class="mb-4"
+        :title="
+          t('systemDashboard.binanceApi.truncated', {
+            count: number(binanceUsage?.dropped_events)
+          })
+        "
+      />
+
+      <el-row :gutter="12" class="mb-4">
+        <el-col :xs="12" :sm="6"
+          ><div class="api-usage-metric">
+            <div class="metric-label">
+              {{ t("systemDashboard.binanceApi.requests1m") }}
+            </div>
+            <div class="metric-value">
+              {{ number(binanceUsage?.window_1m?.request_count) }}
+            </div>
+          </div></el-col
+        >
+        <el-col :xs="12" :sm="6"
+          ><div class="api-usage-metric">
+            <div class="metric-label">
+              {{ t("systemDashboard.binanceApi.estimatedWeight1m") }}
+            </div>
+            <div class="metric-value">
+              {{ number(binanceUsage?.window_1m?.estimated_weight) }}
+            </div>
+          </div></el-col
+        >
+        <el-col :xs="12" :sm="6"
+          ><div class="api-usage-metric">
+            <div class="metric-label">P95</div>
+            <div class="metric-value">
+              {{ duration(binanceUsage?.window_1m?.p95_latency_ms) }}
+            </div>
+          </div></el-col
+        >
+        <el-col :xs="12" :sm="6"
+          ><div class="api-usage-metric">
+            <div class="metric-label">
+              {{ t("systemDashboard.binanceApi.rateLimited") }}
+            </div>
+            <div class="metric-value">
+              {{ number(binanceUsage?.window_5m?.count_429) }} /
+              {{ number(binanceUsage?.window_5m?.count_418) }}
+            </div>
+          </div></el-col
+        >
+      </el-row>
+
+      <div class="health-detail-title">
+        {{ t("systemDashboard.binanceApi.exchangeLimits") }}
+      </div>
+      <el-table
+        :data="binanceUsage?.exchange_limits || []"
+        size="small"
+        class="mb-4"
+      >
+        <el-table-column
+          prop="product"
+          :label="t('systemDashboard.binanceApi.product')"
+          width="100"
+        />
+        <el-table-column
+          prop="environment"
+          :label="t('systemDashboard.binanceApi.environment')"
+          width="100"
+        />
+        <el-table-column
+          :label="t('systemDashboard.binanceApi.usedWeight1m')"
+          min-width="250"
+        >
+          <template #default="{ row }">
+            <div class="api-weight-cell">
+              <span
+                >{{ number(row.used_weight_1m) }} /
+                {{ number(row.weight_limit_1m) }} ({{
+                  Number(row.weight_percent_1m || 0).toFixed(1)
+                }}%)</span
+              >
+              <el-progress
+                :percentage="apiUsagePercent(row.weight_percent_1m)"
+                :status="apiUsageStatus(row.weight_percent_1m)"
+                :show-text="false"
+              />
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="order_count_10s"
+          :label="t('systemDashboard.binanceApi.orderCount10s')"
+          width="130"
+        />
+        <el-table-column
+          prop="order_count_1m"
+          :label="t('systemDashboard.binanceApi.orderCount1m')"
+          width="130"
+        />
+        <el-table-column
+          :label="t('systemDashboard.binanceApi.lastResponse')"
+          min-width="170"
+          ><template #default="{ row }">{{
+            formatTime(row.last_response_at)
+          }}</template></el-table-column
+        >
+      </el-table>
+
+      <el-descriptions :column="3" border size="small" class="mb-4">
+        <el-descriptions-item label="10s"
+          >{{ number(binanceUsage?.window_10s?.request_count) }} req /
+          {{ number(binanceUsage?.window_10s?.estimated_weight) }}
+          weight</el-descriptions-item
+        >
+        <el-descriptions-item label="1m"
+          >{{ number(binanceUsage?.window_1m?.request_count) }} req /
+          {{ number(binanceUsage?.window_1m?.estimated_weight) }}
+          weight</el-descriptions-item
+        >
+        <el-descriptions-item label="5m"
+          >{{ number(binanceUsage?.window_5m?.request_count) }} req /
+          {{ number(binanceUsage?.window_5m?.estimated_weight) }}
+          weight</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="t('systemDashboard.binanceApi.retainedEvents')"
+          >{{ number(binanceUsage?.retained_events) }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="t('systemDashboard.binanceApi.droppedEvents')"
+          >{{ number(binanceUsage?.dropped_events) }}</el-descriptions-item
+        >
+      </el-descriptions>
+
+      <el-row :gutter="12">
+        <el-col :xs="24" :xl="12">
+          <div class="health-detail-title">
+            {{ t("systemDashboard.binanceApi.topByWeight") }}
+          </div>
+          <el-table
+            :data="binanceUsage?.top_endpoints_by_weight || []"
+            size="small"
+            max-height="420"
+            class="mb-4"
+          >
+            <el-table-column
+              :label="t('systemDashboard.binanceApi.endpoint')"
+              min-width="220"
+              ><template #default="{ row }">{{
+                apiEndpointLabel(row)
+              }}</template></el-table-column
+            >
+            <el-table-column
+              prop="product"
+              :label="t('systemDashboard.binanceApi.product')"
+              width="85"
+            />
+            <el-table-column
+              prop="source"
+              :label="t('systemDashboard.binanceApi.source')"
+              width="110"
+            />
+            <el-table-column
+              prop="request_type"
+              :label="t('systemDashboard.binanceApi.requestType')"
+              width="90"
+            />
+            <el-table-column
+              prop="count"
+              :label="t('systemDashboard.binanceApi.count')"
+              width="80"
+            />
+            <el-table-column
+              prop="estimated_weight"
+              :label="t('systemDashboard.binanceApi.weight')"
+              width="90"
+            />
+            <el-table-column label="P95" width="90"
+              ><template #default="{ row }">{{
+                duration(row.p95_latency_ms)
+              }}</template></el-table-column
+            >
+          </el-table>
+        </el-col>
+        <el-col :xs="24" :xl="12">
+          <div class="health-detail-title">
+            {{ t("systemDashboard.binanceApi.topByCount") }}
+          </div>
+          <el-table
+            :data="binanceUsage?.top_endpoints_by_count || []"
+            size="small"
+            max-height="420"
+            class="mb-4"
+          >
+            <el-table-column
+              :label="t('systemDashboard.binanceApi.endpoint')"
+              min-width="220"
+              ><template #default="{ row }">{{
+                apiEndpointLabel(row)
+              }}</template></el-table-column
+            >
+            <el-table-column
+              prop="product"
+              :label="t('systemDashboard.binanceApi.product')"
+              width="85"
+            />
+            <el-table-column
+              prop="source"
+              :label="t('systemDashboard.binanceApi.source')"
+              width="110"
+            />
+            <el-table-column
+              prop="request_type"
+              :label="t('systemDashboard.binanceApi.requestType')"
+              width="90"
+            />
+            <el-table-column
+              prop="count"
+              :label="t('systemDashboard.binanceApi.count')"
+              width="80"
+            />
+            <el-table-column
+              prop="estimated_weight"
+              :label="t('systemDashboard.binanceApi.weight')"
+              width="90"
+            />
+            <el-table-column
+              prop="error_count"
+              :label="t('systemDashboard.binanceApi.errors')"
+              width="80"
+            />
+          </el-table>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="12">
+        <el-col :xs="24" :lg="8">
+          <div class="health-detail-title">
+            {{ t("systemDashboard.binanceApi.sources") }}
+          </div>
+          <el-table
+            :data="binanceUsage?.sources_5m || []"
+            size="small"
+            max-height="300"
+          >
+            <el-table-column
+              prop="source"
+              :label="t('systemDashboard.binanceApi.source')"
+              min-width="130"
+            />
+            <el-table-column
+              prop="count"
+              :label="t('systemDashboard.binanceApi.count')"
+              width="75"
+            />
+            <el-table-column
+              prop="estimated_weight"
+              :label="t('systemDashboard.binanceApi.weight')"
+              width="85"
+            />
+          </el-table>
+        </el-col>
+        <el-col :xs="24" :lg="16">
+          <div class="health-detail-title">
+            {{ t("systemDashboard.binanceApi.recentRateLimits") }}
+          </div>
+          <el-table
+            :data="binanceUsage?.recent_rate_limits || []"
+            size="small"
+            max-height="300"
+          >
+            <el-table-column
+              :label="t('systemDashboard.binanceApi.time')"
+              width="170"
+              ><template #default="{ row }">{{
+                formatTime(row.at)
+              }}</template></el-table-column
+            >
+            <el-table-column
+              prop="status_code"
+              :label="t('systemDashboard.binanceApi.status')"
+              width="80"
+            />
+            <el-table-column
+              :label="t('systemDashboard.binanceApi.endpoint')"
+              min-width="210"
+              ><template #default="{ row }">{{
+                apiEndpointLabel(row)
+              }}</template></el-table-column
+            >
+            <el-table-column
+              prop="environment"
+              :label="t('systemDashboard.binanceApi.environment')"
+              width="100"
+            />
+            <el-table-column
+              prop="request_type"
+              :label="t('systemDashboard.binanceApi.requestType')"
+              width="90"
+            />
+            <el-table-column
+              prop="retry_after"
+              label="Retry-After"
+              width="110"
+            />
+          </el-table>
+        </el-col>
+      </el-row>
     </el-card>
 
     <el-row v-loading="loading" :gutter="12" class="mb-4">
@@ -996,6 +1354,19 @@ onMounted(refreshAll);
 .health-detail-title {
   margin-bottom: 8px;
   font-weight: 600;
+}
+
+.api-usage-metric {
+  min-height: 76px;
+  padding: 12px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 6px;
+}
+
+.api-weight-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .metric-label {

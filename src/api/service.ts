@@ -68,11 +68,21 @@ export interface SmartLocalV2Exclusion {
   reason: string;
 }
 
+export interface SmartLocalV2RotationState {
+  pool_size: number;
+  batch_size: number;
+  sequence: number;
+  batch_symbols: string[];
+  batch_ranks: number[];
+}
+
 export interface SmartLocalV2Result {
   selector: string;
   generated_at: number;
   source: string;
   candidates: SmartLocalV2Candidate[];
+  next_batch: SmartLocalV2Candidate[];
+  rotation: SmartLocalV2RotationState;
   excluded: SmartLocalV2Exclusion[];
   data_missing: string[];
   meta: Record<string, any>;
@@ -86,9 +96,12 @@ export const editData = (data: Query) => {
   return http.request<any>("put", baseUrlApi("service/config"), { data });
 };
 
-export const getSmartLocalV2Preview = (limit = 5) => {
+export const getSmartLocalV2Preview = (
+  limit = 60,
+  mode: "trade" | "test" = "trade"
+) => {
   return http.get<any, Query>(baseUrlApi("futures/selectors/smart-local-v2"), {
-    params: { limit }
+    params: { limit, mode }
   });
 };
 

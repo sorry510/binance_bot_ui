@@ -308,14 +308,26 @@ dashboard:
     coin4: coin4
     coin5: coin5
     coin6: coin6
-    smart_local_v2: 智能本地选币 V2
+    smart_local_v2: 智能本地选币 V2（Top60 轮询）
   selectorPreview:
     button: 预览候选
     title: 智能本地选币 V2 候选预览
-    localOnly: 候选仅使用本地 symbols / WS 数据和本地订单冷却，不会产生 Binance REST 请求。
+    titleWithMode: "智能本地选币 V2 候选预览 - {mode}"
+    mode: 模式
+    modeTrade: 真实交易
+    modeTest: 测试交易
+    localOnly: 先筛选并排序 Top60 候选池，每轮只取 5 个交给现有策略检查；真实/测试共用同一评分与轮询算法，只使用本地数据，不会产生 Binance REST 请求。
     source: 数据源
     cooldown: 冷却
     freshness: 行情新鲜度
+    minVolume: 最低24h成交额
+    pool: 候选池
+    batch: 每轮数量
+    sequence: 已轮询批次
+    nextRanks: 下一批排名
+    nextBatch: 下一批实际检查
+    rotation: 轮询
+    next: 下一批
     symbol: 合约
     score: 分数
     volume: 24h 成交额
@@ -2611,3 +2623,31 @@ systemDashboard:
     lastRun: 最后运行
     running: 运行中
     enabled: 已启用
+  binanceApi:
+    title: Binance API 用量
+    subtitle: 统一观测 Futures / Spot / Delivery REST 的滚动用量；Used Weight 与 Order Count 优先读取 Binance 响应头。估算权重仅用于 endpoint 排序，不作为真实限额判断。
+    requests1m: 最近 1 分钟请求
+    estimatedWeight1m: 最近 1 分钟估算权重
+    rateLimited: 429 / 418（5分钟）
+    exchangeLimits: Binance 响应头限额状态
+    product: 产品
+    environment: 环境
+    usedWeight1m: Used Weight 1m
+    orderCount10s: Order Count 10s
+    orderCount1m: Order Count 1m
+    lastResponse: 最后响应
+    topByWeight: Top Endpoints（估算权重，5分钟）
+    topByCount: Top Endpoints（请求数，5分钟）
+    endpoint: Endpoint
+    source: 来源
+    requestType: 类型
+    count: 请求数
+    weight: 估算权重
+    errors: 错误
+    sources: 调用来源（5分钟）
+    recentRateLimits: 最近 429 / 418
+    time: 时间
+    status: HTTP
+    retainedEvents: 内存保留事件
+    droppedEvents: 丢弃事件
+    truncated: "最近 5 分钟事件量超过内存上限；进程累计已有 {count} 条事件被截断，当前窗口统计可能低于真实值。"
