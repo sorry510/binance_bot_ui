@@ -72,6 +72,7 @@ const {
   search: searchHistoryTemplates,
   onPopupScroll: onHistoryTemplatePopupScroll
 } = useStrategyTemplateOptions();
+const RECENT_SYMBOL_LIMIT = 16;
 const symbols = ref<string[]>([]);
 const recentSymbols = ref<string[]>([]);
 const quickStartingSymbol = ref("");
@@ -385,7 +386,7 @@ async function fetchRecentSymbols() {
     let page = 1;
     const limit = 100;
     let total = Number.POSITIVE_INFINITY;
-    while (recent.length < 10 && (page - 1) * limit < total) {
+    while (recent.length < RECENT_SYMBOL_LIMIT && (page - 1) * limit < total) {
       const res = await getBacktests({ page, limit });
       const list = (res?.data?.list || []) as BacktestRun[];
       total = Number(res?.data?.total || 0);
@@ -396,7 +397,7 @@ async function fetchRecentSymbols() {
         if (!symbol || seen.has(symbol)) continue;
         seen.add(symbol);
         recent.push(symbol);
-        if (recent.length >= 10) break;
+        if (recent.length >= RECENT_SYMBOL_LIMIT) break;
       }
       if (!list.length) break;
       page += 1;

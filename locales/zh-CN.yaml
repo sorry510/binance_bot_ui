@@ -1777,7 +1777,10 @@ agentMCPPage:
 
 agentChat:
   newConversation: 新对话
-  subtitle: 直接发送即可连续对话；输入 / 可选择业务 Skill
+  subtitle: 直接输入默认自动选择 Skill；输入 / 可指定 Skill，同一对话可使用多个 Skill
+  workspace:
+    autoSkill: Auto · 自动选择 Skill
+    autoModel: Auto · 模型路由
   button:
     newConversation: 新建对话
     send: 发送
@@ -1785,9 +1788,11 @@ agentChat:
     rename: 编辑
     delete: 删除
   placeholder:
-    message: 输入消息直接对话；输入 / 可选择业务 Skill。Enter 发送，Shift+Enter 换行
+    message: 输入消息开始对话；默认自动选择 Skill，输入 / 可指定 Skill。Enter 发送，Shift+Enter 换行
     title: 请输入对话标题
     symbol: 选择合约（可选）
+    model: 选择模型
+    skills: 添加 Skill
   message:
     renameTitle: 编辑对话标题
     renamePrompt: 修改左侧显示的对话标题
@@ -1799,13 +1804,18 @@ agentChat:
     deleteFailed: 删除对话失败
     deleted: 对话已删除
     deleteRunning: 对话仍有任务正在运行，请等待任务完成或取消任务后再删除
+    skillUpdated: 对话 Skill 已更新
+    skillUpdateFailed: 更新对话 Skill 失败
+    modelUpdated: 对话模型已更新
+    modelUpdateFailed: 更新对话模型失败
   hint:
-    slash: 不选 Skill 为通用对话；输入 / 调出业务 Skill
+    slash: 输入 / 选择 Skill
   skillMenu:
     title: 选择 Skill
+    attached: 已加入
   empty:
     conversation: 暂无对话
-    message: 输入消息开始对话，或使用 / 选择业务 Skill
+    message: 输入消息开始对话；默认自动选择 Skill，输入 / 可指定 Skill
     skill: 没有匹配的 Skill
   role:
     user: 你

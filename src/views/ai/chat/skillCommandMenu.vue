@@ -2,13 +2,22 @@
 import { computed } from "vue";
 import type { AgentChatSkill } from "@/api/agent";
 
-const props = defineProps<{ skills: AgentChatSkill[]; query: string }>();
+const props = defineProps<{
+  skills: AgentChatSkill[];
+  attachedSkillNames: string[];
+  query: string;
+}>();
 const emit = defineEmits<{ select: [skill: AgentChatSkill] }>();
+
+const attached = computed(
+  () => new Set((props.attachedSkillNames || []).map(item => String(item)))
+);
 
 const filtered = computed(() => {
   const keyword = props.query.trim().replace(/^\//, "").toLowerCase();
-  if (!keyword) return props.skills;
-  return props.skills.filter(item =>
+  const candidates = props.skills.filter(item => item.name !== "general_chat");
+  if (!keyword) return candidates;
+  return candidates.filter(item =>
     [item.name, item.display_name, item.description]
       .join(" ")
       .toLowerCase()
@@ -30,7 +39,17 @@ const filtered = computed(() => {
       >
         <div class="skill-option-head">
           <strong>{{ item.display_name || item.name }}</strong>
-          <el-tag size="small" effect="plain">{{ item.type }}</el-tag>
+          <div class="skill-option-tags">
+            <el-tag
+              v-if="attached.has(item.name)"
+              size="small"
+              type="success"
+              effect="plain"
+            >
+              {{ $t("agentChat.skillMenu.attached") }}
+            </el-tag>
+            <el-tag size="small" effect="plain">{{ item.type }}</el-tag>
+          </div>
         </div>
         <div class="skill-name">/{{ item.name }}</div>
         <div class="skill-description">{{ item.description }}</div>
@@ -84,6 +103,12 @@ const filtered = computed(() => {
   gap: 8px;
   align-items: center;
   justify-content: space-between;
+}
+
+.skill-option-tags {
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
 .skill-name,

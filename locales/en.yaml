@@ -1777,7 +1777,10 @@ agentMCPPage:
 
 agentChat:
   newConversation: New chat
-  subtitle: Send directly for continuous chat, or type / to select a business Skill
+  subtitle: Chat normally for automatic Skill routing; type / to choose a Skill, with multiple Skills available in one chat
+  workspace:
+    autoSkill: Auto · choose Skill
+    autoModel: Auto · model router
   button:
     newConversation: New chat
     send: Send
@@ -1785,9 +1788,11 @@ agentChat:
     rename: Edit
     delete: Delete
   placeholder:
-    message: Type a message to chat directly; use / to select a business Skill. Enter to send, Shift+Enter for newline
+    message: Type a message to chat. Skill selection is automatic by default; type / to choose one. Enter to send, Shift+Enter for newline
     title: Enter a conversation title
     symbol: Select contract (optional)
+    model: Select model
+    skills: Attach Skills
   message:
     renameTitle: Edit conversation title
     renamePrompt: Change the title shown in conversation history
@@ -1799,13 +1804,18 @@ agentChat:
     deleteFailed: Failed to delete conversation
     deleted: Conversation deleted
     deleteRunning: This conversation still has a running task. Wait for it to finish or cancel it before deleting.
+    skillUpdated: Conversation Skills updated
+    skillUpdateFailed: Failed to update conversation Skills
+    modelUpdated: Conversation model updated
+    modelUpdateFailed: Failed to update conversation model
   hint:
-    slash: No Skill means general chat; type / to open business Skills
+    slash: Type / to choose a Skill
   skillMenu:
     title: Select Skill
+    attached: Added
   empty:
     conversation: No conversations
-    message: Type a message to start chatting, or use / to select a business Skill
+    message: Type a message to start chatting; Skill routing is automatic unless you choose one with /
     skill: No matching Skill
   role:
     user: You

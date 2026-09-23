@@ -5,20 +5,25 @@ import { useI18n } from "vue-i18n";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { getFeaturesOptions } from "@/api/trade";
 import {
+  addAgentConversationSkill,
   createAgentChatConversation,
   deleteAgentChatConversation,
   getAgentChatConversations,
   getAgentChatMessages,
   getAgentChatSkills,
+  getAgentConversationSkills,
   getAgentTask,
+  removeAgentConversationSkill,
   sendAgentChatMessage,
   updateAgentChatConversation,
+  updateAgentConversationModel,
   type AgentChatConversation,
   type AgentChatConversationList,
   type AgentChatMessage,
   type AgentChatSkill,
   type AgentTask
 } from "@/api/agent";
+import { getLLMConfigs, type LLMConfigItem } from "@/api/llm";
 import ConversationList from "./conversationList.vue";
 import MessageList from "./messageList.vue";
 import ChatComposer from "./chatComposer.vue";
@@ -30,6 +35,7 @@ const { t } = useI18n();
 const conversations = ref<AgentChatConversation[]>([]);
 const messages = ref<AgentChatMessage[]>([]);
 const skills = ref<AgentChatSkill[]>([]);
+const models = ref<LLMConfigItem[]>([]);
 const symbols = ref<string[]>([]);
 const activeId = ref("");
 const listLoading = ref(false);
@@ -37,17 +43,10 @@ const messageLoading = ref(false);
 const creating = ref(false);
 const deletingId = ref("");
 const runningTasks = reactive<Record<string, string>>({});
-const selectedSkills = reactive<Record<string, string>>({});
 const selectedSymbols = reactive<Record<string, string>>({});
+const attachedSkills = reactive<Record<string, string[]>>({});
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 
-const selectedSkill = computed({
-  get: () => selectedSkills[activeId.value] || "",
-  set: value => {
-    if (!activeId.value) return;
-    selectedSkills[activeId.value] = value;
-  }
-});
 const selectedSymbol = computed({
   get: () => selectedSymbols[activeId.value] || "",
   set: value => {
@@ -56,10 +55,12 @@ const selectedSymbol = computed({
   }
 });
 const currentRunning = computed(() => Boolean(runningTasks[activeId.value]));
-
-function hasSelectedSkill(conversationId: string) {
-  return Object.prototype.hasOwnProperty.call(selectedSkills, conversationId);
-}
+const currentConversation = computed(() =>
+  conversations.value.find(item => item.id === activeId.value)
+);
+const selectableModels = computed(() =>
+  models.value.filter(item => item.enabled === 1 || item.router_candidate === 1)
+);
 
 function assertBusinessSuccess(res: any, fallback: string) {
   if (res && Number(res.code) !== 200) {
@@ -87,6 +88,22 @@ async function loadSkills() {
   const res = await getAgentChatSkills();
   assertBusinessSuccess(res, "加载 Skill 失败");
   skills.value = (res?.data || []) as AgentChatSkill[];
+}
+
+async function loadModels() {
+  const res = await getLLMConfigs();
+  assertBusinessSuccess(res, "加载模型失败");
+  models.value = (res?.data || []) as LLMConfigItem[];
+}
+
+async function loadConversationSkills(conversationId: string) {
+  const res = await getAgentConversationSkills(conversationId);
+  assertBusinessSuccess(res, "加载对话 Skill 失败");
+  const names = Array.isArray(res?.data)
+    ? res.data.map((item: unknown) => String(item || "").trim()).filter(Boolean)
+    : [];
+  if (!names.includes("general_chat")) names.unshift("general_chat");
+  attachedSkills[conversationId] = Array.from(new Set(names));
 }
 
 async function loadConversations(selectFirst = false, showLoading = true) {
@@ -123,17 +140,6 @@ async function loadMessages(conversationId: string, showLoading = true) {
     const res = await getAgentChatMessages(conversationId);
     if (activeId.value !== conversationId) return;
     messages.value = (res?.data || []) as AgentChatMessage[];
-    if (!hasSelectedSkill(conversationId)) {
-      const latestUserMessage = [...messages.value]
-        .reverse()
-        .find(item => item.role === "user");
-      const restoredSkill =
-        latestUserMessage?.skill &&
-        skills.value.some(skill => skill.name === latestUserMessage.skill)
-          ? latestUserMessage.skill
-          : "";
-      selectedSkills[conversationId] = restoredSkill;
-    }
     const running = [...messages.value]
       .reverse()
       .find(item => isRunningStatus(item.task_status) && item.task_id);
@@ -163,7 +169,7 @@ function isRunningStatus(status?: string) {
 async function selectConversation(id: string) {
   activeId.value = id;
   messages.value = [];
-  await loadMessages(id);
+  await Promise.all([loadMessages(id), loadConversationSkills(id)]);
 }
 
 function clearPoll(conversationId: string) {
@@ -203,12 +209,11 @@ async function pollTask(conversationId: string, taskId: string) {
 
 async function sendMessage(content: string) {
   const conversationId = activeId.value;
-  const skill = selectedSkill.value;
   const symbol = selectedSymbol.value;
   if (!conversationId || currentRunning.value) return;
   try {
     const res = await sendAgentChatMessage(conversationId, {
-      skill,
+      skill_mode: "auto",
       content,
       symbol: symbol || undefined
     });
@@ -216,7 +221,6 @@ async function sendMessage(content: string) {
     const taskId = String(res?.data?.task_id || "");
     if (!taskId) throw new Error(res?.msg || "task id is missing");
     runningTasks[conversationId] = taskId;
-    selectedSymbols[conversationId] = "";
     await Promise.all([
       loadMessages(conversationId, false),
       loadConversations(false, false)
@@ -224,6 +228,59 @@ async function sendMessage(content: string) {
     schedulePoll(conversationId, taskId, 300);
   } catch (error: any) {
     ElMessage.error(error?.message || "发送失败");
+  }
+}
+
+async function selectChatSkill(skill: AgentChatSkill) {
+  const conversationId = activeId.value;
+  if (!conversationId || currentRunning.value) return;
+  const name = String(skill?.name || "").trim();
+  if (!name) return;
+
+  const current = attachedSkills[conversationId] || ["general_chat"];
+  try {
+    if (!current.includes(name)) {
+      const res = await addAgentConversationSkill(conversationId, name);
+      assertBusinessSuccess(res, t("agentChat.message.skillUpdateFailed"));
+      attachedSkills[conversationId] = Array.from(new Set([...current, name]));
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.message || t("agentChat.message.skillUpdateFailed"));
+  }
+}
+
+async function removeChatSkill(name: string) {
+  const conversationId = activeId.value;
+  name = String(name || "").trim();
+  if (
+    !conversationId ||
+    !name ||
+    name === "general_chat" ||
+    currentRunning.value
+  )
+    return;
+  try {
+    const res = await removeAgentConversationSkill(conversationId, name);
+    assertBusinessSuccess(res, t("agentChat.message.skillUpdateFailed"));
+    attachedSkills[conversationId] = (
+      attachedSkills[conversationId] || ["general_chat"]
+    ).filter(item => item !== name);
+  } catch (error: any) {
+    ElMessage.error(error?.message || t("agentChat.message.skillUpdateFailed"));
+  }
+}
+
+async function changeConversationModel(value: number | string) {
+  const conversationId = activeId.value;
+  if (!conversationId || currentRunning.value) return;
+  const modelId = Number(value || 0);
+  try {
+    const res = await updateAgentConversationModel(conversationId, modelId);
+    assertBusinessSuccess(res, t("agentChat.message.modelUpdateFailed"));
+    const item = conversations.value.find(row => row.id === conversationId);
+    if (item) item.model_config_id = modelId;
+  } catch (error: any) {
+    ElMessage.error(error?.message || t("agentChat.message.modelUpdateFailed"));
   }
 }
 
@@ -271,8 +328,8 @@ async function deleteConversation(item: AgentChatConversation) {
     const wasActive = activeId.value === item.id;
     clearPoll(item.id);
     delete runningTasks[item.id];
-    delete selectedSkills[item.id];
     delete selectedSymbols[item.id];
+    delete attachedSkills[item.id];
     if (wasActive) {
       activeId.value = "";
       messages.value = [];
@@ -299,7 +356,12 @@ function openTask(taskId: string) {
 }
 
 onMounted(async () => {
-  await Promise.all([loadSkills(), loadSymbols(), loadConversations(false)]);
+  await Promise.all([
+    loadSkills(),
+    loadModels(),
+    loadSymbols(),
+    loadConversations(false)
+  ]);
   if (conversations.value.length === 0) await createConversation();
   else await selectConversation(conversations.value[0].id);
 });
@@ -350,11 +412,18 @@ onBeforeUnmount(() => {
           </div>
           <div class="chat-composer">
             <ChatComposer
-              v-model:selected-skill="selectedSkill"
               v-model:selected-symbol="selectedSymbol"
               :skills="skills"
+              :attached-skill-names="
+                attachedSkills[activeId] || ['general_chat']
+              "
+              :models="selectableModels"
+              :model-id="currentConversation?.model_config_id || 0"
               :symbols="symbols"
               :disabled="!activeId || currentRunning"
+              @select-skill="selectChatSkill"
+              @remove-skill="removeChatSkill"
+              @model-change="changeConversationModel"
               @send="sendMessage"
             />
           </div>
@@ -426,8 +495,14 @@ onBeforeUnmount(() => {
 }
 
 .chat-composer {
-  padding: 14px 18px 16px;
-  border-top: 1px solid var(--el-border-color-light);
+  display: flex;
+  justify-content: center;
+  padding: 12px 24px 22px;
+  background: var(--el-bg-color);
+}
+
+.chat-composer :deep(.composer-wrap) {
+  width: min(920px, 100%);
 }
 
 @media (width <= 900px) {

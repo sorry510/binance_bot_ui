@@ -8,6 +8,7 @@ export interface AgentChatConversation {
   id: string;
   skill: string;
   title: string;
+  model_config_id: number;
   status: string;
   created_at: string;
   updated_at: string;
@@ -291,7 +292,13 @@ export const getAgentChatMessages = (conversationId: string) =>
 
 export const sendAgentChatMessage = (
   conversationId: string,
-  data: { skill?: string; content: string; symbol?: string }
+  data: {
+    skill_mode?: "auto" | "explicit";
+    skill?: string;
+    content: string;
+    symbol?: string;
+    model_id?: number;
+  }
 ) =>
   http.post<any, typeof data>(
     baseUrlApi(
@@ -303,6 +310,47 @@ export const sendAgentChatMessage = (
 
 export const getAgentChatSkills = () =>
   http.get<any, Query>(baseUrlApi("agents/chat/skills"));
+
+export const getAgentConversationSkills = (conversationId: string) =>
+  http.get<any, Query>(
+    baseUrlApi(
+      `agents/chat/conversations/${encodeURIComponent(conversationId)}/skills`
+    )
+  );
+
+export const addAgentConversationSkill = (
+  conversationId: string,
+  skill: string
+) =>
+  http.post<any, { skill: string }>(
+    baseUrlApi(
+      `agents/chat/conversations/${encodeURIComponent(conversationId)}/skills`
+    ),
+    { data: { skill } }
+  );
+
+export const removeAgentConversationSkill = (
+  conversationId: string,
+  skill: string
+) =>
+  http.request<any>(
+    "delete",
+    baseUrlApi(
+      `agents/chat/conversations/${encodeURIComponent(conversationId)}/skills/${encodeURIComponent(skill)}`
+    )
+  );
+
+export const updateAgentConversationModel = (
+  conversationId: string,
+  modelId: number
+) =>
+  http.request<any>(
+    "put",
+    baseUrlApi(
+      `agents/chat/conversations/${encodeURIComponent(conversationId)}/model`
+    ),
+    { data: { model_id: modelId } }
+  );
 
 export const startAgentTask = (data: {
   skill: string;
