@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   getAgentObservabilityChanges,
@@ -25,6 +25,7 @@ const healthLoading = ref(false);
 const health = ref<SystemHealthReport | null>(null);
 const binanceUsageLoading = ref(false);
 const binanceUsage = ref<BinanceAPIUsageSnapshot | null>(null);
+let binanceUsageRefreshTimer: number | undefined;
 const traceLoading = ref(false);
 const changeLoading = ref(false);
 const period = ref("24h");
@@ -105,6 +106,38 @@ function apiUsageStatus(value?: number): "success" | "warning" | "exception" {
 function apiEndpointLabel(row: { method?: string; path?: string }) {
   return `${row.method || ""} ${row.path || ""}`.trim();
 }
+function budgetTagType(
+  level?: string
+): "success" | "warning" | "danger" | "info" {
+  if (level === "normal") return "success";
+  if (level === "warning") return "warning";
+  if (level === "critical" || level === "exchange_throttled") return "danger";
+  return "info";
+}
+function budgetLevelLabel(level?: string) {
+  const key = `systemDashboard.binanceApi.budgetLevel.${level || "unknown"}`;
+  const translated = t(key);
+  return translated === key ? level || "unknown" : translated;
+}
+const optimizationTotals = computed(() =>
+  (binanceUsage.value?.optimizations || []).reduce(
+    (acc, row) => {
+      acc.cacheHits += Number(row.cache_hits || 0);
+      acc.coalesced += Number(row.coalesced_requests || 0);
+      acc.localWsHits += Number(row.local_ws_hits || 0);
+      acc.prevented += Number(row.prevented_duplicate_calls || 0);
+      acc.deferred += Number(row.deferred_requests || 0);
+      return acc;
+    },
+    {
+      cacheHits: 0,
+      coalesced: 0,
+      localWsHits: 0,
+      prevented: 0,
+      deferred: 0
+    }
+  )
+);
 async function fetchHealth() {
   healthLoading.value = true;
   try {
@@ -116,6 +149,7 @@ async function fetchHealth() {
 }
 
 async function fetchBinanceUsage() {
+  if (binanceUsageLoading.value) return;
   binanceUsageLoading.value = true;
   try {
     const res = await getBinanceAPIUsage();
@@ -123,6 +157,11 @@ async function fetchBinanceUsage() {
   } finally {
     binanceUsageLoading.value = false;
   }
+}
+
+function startBinanceUsageAutoRefresh() {
+  if (binanceUsageRefreshTimer) window.clearInterval(binanceUsageRefreshTimer);
+  binanceUsageRefreshTimer = window.setInterval(fetchBinanceUsage, 5000);
 }
 
 async function fetchSummary() {
@@ -182,7 +221,17 @@ function searchChanges() {
   changeQuery.page = 1;
   fetchChanges();
 }
-onMounted(refreshAll);
+onMounted(() => {
+  refreshAll();
+  startBinanceUsageAutoRefresh();
+});
+
+onBeforeUnmount(() => {
+  if (binanceUsageRefreshTimer) {
+    window.clearInterval(binanceUsageRefreshTimer);
+    binanceUsageRefreshTimer = undefined;
+  }
+});
 </script>
 
 <template>
@@ -404,7 +453,7 @@ onMounted(refreshAll);
       </el-descriptions>
     </el-card>
 
-    <el-card v-loading="binanceUsageLoading" shadow="never" class="mb-4">
+    <el-card shadow="never" class="mb-4">
       <template #header>
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -415,9 +464,14 @@ onMounted(refreshAll);
               {{ t("systemDashboard.binanceApi.subtitle") }}
             </div>
           </div>
-          <span class="text-xs text-gray-500">{{
-            formatTime(binanceUsage?.generated_at)
-          }}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500">{{
+              formatTime(binanceUsage?.generated_at)
+            }}</span>
+            <el-button size="small" @click="fetchBinanceUsage">
+              {{ t("agentObservabilityPage.button.refresh") }}
+            </el-button>
+          </div>
         </div>
       </template>
 
@@ -532,6 +586,148 @@ onMounted(refreshAll);
           }}</template></el-table-column
         >
       </el-table>
+
+      <el-row :gutter="12" class="mb-4">
+        <el-col :xs="24" :xl="12">
+          <div class="health-detail-title">
+            {{ t("systemDashboard.binanceApi.budgetState") }}
+          </div>
+          <el-table
+            :data="binanceUsage?.budgets || []"
+            size="small"
+            max-height="300"
+          >
+            <el-table-column
+              prop="product"
+              :label="t('systemDashboard.binanceApi.product')"
+              width="90"
+            />
+            <el-table-column
+              prop="environment"
+              :label="t('systemDashboard.binanceApi.environment')"
+              width="100"
+            />
+            <el-table-column
+              :label="t('systemDashboard.binanceApi.budgetLevelLabel')"
+              width="130"
+            >
+              <template #default="{ row }">
+                <el-tag size="small" :type="budgetTagType(row.level)">
+                  {{ budgetLevelLabel(row.level) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('systemDashboard.binanceApi.effectiveWeight')"
+              min-width="220"
+            >
+              <template #default="{ row }">
+                <div class="api-weight-cell">
+                  <span>
+                    {{ number(row.used_weight_1m) }} +
+                    {{ number(row.pending_weight) }} /
+                    {{ number(row.weight_limit_1m) }}
+                    ({{ Number(row.effective_percent || 0).toFixed(1) }}%)
+                  </span>
+                  <el-progress
+                    :percentage="apiUsagePercent(row.effective_percent)"
+                    :status="apiUsageStatus(row.effective_percent)"
+                    :show-text="false"
+                  />
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('systemDashboard.binanceApi.orderBudget')"
+              min-width="180"
+            >
+              <template #default="{ row }">
+                {{ number(row.order_count_10s) }} /
+                {{ number(row.order_limit_10s) }} ·
+                {{ number(row.order_count_1m) }} /
+                {{ number(row.order_limit_1m) }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('systemDashboard.binanceApi.throttleUntil')"
+              min-width="170"
+            >
+              <template #default="{ row }">
+                {{ formatTime(row.throttle_until) }}
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-col>
+
+        <el-col :xs="24" :xl="12">
+          <div class="health-detail-title">
+            {{ t("systemDashboard.binanceApi.optimizations") }}
+          </div>
+          <el-descriptions :column="5" border size="small" class="mb-3">
+            <el-descriptions-item
+              :label="t('systemDashboard.binanceApi.preventedDuplicate')"
+            >
+              {{ number(optimizationTotals.prevented) }}
+            </el-descriptions-item>
+            <el-descriptions-item
+              :label="t('systemDashboard.binanceApi.localWsHits')"
+            >
+              {{ number(optimizationTotals.localWsHits) }}
+            </el-descriptions-item>
+            <el-descriptions-item
+              :label="t('systemDashboard.binanceApi.cacheHits')"
+            >
+              {{ number(optimizationTotals.cacheHits) }}
+            </el-descriptions-item>
+            <el-descriptions-item
+              :label="t('systemDashboard.binanceApi.coalesced')"
+            >
+              {{ number(optimizationTotals.coalesced) }}
+            </el-descriptions-item>
+            <el-descriptions-item
+              :label="t('systemDashboard.binanceApi.deferred')"
+            >
+              {{ number(optimizationTotals.deferred) }}
+            </el-descriptions-item>
+          </el-descriptions>
+          <el-table
+            :data="binanceUsage?.optimizations || []"
+            size="small"
+            max-height="240"
+          >
+            <el-table-column
+              prop="source"
+              :label="t('systemDashboard.binanceApi.source')"
+              min-width="120"
+            />
+            <el-table-column
+              prop="local_ws_hits"
+              :label="t('systemDashboard.binanceApi.localWsHits')"
+              width="100"
+            />
+            <el-table-column
+              prop="cache_hits"
+              :label="t('systemDashboard.binanceApi.cacheHits')"
+              width="90"
+            />
+            <el-table-column
+              prop="coalesced_requests"
+              :label="t('systemDashboard.binanceApi.coalesced')"
+              width="90"
+            />
+            <el-table-column
+              prop="prevented_duplicate_calls"
+              :label="t('systemDashboard.binanceApi.preventedDuplicate')"
+              width="110"
+            />
+            <el-table-column
+              prop="deferred_requests"
+              :label="t('systemDashboard.binanceApi.deferred')"
+              width="90"
+            />
+          </el-table>
+        </el-col>
+      </el-row>
 
       <el-descriptions :column="3" border size="small" class="mb-4">
         <el-descriptions-item label="10s"

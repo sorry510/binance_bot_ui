@@ -148,6 +148,31 @@ export interface BinanceAPIRateLimitEvent {
   retry_after?: string;
 }
 
+export interface BinanceAPIOptimizationStat {
+  source: string;
+  cache_hits: number;
+  coalesced_requests: number;
+  local_ws_hits: number;
+  prevented_duplicate_calls: number;
+  deferred_requests: number;
+}
+
+export interface BinanceAPIBudgetSnapshot {
+  product: string;
+  environment: string;
+  level: "normal" | "warning" | "critical" | "exchange_throttled" | string;
+  used_weight_1m: number;
+  pending_weight: number;
+  weight_limit_1m: number;
+  effective_percent: number;
+  order_count_10s: number;
+  order_limit_10s: number;
+  order_count_1m: number;
+  order_limit_1m: number;
+  last_response_at: number;
+  throttle_until?: number;
+}
+
 export interface BinanceAPIUsageSnapshot {
   generated_at: number;
   window_10s: BinanceAPIWindowSummary;
@@ -158,6 +183,8 @@ export interface BinanceAPIUsageSnapshot {
   top_endpoints_by_weight: BinanceAPIEndpointStat[];
   sources_5m: BinanceAPISourceStat[];
   recent_rate_limits: BinanceAPIRateLimitEvent[];
+  optimizations: BinanceAPIOptimizationStat[];
+  budgets: BinanceAPIBudgetSnapshot[];
   retained_events: number;
   dropped_events: number;
   last_dropped_at?: number;

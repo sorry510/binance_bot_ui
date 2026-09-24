@@ -153,13 +153,12 @@ dashboard:
     debug: Debug Mode
     externalLinks: External Links
   field:
-    websocket: WebSocket
     fastMoveEnable: FastMove Signal monitoring
     fastMoveThreshold: Fast move threshold (%)
     fastMoveRecover: Fast move recover threshold (%)
     fastMoveCooldownSec: Fast move notice cooldown (sec)
     fastMoveWindows: Fast move windows config
-    liquidationCollectionEnable: Liquidation order WebSocket collection
+    liquidationCollectionEnable: Liquidation order collection
     liquidationAlertWindowSec: BTC liquidation Signal window (sec)
     liquidationAlertNotionalThreshold: BTC liquidation Signal notional threshold
     liquidationAlertCooldownSec: BTC liquidation Signal cooldown (sec)
@@ -220,7 +219,6 @@ dashboard:
     openTaskCenter: Open Task Center
     openControlledTrade: Open Positions & Controlled Trade
   hint:
-    autoUpdatePrice: Auto update price
     autoRefresh: Automatically updated by the AI Scheduler at the configured interval
     alertPipeline: FastMove and liquidation alerts use only the new Pipeline; when off, Signals are still evaluated but these alerts are not sent.
     alertAIFallback: If AI is disabled, over budget, or fails, deterministic fallback notifications continue without blocking WebSocket processing.
@@ -2646,6 +2644,23 @@ systemDashboard:
     errors: Errors
     sources: Call Sources (5m)
     recentRateLimits: Recent 429 / 418
+    budgetState: Global API Budget
+    budgetLevelLabel: Budget State
+    effectiveWeight: Used + Pending / Limit
+    orderBudget: Order Count 10s / 1m
+    throttleUntil: Throttled Until
+    optimizations: V4-5 Optimization Hits
+    preventedDuplicate: Prevented Calls
+    localWsHits: Local WS Hits
+    cacheHits: Cache Hits
+    coalesced: Coalesced
+    deferred: Deferred
+    budgetLevel:
+      normal: Normal
+      warning: Warning
+      critical: Critical
+      exchange_throttled: Binance Throttled
+      unknown: Unknown
     time: Time
     status: HTTP
     retainedEvents: Retained Events

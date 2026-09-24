@@ -31,7 +31,6 @@ let marketProgressTimer: ReturnType<typeof setTimeout> | undefined;
 let marketProgressPollFailures = 0;
 const config = reactive<Record<string, any>>({
   tradeFutureEnable: 0,
-  wsFuturesEnable: 0,
   WsFuturesFastMoveEnable: 0,
   WsFuturesFastMoveThreshold: 0,
   WsFuturesFastMoveRecover: 0,
@@ -288,21 +287,6 @@ onBeforeUnmount(() => {
         </template>
 
         <div class="dashboard-body">
-          <div class="field-row">
-            <span class="field-label">{{
-              t("dashboard.field.websocket")
-            }}</span>
-            <el-switch
-              :model-value="config.wsFuturesEnable"
-              :active-value="1"
-              :inactive-value="0"
-              @change="value => saveField('ws_futures_enable', value)"
-            />
-            <span class="hint green">{{
-              t("dashboard.hint.autoUpdatePrice")
-            }}</span>
-          </div>
-
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.fastMoveEnable")

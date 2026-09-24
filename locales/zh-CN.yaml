@@ -153,13 +153,12 @@ dashboard:
     debug: 调试模式
     externalLinks: 外部链接
   field:
-    websocket: WebSocket
     fastMoveEnable: 快速波动信号监测开关
     fastMoveThreshold: 快速波动阈值(%)
     fastMoveRecover: 快速波动恢复阈值(%)
     fastMoveCooldownSec: 快速波动通知冷却时间(秒)
     fastMoveWindows: 快速波动窗口配置
-    liquidationCollectionEnable: 强平订单 WebSocket 采集
+    liquidationCollectionEnable: 强平订单采集
     liquidationAlertWindowSec: BTC 强平信号聚合窗口(秒)
     liquidationAlertNotionalThreshold: BTC 强平信号名义金额阈值
     liquidationAlertCooldownSec: BTC 强平信号冷却(秒)
@@ -220,7 +219,6 @@ dashboard:
     openTaskCenter: 打开任务中心
     openControlledTrade: 打开仓位与受控交易
   hint:
-    autoUpdatePrice: 自动更新价格
     autoRefresh: 由 AI 调度器按配置周期自动更新
     alertPipeline: 快速波动和强平仅使用新报警链路；关闭时仍计算信号，但不发送这两类报警。
     alertAIFallback: AI 关闭、超预算或失败时自动使用确定性规则通知，不影响 WebSocket。
@@ -2646,6 +2644,23 @@ systemDashboard:
     errors: 错误
     sources: 调用来源（5分钟）
     recentRateLimits: 最近 429 / 418
+    budgetState: 全局 API Budget
+    budgetLevelLabel: Budget 状态
+    effectiveWeight: Used + Pending / Limit
+    orderBudget: Order Count 10s / 1m
+    throttleUntil: 暂停至
+    optimizations: V4-5 优化命中
+    preventedDuplicate: 避免重复调用
+    localWsHits: WS 本地命中
+    cacheHits: Cache 命中
+    coalesced: 合并请求
+    deferred: 延后请求
+    budgetLevel:
+      normal: 正常
+      warning: 警告
+      critical: 临界
+      exchange_throttled: Binance 限流
+      unknown: 未知
     time: 时间
     status: HTTP
     retainedEvents: 内存保留事件
