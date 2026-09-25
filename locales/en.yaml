@@ -2004,6 +2004,9 @@ agentObservabilityPage:
     traces: Trace
     changes: Change History
   metric:
+    chatStartErrors: Chat start errors
+    llmErrors: LLM errors
+    skillValidationErrors: Skill validation errors
     tasks: Tasks
     successRate: Success Rate
     tokens: Token Cost

@@ -1010,6 +1010,36 @@ onBeforeUnmount(() => {
           </div></el-card
         ></el-col
       >
+      <el-col :xs="12" :sm="6" :lg="3"
+        ><el-card shadow="never"
+          ><div class="metric-label">
+            {{ t("agentObservabilityPage.metric.chatStartErrors") }}
+          </div>
+          <div class="metric-value">
+            {{ number(summary?.chat_start_errors) }}
+          </div></el-card
+        ></el-col
+      >
+      <el-col :xs="12" :sm="6" :lg="3"
+        ><el-card shadow="never"
+          ><div class="metric-label">
+            {{ t("agentObservabilityPage.metric.llmErrors") }}
+          </div>
+          <div class="metric-value">
+            {{ number(summary?.llm_errors) }}
+          </div></el-card
+        ></el-col
+      >
+      <el-col :xs="12" :sm="6" :lg="3"
+        ><el-card shadow="never"
+          ><div class="metric-label">
+            {{ t("agentObservabilityPage.metric.skillValidationErrors") }}
+          </div>
+          <div class="metric-value">
+            {{ number(summary?.skill_validation_errors) }}
+          </div></el-card
+        ></el-col
+      >
     </el-row>
 
     <el-tabs>

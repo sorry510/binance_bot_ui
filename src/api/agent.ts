@@ -1056,6 +1056,9 @@ export interface AgentObservabilitySummary {
   }>;
   repairs: Array<{ name: string; count: number }>;
   errors: Array<{ name: string; count: number }>;
+  chat_start_errors: number;
+  llm_errors: number;
+  skill_validation_errors: number;
   evidence: {
     validations: number;
     with_evidence: number;
