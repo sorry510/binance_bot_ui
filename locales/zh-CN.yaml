@@ -141,6 +141,10 @@ login:
 dashboard:
   section:
     futures: 合约交易
+    fastMove: 快速波动
+    liquidation: 强平
+    marketCondition: 市场趋势
+    testStrategy: 测试策略
     aiAlert: AI 事件报警
     aiOpportunity: AI 机会发现
     aiScheduler: AI 调度任务
@@ -153,6 +157,10 @@ dashboard:
     debug: 调试模式
     externalLinks: 外部链接
   field:
+    futureTradeEnable: 启用合约交易
+    coinNoticeEnable: 启用币种提醒
+    marketListenEnable: 启用市场监听
+    fundingRateEnable: 启用资金费率监听
     fastMoveEnable: 快速波动信号监测开关
     fastMoveThreshold: 快速波动阈值(%)
     fastMoveRecover: 快速波动恢复阈值(%)
@@ -194,7 +202,6 @@ dashboard:
     positionConvert: 仓位收益正负转换通知
     allowLong: 允许做多
     allowShort: 允许做空
-    strategyTrade: 交易策略
     strategyCoin: 选币策略
     maxCount: 最大持仓数
     lossMaxCount: 最大持仓亏损数量
@@ -236,6 +243,8 @@ dashboard:
   state:
     on: 开启
     off: 关闭
+    auto: 自动
+    manual: 手动
     yes: 是
     no: 否
   alertSeverity:
@@ -291,14 +300,6 @@ dashboard:
   orderType:
     market: MARKET
     limit: LIMIT
-  strategyTrade:
-    line1: line1
-    line2: line2
-    line3: line3
-    line4: line4
-    line5: line5
-    line6: line6
-    line7: line7
   strategyCoin:
     coin1: coin1
     coin2: coin2
@@ -1100,7 +1101,6 @@ futuresSymbolPage:
   table:
     pin: 置顶
     symbol: 币种
-    strategyType: 策略类型
     technology: 技术指标
     strategy: 策略方法
     change24h: 24h涨跌
@@ -1120,23 +1120,12 @@ futuresSymbolPage:
     addTitle: 新增交易对
     batchEditTitle: 批量编辑
   batch:
-    strategyType: 策略类型
     strategyTemplate: 策略模板
     marginType: 保证金模式
     usdt: USDT
     leverage: 杠杆
     profit: 止盈率(%)
     loss: 止损率(%)
-  strategyType:
-    global: 全局
-    custom: 自定义
-    line1: line1
-    line2: line2
-    line3: line3
-    line4: line4
-    line5: line5
-    line6: line6
-    line7: line7
   confirm:
     title: 提示
     delete: 确认删除 {symbol} ?

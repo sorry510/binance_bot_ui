@@ -141,6 +141,10 @@ login:
 dashboard:
   section:
     futures: Futures Trade
+    fastMove: Fast Move
+    liquidation: Liquidation
+    marketCondition: Market Condition
+    testStrategy: Test Strategy
     aiAlert: AI Event Alerts
     aiOpportunity: AI Opportunity Watch
     aiScheduler: AI Scheduler
@@ -153,6 +157,10 @@ dashboard:
     debug: Debug Mode
     externalLinks: External Links
   field:
+    futureTradeEnable: Enable Futures Trade
+    coinNoticeEnable: Enable Coin Notice
+    marketListenEnable: Enable Market Listener
+    fundingRateEnable: Enable Funding Rate Listener
     fastMoveEnable: FastMove Signal monitoring
     fastMoveThreshold: Fast move threshold (%)
     fastMoveRecover: Fast move recover threshold (%)
@@ -194,7 +202,6 @@ dashboard:
     positionConvert: futures position convert notice
     allowLong: Allow Long
     allowShort: Allow Short
-    strategyTrade: Strategy Line
     strategyCoin: Strategy Coin Group
     maxCount: Max Position Count
     lossMaxCount: Max Loss Count
@@ -236,6 +243,8 @@ dashboard:
   state:
     on: ON
     off: OFF
+    auto: Auto
+    manual: Manual
     yes: Yes
     no: No
   alertSeverity:
@@ -291,14 +300,6 @@ dashboard:
   orderType:
     market: MARKET
     limit: LIMIT
-  strategyTrade:
-    line1: line1
-    line2: line2
-    line3: line3
-    line4: line4
-    line5: line5
-    line6: line6
-    line7: line7
   strategyCoin:
     coin1: coin1
     coin2: coin2
@@ -1100,7 +1101,6 @@ futuresSymbolPage:
   table:
     pin: Pin
     symbol: Symbol
-    strategyType: Strategy Type
     technology: Technology
     strategy: Strategy
     change24h: 24h Change
@@ -1121,23 +1121,12 @@ futuresSymbolPage:
     addTitle: Add Trading Pair
     batchEditTitle: Batch Edit
   batch:
-    strategyType: Strategy Type
     strategyTemplate: Strategy Template
     marginType: Margin Type
     usdt: Funds
     leverage: Leverage
     profit: Take Profit
     loss: Stop Loss
-  strategyType:
-    global: Global
-    custom: Custom
-    line1: line1
-    line2: line2
-    line3: line3
-    line4: line4
-    line5: line5
-    line6: line6
-    line7: line7
   confirm:
     title: Confirm
     delete: Confirm deleting {symbol} ?

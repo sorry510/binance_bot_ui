@@ -50,7 +50,6 @@ type SymbolTabKey = "FAVORITE" | "USDT" | "USDC";
 interface FeatureRow {
   id: number;
   symbol: string;
-  strategy_type?: string;
   technology?: string;
   strategy?: string;
   marginType?: string;
@@ -145,18 +144,6 @@ const indicatorTabs = [
   { key: "supertrend", label: "SUPERTREND" }
 ] as const;
 
-const strategyTypeOptions = [
-  "global",
-  "custom",
-  "line1",
-  "line2",
-  "line3",
-  "line4",
-  "line5",
-  "line6",
-  "line7"
-];
-
 const listLoading = ref(false);
 const serviceLoading = ref(false);
 const dialogLoading = ref(false);
@@ -189,7 +176,6 @@ const batchInfo = reactive<Record<string, any>>({
   loss: undefined,
   marginType: undefined,
   leverage: undefined,
-  strategyType: undefined,
   strategyTemplateId: undefined
 });
 
@@ -662,7 +648,6 @@ function openBatchDialog() {
     loss: undefined,
     marginType: undefined,
     leverage: undefined,
-    strategyType: undefined,
     strategyTemplateId: undefined
   });
   batchDialogVisible.value = true;
@@ -1094,26 +1079,6 @@ onBeforeUnmount(() => {
         sortable="custom"
       />
       <el-table-column
-        :label="t('futuresSymbolPage.table.strategyType')"
-        align="center"
-        width="115"
-      >
-        <template #default="{ row }">
-          <el-select
-            v-model="row.strategy_type"
-            size="small"
-            @change="onEditRow(row)"
-          >
-            <el-option
-              v-for="item in strategyTypeOptions"
-              :key="item"
-              :label="t(`futuresSymbolPage.strategyType.${item}`)"
-              :value="item"
-            />
-          </el-select>
-        </template>
-      </el-table-column>
-      <el-table-column
         :label="t('futuresSymbolPage.table.technology')"
         align="center"
         width="115"
@@ -1301,16 +1266,6 @@ onBeforeUnmount(() => {
       width="640px"
     >
       <el-form label-width="150px">
-        <el-form-item :label="t('futuresSymbolPage.batch.strategyType')">
-          <el-select v-model="batchInfo.strategyType" clearable>
-            <el-option
-              v-for="item in strategyTypeOptions"
-              :key="item"
-              :label="t(`futuresSymbolPage.strategyType.${item}`)"
-              :value="item"
-            />
-          </el-select>
-        </el-form-item>
         <el-form-item :label="t('futuresSymbolPage.batch.strategyTemplate')">
           <el-select
             v-model="batchInfo.strategyTemplateId"

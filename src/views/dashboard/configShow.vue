@@ -43,7 +43,6 @@ const config = reactive<Record<string, any>>({
   futuresPositionConvertEnable: 0,
   coinAllowLong: 1,
   coinAllowShort: 0,
-  tradeStrategyTrade: "",
   tradeStrategyCoin: "",
   coinMaxCount: 0,
   lossMaxCount: 0,
@@ -63,15 +62,6 @@ const config = reactive<Record<string, any>>({
   externalLinks: []
 });
 
-const strategyTradeOptions = [
-  "line1",
-  "line2",
-  "line3",
-  "line4",
-  "line5",
-  "line6",
-  "line7"
-];
 const strategyCoinOptions = [
   "coin1",
   "coin2",
@@ -265,6 +255,10 @@ onBeforeUnmount(() => {
       v-loading="loading"
       :model-value="[
         'futures',
+        'fast_move',
+        'liquidation',
+        'market_condition',
+        'test_strategy',
         'new_coin_rush',
         'coin_notice',
         'market_listen',
@@ -273,10 +267,27 @@ onBeforeUnmount(() => {
         'external'
       ]"
     >
-      <el-collapse-item name="futures" :title="t('dashboard.section.futures')">
+      <el-collapse-item name="futures">
         <template #title>
           <div class="dashboard-text flex items-center gap-3">
             <span>{{ t("dashboard.section.futures") }}</span>
+            <el-tag
+              :type="config.tradeFutureEnable === 1 ? 'success' : 'info'"
+              size="small"
+            >
+              {{
+                config.tradeFutureEnable === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="dashboard-body">
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.futureTradeEnable")
+            }}</span>
             <el-switch
               :model-value="config.tradeFutureEnable"
               :active-value="1"
@@ -284,8 +295,143 @@ onBeforeUnmount(() => {
               @change="value => saveField('future_enable', value)"
             />
           </div>
-        </template>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.allowLong")
+            }}</span>
+            <el-switch
+              :model-value="config.coinAllowLong"
+              :active-value="1"
+              :inactive-value="0"
+              @change="value => saveField('future_allow_long', value)"
+            />
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.allowShort")
+            }}</span>
+            <el-switch
+              :model-value="config.coinAllowShort"
+              :active-value="1"
+              :inactive-value="0"
+              @change="value => saveField('future_allow_short', value)"
+            />
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.strategyCoin")
+            }}</span>
+            <div class="selector-field-control">
+              <el-select
+                :model-value="config.tradeStrategyCoin"
+                class="compact-select"
+                @change="value => saveField('future_strategy_coin', value)"
+              >
+                <el-option
+                  v-for="item in strategyCoinOptions"
+                  :key="item"
+                  :label="t('dashboard.strategyCoin.' + item)"
+                  :value="item"
+                />
+              </el-select>
+              <el-button
+                v-if="config.tradeStrategyCoin === 'smart_local_v2'"
+                size="small"
+                @click="openSmartLocalV2Preview"
+              >
+                {{ t("dashboard.selectorPreview.button") }}
+              </el-button>
+            </div>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{ t("dashboard.field.maxCount") }}</span>
+            <el-input
+              v-model="config.coinMaxCount"
+              type="number"
+              class="compact-input"
+              @change="value => saveField('future_max_count', Number(value))"
+            />
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.lossMaxCount")
+            }}</span>
+            <el-input
+              v-model="config.lossMaxCount"
+              type="number"
+              class="compact-input"
+              @change="value => saveField('loss_max_count', Number(value))"
+            />
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.lossAutoScale")
+            }}</span>
+            <el-switch
+              :model-value="config.lossAutoScale"
+              :active-value="1"
+              :inactive-value="0"
+              @change="value => saveField('loss_auto_scale', value)"
+            />
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.orderType")
+            }}</span>
+            <el-select
+              :model-value="config.coinOrderType"
+              class="compact-select"
+              @change="value => saveField('future_order_type', value)"
+            >
+              <el-option
+                :label="t('dashboard.orderType.market')"
+                value="MARKET"
+              />
+              <el-option
+                :label="t('dashboard.orderType.limit')"
+                value="LIMIT"
+              />
+            </el-select>
+            <span class="hint green">
+              {{
+                config.coinOrderType === "LIMIT"
+                  ? t("dashboard.hint.limitMode")
+                  : t("dashboard.hint.marketMode")
+              }}
+            </span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.positionConvert")
+            }}</span>
+            <el-switch
+              :model-value="config.futuresPositionConvertEnable"
+              :active-value="1"
+              :inactive-value="0"
+              @change="
+                value => saveField('futures_position_convert_enable', value)
+              "
+            />
+          </div>
+        </div>
+      </el-collapse-item>
 
+      <el-collapse-item name="fast_move">
+        <template #title>
+          <div class="dashboard-text flex items-center gap-3">
+            <span>{{ t("dashboard.section.fastMove") }}</span>
+            <el-tag
+              :type="config.WsFuturesFastMoveEnable === 1 ? 'success' : 'info'"
+              size="small"
+            >
+              {{
+                config.WsFuturesFastMoveEnable === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
+          </div>
+        </template>
         <div class="dashboard-body">
           <div class="field-row">
             <span class="field-label">{{
@@ -298,7 +444,6 @@ onBeforeUnmount(() => {
               @change="value => saveField('ws_futures_fast_move_enable', value)"
             />
           </div>
-
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.fastMoveThreshold")
@@ -313,7 +458,6 @@ onBeforeUnmount(() => {
               "
             />
           </div>
-
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.fastMoveRecover")
@@ -328,7 +472,6 @@ onBeforeUnmount(() => {
               "
             />
           </div>
-
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.fastMoveCooldownSec")
@@ -343,7 +486,6 @@ onBeforeUnmount(() => {
               "
             />
           </div>
-
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.fastMoveWindows")
@@ -356,7 +498,28 @@ onBeforeUnmount(() => {
               "
             />
           </div>
+        </div>
+      </el-collapse-item>
 
+      <el-collapse-item name="liquidation">
+        <template #title>
+          <div class="dashboard-text flex items-center gap-3">
+            <span>{{ t("dashboard.section.liquidation") }}</span>
+            <el-tag
+              :type="
+                config.WsFuturesLiquidationEnable === 1 ? 'success' : 'info'
+              "
+              size="small"
+            >
+              {{
+                config.WsFuturesLiquidationEnable === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="dashboard-body">
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.liquidationCollectionEnable")
@@ -370,7 +533,6 @@ onBeforeUnmount(() => {
               "
             />
           </div>
-
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.liquidationAlertWindowSec")
@@ -389,7 +551,6 @@ onBeforeUnmount(() => {
               "
             />
           </div>
-
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.liquidationAlertNotionalThreshold")
@@ -409,7 +570,6 @@ onBeforeUnmount(() => {
             />
             <span class="hint green">USDT</span>
           </div>
-
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.liquidationAlertCooldownSec")
@@ -428,124 +588,26 @@ onBeforeUnmount(() => {
               "
             />
           </div>
+        </div>
+      </el-collapse-item>
 
-          <div class="field-row">
-            <span class="field-label">{{
-              t("dashboard.field.positionConvert")
-            }}</span>
-            <el-switch
-              :model-value="config.futuresPositionConvertEnable"
-              :active-value="1"
-              :inactive-value="0"
-              @change="
-                value => saveField('futures_position_convert_enable', value)
-              "
-            />
-          </div>
-
-          <div class="field-row">
-            <span class="field-label">{{
-              t("dashboard.field.allowLong")
-            }}</span>
-            <el-switch
-              :model-value="config.coinAllowLong"
-              :active-value="1"
-              :inactive-value="0"
-              @change="value => saveField('future_allow_long', value)"
-            />
-          </div>
-
-          <div class="field-row">
-            <span class="field-label">{{
-              t("dashboard.field.allowShort")
-            }}</span>
-            <el-switch
-              :model-value="config.coinAllowShort"
-              :active-value="1"
-              :inactive-value="0"
-              @change="value => saveField('future_allow_short', value)"
-            />
-          </div>
-
-          <div class="field-row">
-            <span class="field-label">{{
-              t("dashboard.field.strategyTrade")
-            }}</span>
-            <el-select
-              :model-value="config.tradeStrategyTrade"
-              class="compact-select"
-              @change="value => saveField('future_strategy_trade', value)"
+      <el-collapse-item name="market_condition">
+        <template #title>
+          <div class="dashboard-text flex items-center gap-3">
+            <span>{{ t("dashboard.section.marketCondition") }}</span>
+            <el-tag
+              :type="config.marketConditionIsAuto === 1 ? 'success' : 'info'"
+              size="small"
             >
-              <el-option
-                v-for="item in strategyTradeOptions"
-                :key="item"
-                :label="t(`dashboard.strategyTrade.${item}`)"
-                :value="item"
-              />
-            </el-select>
+              {{
+                config.marketConditionIsAuto === 1
+                  ? t("dashboard.state.auto")
+                  : t("dashboard.state.manual")
+              }}
+            </el-tag>
           </div>
-
-          <div class="field-row">
-            <span class="field-label">{{
-              t("dashboard.field.strategyCoin")
-            }}</span>
-            <div class="selector-field-control">
-              <el-select
-                :model-value="config.tradeStrategyCoin"
-                class="compact-select"
-                @change="value => saveField('future_strategy_coin', value)"
-              >
-                <el-option
-                  v-for="item in strategyCoinOptions"
-                  :key="item"
-                  :label="t(`dashboard.strategyCoin.${item}`)"
-                  :value="item"
-                />
-              </el-select>
-              <el-button
-                v-if="config.tradeStrategyCoin === 'smart_local_v2'"
-                size="small"
-                @click="openSmartLocalV2Preview"
-              >
-                {{ t("dashboard.selectorPreview.button") }}
-              </el-button>
-            </div>
-          </div>
-
-          <div class="field-row">
-            <span class="field-label">{{ t("dashboard.field.maxCount") }}</span>
-            <el-input
-              v-model="config.coinMaxCount"
-              type="number"
-              class="compact-input"
-              @change="value => saveField('future_max_count', Number(value))"
-            />
-          </div>
-
-          <div class="field-row">
-            <span class="field-label">{{
-              t("dashboard.field.lossMaxCount")
-            }}</span>
-            <el-input
-              v-model="config.lossMaxCount"
-              type="number"
-              class="compact-input"
-              @change="value => saveField('loss_max_count', Number(value))"
-            />
-          </div>
-
-          <div class="field-row">
-            <span class="field-label">{{
-              t("dashboard.field.lossAutoScale")
-            }}</span>
-            <el-switch
-              :model-value="config.lossAutoScale"
-              :active-value="1"
-              :inactive-value="0"
-              @change="value => saveField('loss_auto_scale', value)"
-            />
-          </div>
-
+        </template>
+        <div class="dashboard-body">
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.marketCondition")
@@ -558,7 +620,7 @@ onBeforeUnmount(() => {
               <el-option
                 v-for="item in marketOptions"
                 :key="item.value"
-                :label="t(`dashboard.market.${item.value}`)"
+                :label="t('dashboard.market.' + item.value)"
                 :value="item.value"
               />
             </el-select>
@@ -567,7 +629,6 @@ onBeforeUnmount(() => {
               {{ currentMarketConditionLabel }}
             </el-tag>
           </div>
-
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.marketConditionAuto")
@@ -587,13 +648,13 @@ onBeforeUnmount(() => {
               :loading="marketUpdateRunning"
               :disabled="marketUpdateRunning"
               @click="onUpdateMarketCondition"
-              >{{ t("dashboard.button.updateNow") }}</el-button
             >
-            <span v-if="config.marketConditionIsAuto === 1" class="hint">{{
-              t("dashboard.hint.autoRefresh")
-            }}</span>
+              {{ t("dashboard.button.updateNow") }}
+            </el-button>
+            <span v-if="config.marketConditionIsAuto === 1" class="hint">
+              {{ t("dashboard.hint.autoRefresh") }}
+            </span>
           </div>
-
           <div v-if="marketUpdateTask" class="field-row field-row-top">
             <span class="field-label">{{
               t("dashboard.field.marketAnalysisProgress")
@@ -611,12 +672,9 @@ onBeforeUnmount(() => {
                 :indeterminate="marketUpdateTask.stage === 'calling_llm'"
                 :duration="3"
               />
-              <div class="market-progress-stage">
-                {{ marketProgressLabel }}
-              </div>
+              <div class="market-progress-stage">{{ marketProgressLabel }}</div>
             </div>
           </div>
-
           <div v-if="marketAnalysis" class="field-row field-row-top">
             <span class="field-label">{{
               t("dashboard.field.latestMarketAnalysis")
@@ -643,32 +701,26 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </div>
+        </div>
+      </el-collapse-item>
 
-          <div class="field-row">
-            <span class="field-label">{{
-              t("dashboard.field.orderType")
-            }}</span>
-            <el-select
-              :model-value="config.coinOrderType"
-              class="compact-select"
-              @change="value => saveField('future_order_type', value)"
+      <el-collapse-item name="test_strategy">
+        <template #title>
+          <div class="dashboard-text flex items-center gap-3">
+            <span>{{ t("dashboard.section.testStrategy") }}</span>
+            <el-tag
+              :type="config.tradeFutureTest === 1 ? 'success' : 'info'"
+              size="small"
             >
-              <el-option
-                :label="t('dashboard.orderType.market')"
-                value="MARKET"
-              />
-              <el-option
-                :label="t('dashboard.orderType.limit')"
-                value="LIMIT"
-              />
-            </el-select>
-            <span class="hint green">{{
-              config.coinOrderType === "LIMIT"
-                ? t("dashboard.hint.limitMode")
-                : t("dashboard.hint.marketMode")
-            }}</span>
+              {{
+                config.tradeFutureTest === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
           </div>
-
+        </template>
+        <div class="dashboard-body">
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.testStrategy")
@@ -683,10 +735,10 @@ onBeforeUnmount(() => {
               type="success"
               size="small"
               @click="gotoTestStrategyResult"
-              >{{ t("dashboard.button.viewTestResult") }}</el-button
             >
+              {{ t("dashboard.button.viewTestResult") }}
+            </el-button>
           </div>
-
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.testAutoTradeLimit")
@@ -727,8 +779,22 @@ onBeforeUnmount(() => {
 
       <el-collapse-item name="new_coin_rush">
         <template #title>
-          <div class="dashboard-text">
-            {{ t("dashboard.section.newCoinRush") }}
+          <div class="dashboard-text flex items-center gap-3">
+            <span>{{ t("dashboard.section.newCoinRush") }}</span>
+            <el-tag
+              :type="
+                config.spotNewEnable === 1 || config.tradeNewEnable === 1
+                  ? 'success'
+                  : 'info'
+              "
+              size="small"
+            >
+              {{
+                config.spotNewEnable === 1 || config.tradeNewEnable === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
           </div>
         </template>
         <div class="dashboard-body">
@@ -761,6 +827,23 @@ onBeforeUnmount(() => {
         <template #title>
           <div class="dashboard-text flex items-center gap-3">
             <span>{{ t("dashboard.section.coinNotice") }}</span>
+            <el-tag
+              :type="config.noticeCoinEnable === 1 ? 'success' : 'info'"
+              size="small"
+            >
+              {{
+                config.noticeCoinEnable === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="dashboard-body">
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.coinNoticeEnable")
+            }}</span>
             <el-switch
               :model-value="config.noticeCoinEnable"
               :active-value="1"
@@ -768,13 +851,30 @@ onBeforeUnmount(() => {
               @change="value => saveField('notice_coin_enable', value)"
             />
           </div>
-        </template>
+        </div>
       </el-collapse-item>
 
       <el-collapse-item name="market_listen">
         <template #title>
           <div class="dashboard-text flex items-center gap-3">
             <span>{{ t("dashboard.section.marketListen") }}</span>
+            <el-tag
+              :type="config.listenCoinEnable === 1 ? 'success' : 'info'"
+              size="small"
+            >
+              {{
+                config.listenCoinEnable === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="dashboard-body">
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.marketListenEnable")
+            }}</span>
             <el-switch
               :model-value="config.listenCoinEnable"
               :active-value="1"
@@ -782,13 +882,30 @@ onBeforeUnmount(() => {
               @change="value => saveField('listen_coin_enable', value)"
             />
           </div>
-        </template>
+        </div>
       </el-collapse-item>
 
       <el-collapse-item name="funding_rate">
         <template #title>
           <div class="dashboard-text flex items-center gap-3">
             <span>{{ t("dashboard.section.fundingRate") }}</span>
+            <el-tag
+              :type="config.listenFundingRate === 1 ? 'success' : 'info'"
+              size="small"
+            >
+              {{
+                config.listenFundingRate === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="dashboard-body">
+          <div class="field-row">
+            <span class="field-label">{{
+              t("dashboard.field.fundingRateEnable")
+            }}</span>
             <el-switch
               :model-value="config.listenFundingRate"
               :active-value="1"
@@ -796,26 +913,31 @@ onBeforeUnmount(() => {
               @change="value => saveField('listen_funding_rate_enable', value)"
             />
           </div>
-        </template>
+        </div>
       </el-collapse-item>
 
       <el-collapse-item name="debug">
         <template #title>
           <div class="dashboard-text flex items-center gap-3">
             <span>{{ t("dashboard.section.debug") }}</span>
-            <span :class="config.debug === '1' ? 'red' : 'green'">{{
-              config.debug === "1"
-                ? t("dashboard.state.on")
-                : t("dashboard.state.off")
-            }}</span>
+            <el-tag
+              :type="config.debug === '1' ? 'warning' : 'info'"
+              size="small"
+            >
+              {{
+                config.debug === "1"
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
           </div>
         </template>
         <div class="dashboard-body">
           <div class="field-row">
             <span class="field-label">{{ t("dashboard.field.pushTest") }}</span>
-            <el-button type="primary" size="small" @click="onTestPusher">{{
-              t("dashboard.button.testPush")
-            }}</el-button>
+            <el-button type="primary" size="small" @click="onTestPusher">
+              {{ t("dashboard.button.testPush") }}
+            </el-button>
           </div>
         </div>
       </el-collapse-item>
@@ -837,8 +959,9 @@ onBeforeUnmount(() => {
               :href="link.url"
               target="_blank"
               type="primary"
-              >{{ link.title }}</el-link
             >
+              {{ link.title }}
+            </el-link>
           </div>
           <div v-else class="hint">
             {{ t("dashboard.hint.noExternalLinks") }}
