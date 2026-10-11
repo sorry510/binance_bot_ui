@@ -19,6 +19,8 @@ import {
   addListenCoin,
   delListenCoin,
   getListenCoins,
+  getFuturesListenSymbolOptions,
+  getSpotListenSymbolOptions,
   setListenCoin,
   testStrategyRule
 } from "../../api/listenCoin";
@@ -26,6 +28,10 @@ import { codeMirrorBasicSetup } from "../../utils/codemirror";
 import { validateTechnologyConfig } from "../../utils/technology";
 
 defineOptions({ name: "listenFeature" });
+const props = withDefaults(defineProps<{ marketType?: 1 | 2 }>(), {
+  marketType: 2
+});
+const pageKey = props.marketType === 1 ? "listenSpotPage" : "listenFeaturePage";
 const { t } = useI18n();
 
 type IndicatorKey =
@@ -71,7 +77,7 @@ interface ListenRow {
   id: number;
   symbol: string;
   close?: string;
-  listen_type: "kline_base" | "kline_kc" | "custom";
+  listen_type: "kline_base" | "kline_kc" | "custom"; // DB legacy field; UI always custom
   kline_interval?: string;
   change_percent?: number | string;
   notice_limit_min?: number | string;
@@ -105,23 +111,34 @@ function createEmptyTechnology() {
 
 const listLoading = ref(false);
 const dialogLoading = ref(false);
+const savingIds = ref<number[]>([]);
+const deletingIds = ref<number[]>([]);
 const list = ref<ListenRow[]>([]);
 const interval = ref(
-  Number(localStorage.getItem("listenFeatureRefreshInterval") || 30)
+  Number(
+    localStorage.getItem(
+      props.marketType === 1
+        ? "listenSpotRefreshInterval"
+        : "listenFeatureRefreshInterval"
+    ) || (props.marketType === 1 ? 3 : 30)
+  )
 );
 const timer = ref<number | null>(null);
-const searchCacheKey = "listen-feature-search-cache";
+const searchCacheKey =
+  props.marketType === 1
+    ? "listen-spot-search-cache"
+    : "listen-feature-search-cache";
 
 const search = reactive({
   symbol: "",
-  listen_type: "",
   enable: ""
 });
 
 const addDialogVisible = ref(false);
+const addSymbolLoading = ref(false);
+const addSymbolOptions = ref<{ label: string; value: string }[]>([]);
 const addForm = reactive({
-  symbol: "",
-  listen_type: "kline_base" as "kline_base" | "kline_kc" | "custom"
+  symbol: ""
 });
 
 const technologyDialogVisible = ref(false);
@@ -156,7 +173,6 @@ const baseIntervals = [
   "1w",
   "1M"
 ];
-const kcIntervals = ["15m", "1h", "4h", "1d", "3d", "1w"];
 
 const indicatorTabs = [
   { key: "ma", label: "MA" },
@@ -176,15 +192,13 @@ const indicatorTabs = [
   { key: "supertrend", label: "SUPERTREND" }
 ] as const;
 
-const listenTypeOptions = ["kline_base", "kline_kc", "custom"] as const;
 const enableOptions = [
-  { labelKey: "listenFeaturePage.state.all", value: "" },
-  { labelKey: "listenFeaturePage.state.enabled", value: "1" },
-  { labelKey: "listenFeaturePage.state.disabled", value: "0" }
+  { labelKey: "state.all", value: "" },
+  { labelKey: "state.enabled", value: "1" },
+  { labelKey: "state.disabled", value: "0" }
 ] as const;
 
 function normalizeSearchState() {
-  if (search.listen_type == null) search.listen_type = "";
   if (search.enable == null) search.enable = "";
 }
 
@@ -200,7 +214,6 @@ function restoreSearchCache() {
     const cached = JSON.parse(raw);
     Object.assign(search, {
       symbol: cached?.symbol || "",
-      listen_type: cached?.listen_type || "",
       enable: cached?.enable || ""
     });
   } catch {
@@ -215,19 +228,11 @@ function formatTime(ts: number | string) {
 
 function typeText(type: string) {
   return type === "up"
-    ? t("listenFeaturePage.type.up")
+    ? t(`${pageKey}.type.up`)
     : type === "down"
-      ? t("listenFeaturePage.type.down")
+      ? t(`${pageKey}.type.down`)
       : "";
 }
-
-function listenTypeText(type: string) {
-  return type ? t(`listenFeaturePage.listenType.${type}`) : "";
-}
-
-const showKlineColumns = computed(() =>
-  list.value.some(row => row.listen_type !== "custom")
-);
 
 const codeEditorExtensions = computed(() => {
   const keywords = new Set<string>([
@@ -294,6 +299,17 @@ const codeEditorExtensions = computed(() => {
     "FundingRate.Time",
     "BasicTrend"
   ]);
+
+  if (props.marketType === 1) {
+    // Funding-rate and cross-market futures globals are not available in
+    // the spot rule evaluation environment.
+    [
+      "FundingRate",
+      "FundingRate.Data",
+      "FundingRate.Time",
+      "BasicTrend"
+    ].forEach(key => keywords.delete(key));
+  }
 
   if (strategySymbolId.value !== null) {
     const find = list.value.find(item => item.id === strategySymbolId.value);
@@ -406,13 +422,15 @@ const codeEditorExtensions = computed(() => {
     }
   }
 
-  ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"].forEach(symbol => {
-    keywords.add(`${symbol}.PercentChange`);
-    keywords.add(`${symbol}.Close`);
-    keywords.add(`${symbol}.Open`);
-    keywords.add(`${symbol}.Low`);
-    keywords.add(`${symbol}.High`);
-  });
+  if (props.marketType === 2) {
+    ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"].forEach(symbol => {
+      keywords.add(`${symbol}.PercentChange`);
+      keywords.add(`${symbol}.Close`);
+      keywords.add(`${symbol}.Open`);
+      keywords.add(`${symbol}.Low`);
+      keywords.add(`${symbol}.High`);
+    });
+  }
 
   return [
     javascript(),
@@ -438,32 +456,61 @@ function clearTimer() {
 function startTimer() {
   clearTimer();
   timer.value = window.setInterval(() => {
-    void fetchData();
+    // Spot auto refresh updates live prices without replacing a form row
+    // while the user is editing its rule/notification interval.
+    void fetchData(props.marketType === 1);
   }, interval.value * 1000);
 }
 
 function onIntervalChange() {
-  localStorage.setItem("listenFeatureRefreshInterval", String(interval.value));
+  localStorage.setItem(
+    props.marketType === 1
+      ? "listenSpotRefreshInterval"
+      : "listenFeatureRefreshInterval",
+    String(interval.value)
+  );
   startTimer();
 }
 
-async function fetchData() {
-  normalizeSearchState();
-  saveSearchCache();
+async function fetchData(pricesOnly = false) {
+  if (!pricesOnly) {
+    normalizeSearchState();
+    saveSearchCache();
+  }
   // listLoading.value = true;
   try {
     const res = await getListenCoins({
-      type: 2,
+      type: props.marketType,
       symbol: search.symbol.trim().toUpperCase() || undefined,
-      listen_type: search.listen_type || undefined,
       enable:
         search.enable === "" || Number.isNaN(Number(search.enable))
           ? undefined
           : Number(search.enable)
     });
-    list.value = (res?.data || []).map((item: any) => ({
+    const fetched = res?.data || [];
+    if (pricesOnly) {
+      const liveRows = new Map<number, any>(
+        fetched.map((item: any) => [item.id, item])
+      );
+      list.value.forEach(row => {
+        const latest = liveRows.get(row.id);
+        if (!latest) return;
+        row.close = latest.close;
+        row.last_notice_time = latest.last_notice_time;
+        row.last_notice_type = latest.last_notice_type;
+      });
+      return;
+    }
+    list.value = fetched.map((item: any) => ({
       ...item,
-      enable: Number(item.enable) > 0
+      legacyMode: item.listen_type !== "custom",
+      listen_type: "custom",
+      enable: savingIds.value.includes(item.id)
+        ? (list.value.find(row => row.id === item.id)?.enable ??
+          Number(item.enable) > 0)
+        : item.listen_type !== "custom"
+          ? false
+          : Number(item.enable) > 0
     }));
   } finally {
     listLoading.value = false;
@@ -472,7 +519,6 @@ async function fetchData() {
 
 function resetSearch() {
   search.symbol = "";
-  search.listen_type = "";
   search.enable = "";
   fetchData();
 }
@@ -480,6 +526,7 @@ function resetSearch() {
 function buildRowPayload(row: ListenRow) {
   return {
     ...row,
+    listen_type: "custom",
     enable: row.enable ? 1 : 0,
     notice_limit_min: Number(row.notice_limit_min || 0),
     change_percent:
@@ -492,49 +539,107 @@ function buildRowPayload(row: ListenRow) {
 async function saveRow(row: ListenRow) {
   try {
     await setListenCoin(row.id, buildRowPayload(row));
-    ElMessage.success(t("listenFeaturePage.message.updateSuccess"));
+    ElMessage.success(t(`${pageKey}.message.updateSuccess`));
     await fetchData();
   } catch {
-    ElMessage.error(t("listenFeaturePage.message.updateFail"));
+    ElMessage.error(t(`${pageKey}.message.updateFail`));
+  }
+}
+
+async function onEnableChange(row: ListenRow) {
+  if (savingIds.value.includes(row.id)) return;
+  savingIds.value = [...savingIds.value, row.id];
+  try {
+    const result = await setListenCoin(row.id, {
+      enable: row.enable ? 1 : 0,
+      listen_type: "custom"
+    });
+    if (result?.code !== 200) throw new Error("Update rejected");
+    ElMessage.success(t(`${pageKey}.message.updateSuccess`));
+    await fetchData();
+  } catch {
+    row.enable = !row.enable;
+    ElMessage.error(t(`${pageKey}.message.updateFail`));
+  } finally {
+    savingIds.value = savingIds.value.filter(id => id !== row.id);
   }
 }
 
 async function onDelete(row: ListenRow) {
-  await ElMessageBox.confirm(
-    t("listenFeaturePage.confirm.delete", { symbol: row.symbol }),
-    t("listenFeaturePage.confirm.title"),
-    {
-      type: "warning"
-    }
-  );
   try {
-    await delListenCoin(row.id);
-    ElMessage.success(t("listenFeaturePage.message.deleteSuccess"));
+    await ElMessageBox.confirm(
+      t(`${pageKey}.confirm.delete`, { symbol: row.symbol }),
+      t(`${pageKey}.confirm.title`),
+      { type: "warning" }
+    );
+  } catch {
+    return; // The user canceled the confirmation.
+  }
+  deletingIds.value = [...deletingIds.value, row.id];
+  try {
+    const result = await delListenCoin(row.id);
+    if (result?.code !== 200) throw new Error("Delete rejected");
+    ElMessage.success(t(`${pageKey}.message.deleteSuccess`));
     await fetchData();
   } catch {
-    ElMessage.error(t("listenFeaturePage.message.deleteFail"));
+    ElMessage.error(t(`${pageKey}.message.deleteFail`));
+  } finally {
+    deletingIds.value = deletingIds.value.filter(id => id !== row.id);
   }
 }
 
-function openAddDialog() {
+async function openAddDialog() {
   addForm.symbol = "";
-  addForm.listen_type = "kline_base";
+  addSymbolOptions.value = [];
   addDialogVisible.value = true;
+  addSymbolLoading.value = true;
+  try {
+    const response =
+      props.marketType === 1
+        ? await getSpotListenSymbolOptions()
+        : await getFuturesListenSymbolOptions();
+    if (response?.code !== 200 || !Array.isArray(response.data)) {
+      throw new Error("Listener symbol options unavailable");
+    }
+    addSymbolOptions.value = response.data.map((symbol: string) => ({
+      label: symbol,
+      value: symbol
+    }));
+  } catch {
+    addSymbolOptions.value = [];
+    ElMessage.error(t(`${pageKey}.message.symbolOptionsFail`));
+  } finally {
+    addSymbolLoading.value = false;
+  }
 }
 
 async function onAdd() {
+  const name = addForm.symbol.trim().toUpperCase();
+  if (!name || !addSymbolOptions.value.some(option => option.value === name)) {
+    ElMessage.warning(t(`${pageKey}.message.invalidSymbol`));
+    return;
+  }
+  if (list.value.some(row => row.symbol === name)) {
+    ElMessage.warning(t(`${pageKey}.message.symbolExists`));
+    return;
+  }
   dialogLoading.value = true;
   try {
-    await addListenCoin({
-      symbol: addForm.symbol.trim().toUpperCase(),
-      listen_type: addForm.listen_type,
-      type: 2,
+    const result = await addListenCoin({
+      symbol: name,
+      listen_type: "custom",
+      type: props.marketType,
       createTime: Date.now(),
       updateTime: Date.now()
     });
+    if (result?.code !== 200) {
+      throw new Error(result?.msg || "Add listener rejected");
+    }
     addDialogVisible.value = false;
-    ElMessage.success(t("listenFeaturePage.message.addSuccess"));
+    ElMessage.success(t(`${pageKey}.message.addSuccess`));
     await fetchData();
+  } catch {
+    ElMessage.error(t(`${pageKey}.message.addFail`));
   } finally {
     dialogLoading.value = false;
   }
@@ -542,7 +647,7 @@ async function onAdd() {
 
 async function openTechnologyDialog(row: ListenRow) {
   technologySymbolId.value = row.id;
-  technologyDialogTitle.value = `${row.symbol} ${t("listenFeaturePage.button.technology")}`;
+  technologyDialogTitle.value = `${row.symbol} ${t(`${pageKey}.button.technology`)}`;
   if (row.technology) {
     try {
       technology.value = {
@@ -602,12 +707,13 @@ async function confirmTechnology() {
       return;
     }
     await setListenCoin(technologySymbolId.value, {
-      technology: JSON.stringify(payload)
+      technology: JSON.stringify(payload),
+      listen_type: "custom"
     });
-    ElMessage.success(t("listenFeaturePage.message.actionSuccess"));
+    ElMessage.success(t(`${pageKey}.message.actionSuccess`));
     await fetchData();
   } catch {
-    ElMessage.error(t("listenFeaturePage.message.actionFail"));
+    ElMessage.error(t(`${pageKey}.message.actionFail`));
   } finally {
     dialogLoading.value = false;
   }
@@ -679,7 +785,7 @@ function removeTechnologyItem(key: IndicatorKey, index: number) {
 
 function openStrategyDialog(row: ListenRow) {
   strategySymbolId.value = row.id;
-  strategyDialogTitle.value = `${row.symbol} ${t("listenFeaturePage.button.strategy")}`;
+  strategyDialogTitle.value = `${row.symbol} ${t(`${pageKey}.button.strategy`)}`;
   if (row.strategy) {
     try {
       strategy.value = JSON.parse(row.strategy);
@@ -697,12 +803,13 @@ async function confirmStrategy() {
   dialogLoading.value = true;
   try {
     await setListenCoin(strategySymbolId.value, {
-      strategy: JSON.stringify(strategy.value)
+      strategy: JSON.stringify(strategy.value),
+      listen_type: "custom"
     });
-    ElMessage.success(t("listenFeaturePage.message.actionSuccess"));
+    ElMessage.success(t(`${pageKey}.message.actionSuccess`));
     await fetchData();
   } catch {
-    ElMessage.error(t("listenFeaturePage.message.actionFail"));
+    ElMessage.error(t(`${pageKey}.message.actionFail`));
   } finally {
     dialogLoading.value = false;
   }
@@ -756,7 +863,7 @@ function onCodeChange(value: string) {
 
 async function onTestStrategyRule() {
   if (strategySymbolId.value === null) {
-    ElMessage.error(t("listenFeaturePage.message.actionFail"));
+    ElMessage.error(t(`${pageKey}.message.actionFail`));
     return;
   }
   try {
@@ -773,13 +880,13 @@ async function onTestStrategyRule() {
     });
     if (result?.code === 200) {
       ElMessage.success(
-        `${t("listenFeaturePage.message.testResult")}: ${String(result?.data?.pass)}`
+        `${t(`${pageKey}.message.testResult`)}: ${String(result?.data?.pass)}`
       );
       return;
     }
-    ElMessage.error(t("listenFeaturePage.message.actionFail"));
+    ElMessage.error(t(`${pageKey}.message.actionFail`));
   } catch {
-    ElMessage.error(t("listenFeaturePage.message.actionFail"));
+    ElMessage.error(t(`${pageKey}.message.actionFail`));
   }
 }
 
@@ -808,42 +915,29 @@ watch(
       <div class="flex flex-wrap items-center gap-2">
         <el-input
           v-model="search.symbol"
-          :placeholder="t('listenFeaturePage.placeholder.symbol')"
+          :placeholder="t(`${pageKey}.placeholder.symbol`)"
           clearable
           style="width: 160px"
-          @keyup.enter="fetchData"
+          @keyup.enter="fetchData()"
         />
-        <el-select
-          v-model="search.listen_type"
-          clearable
-          :placeholder="t('listenFeaturePage.placeholder.listenType')"
-          style="width: 160px"
-        >
-          <el-option
-            v-for="item in listenTypeOptions"
-            :key="item"
-            :label="listenTypeText(item)"
-            :value="item"
-          />
-        </el-select>
         <el-select
           v-model="search.enable"
           clearable
-          :placeholder="t('listenFeaturePage.placeholder.enable')"
+          :placeholder="t(`${pageKey}.placeholder.enable`)"
           style="width: 120px"
         >
           <el-option
             v-for="item in enableOptions"
             :key="item.value"
-            :label="t(item.labelKey)"
+            :label="t(`${pageKey}.${item.labelKey}`)"
             :value="item.value"
           />
         </el-select>
-        <el-button type="primary" :loading="listLoading" @click="fetchData">{{
-          t("listenFeaturePage.button.search")
+        <el-button type="primary" :loading="listLoading" @click="fetchData()">{{
+          t(`${pageKey}.button.search`)
         }}</el-button>
         <el-button type="primary" @click="openAddDialog">{{
-          t("listenFeaturePage.button.add")
+          t(`${pageKey}.button.add`)
         }}</el-button>
       </div>
 
@@ -855,7 +949,7 @@ watch(
         >
           <el-option v-for="n in 30" :key="n" :label="`${n}s`" :value="n" />
         </el-select>
-        <span>{{ t("listenFeaturePage.label.refreshInterval") }}</span>
+        <span>{{ t(`${pageKey}.label.refreshInterval`) }}</span>
       </div>
     </div>
 
@@ -868,18 +962,22 @@ watch(
     >
       <el-table-column
         prop="symbol"
-        :label="t('listenFeaturePage.table.symbol')"
+        :label="t(`${pageKey}.table.symbol`)"
         align="center"
         min-width="120"
       />
       <el-table-column
         prop="close"
-        :label="t('listenFeaturePage.table.currentPrice')"
+        :label="t(`${pageKey}.table.currentPrice`)"
         align="center"
         min-width="140"
-      />
+      >
+        <template #default="{ row }">
+          {{ row.close && Number(row.close) > 0 ? row.close : "—" }}
+        </template>
+      </el-table-column>
       <el-table-column
-        :label="t('listenFeaturePage.table.technology')"
+        :label="t(`${pageKey}.table.technology`)"
         align="center"
         width="120"
       >
@@ -888,12 +986,12 @@ watch(
             type="success"
             size="small"
             @click="openTechnologyDialog(row)"
-            >{{ t("listenFeaturePage.button.technology") }}</el-button
+            >{{ t(`${pageKey}.button.technology`) }}</el-button
           >
         </template>
       </el-table-column>
       <el-table-column
-        :label="t('listenFeaturePage.table.strategy')"
+        :label="t(`${pageKey}.table.strategy`)"
         align="center"
         width="110"
       >
@@ -902,82 +1000,12 @@ watch(
             type="success"
             size="small"
             @click="openStrategyDialog(row)"
-            >{{ t("listenFeaturePage.button.strategy") }}</el-button
+            >{{ t(`${pageKey}.button.strategy`) }}</el-button
           >
         </template>
       </el-table-column>
       <el-table-column
-        :label="t('listenFeaturePage.table.listenType')"
-        align="center"
-        width="130"
-      >
-        <template #default="{ row }">
-          <el-select
-            v-model="row.listen_type"
-            size="small"
-            @change="saveRow(row)"
-          >
-            <el-option
-              v-for="item in listenTypeOptions"
-              :key="item"
-              :label="listenTypeText(item)"
-              :value="item"
-            />
-          </el-select>
-        </template>
-      </el-table-column>
-      <el-table-column
-        v-if="showKlineColumns"
-        :label="t('listenFeaturePage.table.klineInterval')"
-        align="center"
-        width="120"
-      >
-        <template #default="{ row }">
-          <el-select
-            v-if="row.listen_type === 'kline_base'"
-            v-model="row.kline_interval"
-            size="small"
-            @change="saveRow(row)"
-          >
-            <el-option
-              v-for="item in baseIntervals"
-              :key="item"
-              :label="item"
-              :value="item"
-            />
-          </el-select>
-          <el-select
-            v-else-if="row.listen_type === 'kline_kc'"
-            v-model="row.kline_interval"
-            size="small"
-            @change="saveRow(row)"
-          >
-            <el-option
-              v-for="item in kcIntervals"
-              :key="item"
-              :label="item"
-              :value="item"
-            />
-          </el-select>
-        </template>
-      </el-table-column>
-      <el-table-column
-        v-if="showKlineColumns"
-        :label="t('listenFeaturePage.table.changePercent')"
-        align="center"
-        width="130"
-      >
-        <template #default="{ row }">
-          <el-input
-            v-if="row.listen_type === 'kline_base'"
-            v-model="row.change_percent"
-            size="small"
-            @blur="saveRow(row)"
-          />
-        </template>
-      </el-table-column>
-      <el-table-column
-        :label="t('listenFeaturePage.table.noticeLimit')"
+        :label="t(`${pageKey}.table.noticeLimit`)"
         align="center"
         width="130"
       >
@@ -990,7 +1018,7 @@ watch(
         </template>
       </el-table-column>
       <el-table-column
-        :label="t('listenFeaturePage.table.lastNotice')"
+        :label="t(`${pageKey}.table.lastNotice`)"
         align="center"
         min-width="220"
       >
@@ -1000,53 +1028,70 @@ watch(
         </template>
       </el-table-column>
       <el-table-column
-        :label="t('listenFeaturePage.table.enable')"
+        :label="t(`${pageKey}.table.enable`)"
+        :fixed="props.marketType === 1 ? 'right' : undefined"
         align="center"
         width="90"
       >
         <template #default="{ row }">
-          <el-switch v-model="row.enable" @change="saveRow(row)" />
+          <el-switch
+            v-model="row.enable"
+            :loading="savingIds.includes(row.id)"
+            :disabled="savingIds.includes(row.id)"
+            @change="onEnableChange(row)"
+          />
         </template>
       </el-table-column>
       <el-table-column
-        :label="t('listenFeaturePage.table.operation')"
+        :label="t(`${pageKey}.table.operation`)"
+        :fixed="props.marketType === 1 ? 'right' : undefined"
         align="center"
-        width="90"
+        width="100"
       >
         <template #default="{ row }">
-          <el-button type="danger" size="small" @click="onDelete(row)">{{
-            t("listenFeaturePage.button.delete")
-          }}</el-button>
+          <el-button
+            type="danger"
+            size="small"
+            :loading="deletingIds.includes(row.id)"
+            :disabled="deletingIds.includes(row.id)"
+            @click="onDelete(row)"
+            >{{ t(`${pageKey}.button.delete`) }}</el-button
+          >
         </template>
       </el-table-column>
     </el-table>
 
     <el-dialog
       v-model="addDialogVisible"
-      :title="t('listenFeaturePage.dialog.addTitle')"
+      :title="t(`${pageKey}.dialog.addTitle`)"
       width="520px"
     >
       <div class="grid gap-4">
-        <el-input
+        <el-select-v2
           v-model="addForm.symbol"
-          :placeholder="t('listenFeaturePage.placeholder.symbol')"
+          :options="addSymbolOptions"
+          :loading="addSymbolLoading"
+          :placeholder="t(`${pageKey}.placeholder.selectSymbol`)"
+          filterable
+          clearable
+          style="width: 100%"
         />
-        <!-- <el-select v-model="addForm.listen_type">
-          <el-option
-            v-for="item in listenTypeOptions"
-            :key="item"
-            :label="listenTypeText(item)"
-            :value="item"
-          />
-        </el-select> -->
       </div>
       <template #footer>
         <el-button @click="addDialogVisible = false">{{
-          t("listenFeaturePage.button.cancel")
+          t(`${pageKey}.button.cancel`)
         }}</el-button>
-        <el-button type="primary" :loading="dialogLoading" @click="onAdd">{{
-          t("listenFeaturePage.button.save")
-        }}</el-button>
+        <el-button
+          type="primary"
+          :loading="dialogLoading"
+          :disabled="
+            addSymbolLoading ||
+            !addForm.symbol ||
+            !addSymbolOptions.some(option => option.value === addForm.symbol)
+          "
+          @click="onAdd"
+          >{{ t(`${pageKey}.button.save`) }}</el-button
+        >
       </template>
     </el-dialog>
 
@@ -1067,7 +1112,7 @@ watch(
               class="indicator-add-button"
               type="primary"
               @click="addTechnologyItem(tab.key)"
-              >{{ t("listenFeaturePage.button.add") }}</el-button
+              >{{ t(`${pageKey}.button.add`) }}</el-button
             >
             <span
               class="indicator-description"
@@ -1200,7 +1245,7 @@ watch(
               /></template>
             </el-table-column>
             <el-table-column
-              :label="t('listenFeaturePage.table.operation')"
+              :label="t(`${pageKey}.table.operation`)"
               align="center"
               width="110"
             >
@@ -1209,7 +1254,7 @@ watch(
                   type="danger"
                   size="small"
                   @click="removeTechnologyItem(tab.key, $index)"
-                  >{{ t("listenFeaturePage.button.delete") }}</el-button
+                  >{{ t(`${pageKey}.button.delete`) }}</el-button
                 >
               </template>
             </el-table-column>
@@ -1218,13 +1263,13 @@ watch(
       </el-tabs>
       <template #footer>
         <el-button @click="technologyDialogVisible = false">{{
-          t("listenFeaturePage.button.cancel")
+          t(`${pageKey}.button.cancel`)
         }}</el-button>
         <el-button
           type="primary"
           :loading="dialogLoading"
           @click="confirmTechnology"
-          >{{ t("listenFeaturePage.button.confirm") }}</el-button
+          >{{ t(`${pageKey}.button.confirm`) }}</el-button
         >
       </template>
     </el-dialog>
@@ -1236,7 +1281,7 @@ watch(
     >
       <div class="mb-2">
         <el-button type="primary" @click="addStrategy">{{
-          t("listenFeaturePage.button.add")
+          t(`${pageKey}.button.add`)
         }}</el-button>
       </div>
       <el-table :data="strategy" border size="small" style="width: 100%">
@@ -1300,7 +1345,7 @@ watch(
           /></template>
         </el-table-column>
         <el-table-column
-          :label="t('listenFeaturePage.table.operation')"
+          :label="t(`${pageKey}.table.operation`)"
           align="center"
           width="110"
         >
@@ -1309,20 +1354,20 @@ watch(
               type="danger"
               size="small"
               @click="removeStrategy($index)"
-              >{{ t("listenFeaturePage.button.delete") }}</el-button
+              >{{ t(`${pageKey}.button.delete`) }}</el-button
             >
           </template>
         </el-table-column>
       </el-table>
       <template #footer>
         <el-button @click="strategyDialogVisible = false">{{
-          t("listenFeaturePage.button.cancel")
+          t(`${pageKey}.button.cancel`)
         }}</el-button>
         <el-button
           type="primary"
           :loading="dialogLoading"
           @click="confirmStrategy"
-          >{{ t("listenFeaturePage.button.confirm") }}</el-button
+          >{{ t(`${pageKey}.button.confirm`) }}</el-button
         >
       </template>
     </el-dialog>
@@ -1342,7 +1387,7 @@ watch(
             >code rule</el-link
           >
           <el-button type="primary" @click="onTestStrategyRule">{{
-            t("listenFeaturePage.button.test")
+            t(`${pageKey}.button.test`)
           }}</el-button>
         </div>
         <Codemirror

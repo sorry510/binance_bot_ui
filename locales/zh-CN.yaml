@@ -1473,35 +1473,6 @@ listenSpotPage:
   button:
     add: 新增
     refresh: 刷新
-    delete: 删除
-    save: 保存
-  table:
-    symbol: 币种
-    currentPrice: 当前价格
-    klineInterval: kline
-    changePercent: 阈值
-    noticeLimit: 通知间隔
-    lastNotice: 上次通知
-    enable: 启用
-    operation: 操作
-  type:
-    up: 上涨
-    down: 下跌
-  placeholder:
-    symbol: 币种
-  dialog:
-    addTitle: 新增现货监听
-  confirm:
-    title: 提示
-    delete: 确认删除 {symbol} ?
-  message:
-    addSuccess: 新增成功
-    updateSuccess: 更新成功
-    deleteSuccess: 删除成功
-listenFeaturePage:
-  button:
-    add: 新增
-    refresh: 刷新
     search: 查询
     reset: 重置
     delete: 删除
@@ -1535,8 +1506,62 @@ listenFeaturePage:
     enabled: 已启用
     disabled: 已禁用
   placeholder:
+    selectSymbol: 选择现货交易对（可搜索）
     symbol: 币种
     listenType: 监听类型
+    enable: 启用状态
+  label:
+    refreshInterval: 刷新间隔
+  dialog:
+    addTitle: 新增现货监听
+  confirm:
+    title: 提示
+    delete: 确认删除 {symbol} ?
+  message:
+    symbolOptionsFail: 现货交易对列表获取失败
+    invalidSymbol: 请选择下拉列表中的有效现货交易对
+    symbolExists: 该币种已经添加
+    addFail: 新增失败，请检查交易对或网络状态
+    addSuccess: 新增成功
+    updateSuccess: 更新成功
+    deleteSuccess: 删除成功
+    updateFail: 更新失败
+    deleteFail: 删除失败
+    actionSuccess: 操作成功
+    actionFail: 操作失败
+    testResult: 测试结果
+listenFeaturePage:
+  button:
+    add: 新增
+    refresh: 刷新
+    search: 查询
+    reset: 重置
+    delete: 删除
+    save: 保存
+    technology: 技术指标
+    strategy: 策略方法
+    cancel: 取消
+    confirm: 确认
+    test: 测试
+  table:
+    symbol: 币种
+    currentPrice: 当前价格
+    technology: 技术指标
+    strategy: 策略方法
+    noticeLimit: 通知间隔
+    lastNotice: 上次通知
+    enable: 启用
+    operation: 操作
+  type:
+    up: 上涨
+    down: 下跌
+  state:
+    all: 全部
+    enabled: 已启用
+    disabled: 已禁用
+  placeholder:
+    selectSymbol: 选择永续合约交易对（可搜索）
+    symbol: 币种
     enable: 启用状态
   label:
     refreshInterval: 刷新间隔
@@ -1546,6 +1571,10 @@ listenFeaturePage:
     title: 提示
     delete: 确认删除 {symbol} ?
   message:
+    symbolOptionsFail: 合约交易对列表获取失败，请稍后重试
+    invalidSymbol: 请选择下拉列表中的有效永续合约交易对
+    symbolExists: 该合约交易对已在监听列表中
+    addFail: 新增失败，请检查交易对或网络状态
     addSuccess: 新增成功
     updateSuccess: 更新成功
     deleteSuccess: 删除成功

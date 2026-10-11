@@ -1474,35 +1474,6 @@ listenSpotPage:
   button:
     add: Add
     refresh: Refresh
-    delete: Delete
-    save: Save
-  table:
-    symbol: Symbol
-    currentPrice: Current Price
-    klineInterval: Kline Interval
-    changePercent: Change Threshold
-    noticeLimit: Min Notice Interval
-    lastNotice: Last Notice
-    enable: Enable
-    operation: Operation
-  type:
-    up: Up
-    down: Down
-  placeholder:
-    symbol: Symbol
-  dialog:
-    addTitle: Add Spot Listener
-  confirm:
-    title: Confirm
-    delete: Confirm deleting {symbol} ?
-  message:
-    addSuccess: Added successfully
-    updateSuccess: Updated successfully
-    deleteSuccess: Deleted successfully
-listenFeaturePage:
-  button:
-    add: Add
-    refresh: Refresh
     search: Search
     reset: Reset
     delete: Delete
@@ -1536,8 +1507,62 @@ listenFeaturePage:
     enabled: Enabled
     disabled: Disabled
   placeholder:
+    selectSymbol: Select a spot trading pair (searchable)
     symbol: Symbol
     listenType: Listen Type
+    enable: Enable Status
+  label:
+    refreshInterval: Refresh Interval
+  dialog:
+    addTitle: Add Spot Listener
+  confirm:
+    title: Confirm
+    delete: Confirm deleting {symbol} ?
+  message:
+    symbolOptionsFail: Failed to load spot trading pairs
+    invalidSymbol: Choose a valid spot trading pair from the list
+    symbolExists: This trading pair is already added
+    addFail: Could not add this listener
+    addSuccess: Added successfully
+    updateSuccess: Updated successfully
+    deleteSuccess: Deleted successfully
+    updateFail: Update failed
+    deleteFail: Delete failed
+    actionSuccess: Operation succeeded
+    actionFail: Operation failed
+    testResult: Test result
+listenFeaturePage:
+  button:
+    add: Add
+    refresh: Refresh
+    search: Search
+    reset: Reset
+    delete: Delete
+    save: Save
+    technology: Technology
+    strategy: Strategy
+    cancel: Cancel
+    confirm: Confirm
+    test: Test
+  table:
+    symbol: Symbol
+    currentPrice: Current Price
+    technology: Technology
+    strategy: Strategy
+    noticeLimit: Min Notice Interval
+    lastNotice: Last Notice
+    enable: Enable
+    operation: Operation
+  type:
+    up: Up
+    down: Down
+  state:
+    all: All
+    enabled: Enabled
+    disabled: Disabled
+  placeholder:
+    selectSymbol: Select a perpetual futures pair (searchable)
+    symbol: Symbol
     enable: Enable Status
   label:
     refreshInterval: Refresh Interval
@@ -1547,6 +1572,10 @@ listenFeaturePage:
     title: Confirm
     delete: Confirm deleting {symbol} ?
   message:
+    symbolOptionsFail: Failed to load futures trading pairs
+    invalidSymbol: Select a valid perpetual futures pair from the list
+    symbolExists: This futures pair is already on the listener list
+    addFail: Could not add this listener
     addSuccess: Added successfully
     updateSuccess: Updated successfully
     deleteSuccess: Deleted successfully

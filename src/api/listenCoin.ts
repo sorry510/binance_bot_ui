@@ -2,6 +2,14 @@ import { http, baseUrlApi } from "@/utils/http";
 
 type Query = Record<string, any>;
 
+export const getFuturesListenSymbolOptions = () => {
+  return http.get<any, Query>(baseUrlApi("listen/futures/symbols"));
+};
+
+export const getSpotListenSymbolOptions = () => {
+  return http.get<any, Query>(baseUrlApi("listen/spot/symbols"));
+};
+
 export const getListenCoins = (params: Query = {}) => {
   return http.get<any, Query>(baseUrlApi("listen/coin"), { params });
 };
