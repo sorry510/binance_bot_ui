@@ -32,6 +32,15 @@ export default [
         }
       },
       {
+        path: "/futures/lead",
+        name: "FuturesLead",
+        component: () => import("@/views/futures/leadTrading.vue"),
+        meta: {
+          title: "menus.leadTrading",
+          showLink: true
+        }
+      },
+      {
         path: "/futures/account",
         name: "futuresAccount",
         component: () => import("@/views/futures/account.vue"),

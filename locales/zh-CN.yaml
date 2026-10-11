@@ -100,6 +100,7 @@ menus:
   notifyConfig: 通知配置
   notificationHistory: 历史通知
   futuresTrade: 合约交易
+  leadTrading: 合约带单
   futuresAccount: 合约账户
   futuresTradeOrder: 合约订单
   futuresAccount2: 本地合约账户
@@ -338,6 +339,11 @@ dashboard:
     excluded: "已过滤 {count} 个合约"
     excludedReason: 过滤原因
     loadFailed: 加载智能本地选币候选失败
+    noEnabledSymbols: 当前没有任何已启用的合约（enable=0），因此无法生成 Top60 候选池。
+    noEnabledUsdtSymbols: 当前没有已启用的 USDT 永续合约，无法生成 Top60 候选池。
+    noEligibleSymbols: 当前没有满足条件的候选合约，请检查行情新鲜度、24h 成交额和最近平仓冷却。
+    noCandidatesDescription: 总开关仅控制是否运行交易循环；仍需在合约交易页面明确启用要允许交易的币。不要在未核实策略和风控参数前批量启用。
+    manageSymbols: 前往合约交易页面
   market:
     "1": 强多头
     "2": 偏多头
@@ -2658,3 +2664,62 @@ systemDashboard:
     retainedEvents: 内存保留事件
     droppedEvents: 丢弃事件
     truncated: "最近 5 分钟事件量超过内存上限；进程累计已有 {count} 条事件被截断，当前窗口统计可能低于真实值。"
+
+leadTradingPage:
+  title: "合约带单"
+  offline: "仅管理界面 · 真实带单未授权"
+  status: "账户状态"
+  credentials: "专用凭证"
+  risk: "账户风险"
+  trading: "自动交易"
+  positions: "受控持仓"
+  diagnostics: "订单与诊断"
+  disabled: "已禁用"
+  ws: "私有 WS"
+  ready: "当前就绪状态"
+  keyHint: "API Key"
+  portfolio: "Portfolio 名称"
+  key: "API Key"
+  secret: "API Secret"
+  saveCredentials: "加密保存凭证"
+  verify: "只读验证"
+  saveLimits: "保存风险限制"
+  pause: "暂停新开仓"
+  startLocked: "请求启用（Stage 7 前禁止）"
+  reconcileLocked: "手动对账（真实 Gate 前禁止）"
+  notAuthorized: "真实交易尚未授权"
+  reason: "阻断原因"
+  maxOrder: "单笔最大名义额 (USDT)"
+  maxTotal: "总名义额 (USDT)"
+  dailyLoss: "日亏损熔断 (USDT)"
+  drawdown: "最大回撤 (%)"
+  maxPositions: "最大持仓数"
+  maxLosing: "最大亏损仓位数"
+  inherited: "继承现有策略、选币与交易规则；请前往原配置中心修改。"
+  noData: "暂无数据"
+  symbol: "交易对"
+  side: "方向"
+  owner: "归属"
+  qty: "受控数量"
+  entry: "开仓均价"
+  order: "委托 ID"
+  intent: "意图"
+  fill: "累计成交"
+  event: "事件"
+  at: "时间"
+  api: "5 分钟 REST 请求"
+  weight: "估算权重"
+  wsUpdates: "WS 事件"
+  dropped: "告警丢弃"
+  unknownLive: "本页仅显示本地 Ownership，非 Binance 实时仓位证明"
+  refresh: "刷新"
+  saveSuccess: "操作已提交"
+  failed: "操作未成功"
+  unconfigured: "尚未配置安全存储"
+  historical: "本地受控记录"
+  offlineGate: "Gate 5/7 尚未验收"
+  dataSource: "数据来源"
+  audit: "事件历史"
+  openRules: "策略配置"
+  startBlocked: "实际开仓入口保持锁定"
+  lastChecked: "上次验证"

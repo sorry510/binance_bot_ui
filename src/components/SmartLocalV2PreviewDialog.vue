@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
 import { getSmartLocalV2Preview, type SmartLocalV2Result } from "@/api/service";
 
 defineOptions({ name: "SmartLocalV2PreviewDialog" });
@@ -19,6 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const router = useRouter();
 const loading = ref(false);
 const preview = ref<SmartLocalV2Result | null>(null);
 
@@ -55,6 +57,11 @@ function formatCompactNumber(value: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(Math.round(n));
+}
+
+function openSymbolsPage() {
+  emit("update:modelValue", false);
+  void router.push("/futures/symbols");
 }
 
 function isNextBatch(symbol: string) {
@@ -134,6 +141,31 @@ watch(
           {{ t("dashboard.selectorPreview.nextRanks") }}:
           {{ batchRanks() }}
         </el-tag>
+      </div>
+
+      <div v-if="preview && !preview.candidates?.length" class="selector-empty">
+        <el-alert
+          type="warning"
+          :closable="false"
+          show-icon
+          :title="
+            preview.meta?.enabled_count === 0
+              ? t('dashboard.selectorPreview.noEnabledSymbols')
+              : preview.meta?.enabled_usdt_count === 0
+                ? t('dashboard.selectorPreview.noEnabledUsdtSymbols')
+                : t('dashboard.selectorPreview.noEligibleSymbols')
+          "
+          :description="t('dashboard.selectorPreview.noCandidatesDescription')"
+        />
+        <el-button
+          v-if="preview.meta?.enabled_usdt_count === 0"
+          class="mt-2"
+          type="primary"
+          plain
+          @click="openSymbolsPage"
+        >
+          {{ t("dashboard.selectorPreview.manageSymbols") }}
+        </el-button>
       </div>
 
       <div v-if="preview?.next_batch?.length" class="selector-next-batch">

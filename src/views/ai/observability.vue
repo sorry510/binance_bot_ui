@@ -9,6 +9,7 @@ import {
   type AgentObservationTrace,
   type AgentObservabilitySummary
 } from "@/api/agent";
+import { leadStatus, leadMetrics, type LeadStatus } from "@/api/leadTrading";
 import {
   getBinanceAPIUsage,
   getSystemHealth,
@@ -25,6 +26,8 @@ const healthLoading = ref(false);
 const health = ref<SystemHealthReport | null>(null);
 const binanceUsageLoading = ref(false);
 const binanceUsage = ref<BinanceAPIUsageSnapshot | null>(null);
+const leadOverview = ref<LeadStatus | null>(null);
+const leadUsageSummary = ref<Record<string, number | boolean> | null>(null);
 let binanceUsageRefreshTimer: number | undefined;
 const traceLoading = ref(false);
 const changeLoading = ref(false);
@@ -138,6 +141,22 @@ const optimizationTotals = computed(() =>
     }
   )
 );
+async function fetchLeadOverview() {
+  // These are local authenticated management APIs. An old backend that has
+  // not deployed Stage 6 yet will not have the route; never treat 404 as
+  // evidence that the Binance Lead account is healthy.
+  try {
+    const [statusResult, metricResult] = await Promise.all([
+      leadStatus(),
+      leadMetrics()
+    ]);
+    leadOverview.value = (statusResult?.data || null) as LeadStatus | null;
+    leadUsageSummary.value = metricResult?.data?.metrics || null;
+  } catch {
+    leadOverview.value = null;
+    leadUsageSummary.value = null;
+  }
+}
 async function fetchHealth() {
   healthLoading.value = true;
   try {
@@ -203,6 +222,7 @@ async function refreshAll() {
   await Promise.all([
     fetchHealth(),
     fetchBinanceUsage(),
+    fetchLeadOverview(),
     fetchSummary(),
     fetchTraces(),
     fetchChanges()
@@ -261,6 +281,49 @@ onBeforeUnmount(() => {
           }}</el-button>
         </div>
       </div>
+    </el-card>
+
+    <el-card shadow="never" class="mb-4">
+      <template #header>
+        <div class="flex items-center justify-between">
+          <div class="font-medium">{{ t("leadTradingPage.title") }}</div>
+          <div class="flex items-center gap-2">
+            <el-button size="small" @click="fetchLeadOverview">
+              {{ t("leadTradingPage.refresh") }}
+            </el-button>
+            <router-link to="/futures/lead" class="text-blue-500">
+              {{ t("leadTradingPage.title") }}
+            </router-link>
+          </div>
+        </div>
+      </template>
+      <el-alert
+        :title="t('leadTradingPage.offline')"
+        type="warning"
+        :closable="false"
+        class="mb-2"
+      />
+      <el-descriptions :column="3" border size="small">
+        <el-descriptions-item :label="t('leadTradingPage.ready')">
+          {{ leadOverview?.readiness || "offline" }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="t('leadTradingPage.ws')">
+          {{ leadOverview?.ws_healthy ? "ONLINE" : "OFFLINE" }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="t('leadTradingPage.api')">
+          {{ leadUsageSummary?.requests ?? "-" }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="t('leadTradingPage.weight')">
+          {{ leadUsageSummary?.estimated_weight ?? "-" }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="t('leadTradingPage.dropped')">
+          {{
+            leadUsageSummary?.alert_queue_present === true
+              ? (leadUsageSummary?.alerts_dropped ?? "-")
+              : "-"
+          }}
+        </el-descriptions-item>
+      </el-descriptions>
     </el-card>
 
     <el-card v-loading="healthLoading" shadow="never" class="mb-4">

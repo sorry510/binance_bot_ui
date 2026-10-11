@@ -100,6 +100,7 @@ menus:
   notifyConfig: Notify Config
   notificationHistory: Notification History
   futuresTrade: Futures Trade
+  leadTrading: Copy Trading
   futuresAccount: Futures Account
   futuresTradeOrder: Futures Orders
   futuresAccount2: Local Futures Account
@@ -338,6 +339,11 @@ dashboard:
     excluded: "Excluded {count} symbols"
     excludedReason: Exclusion Reason
     loadFailed: Failed to load Smart Local V2 candidates
+    noEnabledSymbols: No futures symbols are enabled (enable=0), so Top60 has no candidates.
+    noEnabledUsdtSymbols: No USDT perpetual symbols are enabled, so Top60 has no candidates.
+    noEligibleSymbols: No symbols currently qualify. Check quote volume, 30-second market-data freshness, and recent trade cooldown.
+    noCandidatesDescription: The global futures switch starts the trading loop but does not enable individual symbols. Review strategy and risk settings before enabling any contracts.
+    manageSymbols: Open Futures Symbols
   market:
     "1": Strong Bull
     "2": Bull
@@ -2658,3 +2664,62 @@ systemDashboard:
     retainedEvents: Retained Events
     droppedEvents: Dropped Events
     truncated: "The last 5-minute window exceeded the in-memory cap. {count} events have been dropped during this process lifetime; current window totals may be lower than actual usage."
+
+leadTradingPage:
+  title: "Copy Trading"
+  offline: "Management only · live trading not authorized"
+  status: "Account status"
+  credentials: "Dedicated credentials"
+  risk: "Risk limits"
+  trading: "Automated trading"
+  positions: "Managed positions"
+  diagnostics: "Orders & diagnostics"
+  disabled: "Disabled"
+  ws: "Private WebSocket"
+  ready: "Readiness"
+  keyHint: "API key"
+  portfolio: "Portfolio label"
+  key: "API key"
+  secret: "API secret"
+  saveCredentials: "Encrypt and save"
+  verify: "Read-only verify"
+  saveLimits: "Save risk limits"
+  pause: "Pause new entries"
+  startLocked: "Request start (Stage 7 locked)"
+  reconcileLocked: "Reconcile (live gate locked)"
+  notAuthorized: "Live execution is not authorized"
+  reason: "Blocking reasons"
+  maxOrder: "Max order notional (USDT)"
+  maxTotal: "Total notional (USDT)"
+  dailyLoss: "Daily loss breaker (USDT)"
+  drawdown: "Max drawdown (%)"
+  maxPositions: "Max positions"
+  maxLosing: "Max losing positions"
+  inherited: "Uses existing strategy and symbol selection settings. Edit them in the main configuration page."
+  noData: "No data"
+  symbol: "Symbol"
+  side: "Side"
+  owner: "Owner"
+  qty: "Managed quantity"
+  entry: "Entry price"
+  order: "Client order ID"
+  intent: "Intent"
+  fill: "Cumulative fill"
+  event: "Event"
+  at: "Time"
+  api: "5-min REST requests"
+  weight: "Estimated weight"
+  wsUpdates: "WS events"
+  dropped: "Dropped alerts"
+  unknownLive: "Local ownership only; not proof of live Binance positions"
+  refresh: "Refresh"
+  saveSuccess: "Request completed"
+  failed: "Request failed"
+  unconfigured: "Secure storage is not configured"
+  historical: "Local managed records"
+  offlineGate: "Gate 5/7 not verified"
+  dataSource: "Data source"
+  audit: "Audit history"
+  openRules: "Strategy settings"
+  startBlocked: "Live entry stays locked"
+  lastChecked: "Last verification"
