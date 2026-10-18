@@ -82,6 +82,8 @@ menus:
   dashboard: 配置中心
   ai: AI
   agentChat: 对话
+  agentMarketAnalysis: 市场分析
+  agentSettings: AI 设置
   symbolAnalysis: 单币分析
   agentOpportunities: 机会
   agentBacktest: 历史回测
@@ -176,7 +178,7 @@ dashboard:
     alertMinSeverity: 最低报警级别
     alertCooldownSec: 信号报警冷却(秒)
     alertMaxConcurrent: AI 报警最大并发
-    opportunityWatchEnable: Opportunity Watch
+    opportunityWatchEnable: 机会自动监控
     opportunityScanIntervalMin: 市场机会扫描周期(分钟)
     opportunityMinConfidence: 最低机会置信度
     marketRegimeScheduleEnable: 市场趋势调度器
@@ -191,7 +193,7 @@ dashboard:
     agentMaxTokens: 单任务最大 Token
     agentMaxToolCalls: 单任务最大 Tool 调用
     aiTradeAllowedSymbols: AI 交易白名单
-    aiTradeExecutionEnable: AI 真实执行 Kill Switch
+    aiTradeExecutionEnable: AI 真实交易执行开关（紧急停止）
     aiTradeMaxRisk: 单笔最大风险
     aiTradeMaxNotional: 单笔最大名义金额
     aiTradeMaxExposure: 最大总暴露
@@ -199,7 +201,7 @@ dashboard:
     aiTradeFreshness: 行情最大年龄(秒)
     aiTradeSlippage: 最大滑点(bps)
     aiTradeCooldown: 同币种冷却(秒)
-    aiTradeProposalTTL: Proposal 有效期
+    aiTradeProposalTTL: 交易提案有效期
     positionConvert: 仓位收益正负转换通知
     allowLong: 允许做多
     allowShort: 允许做空
@@ -235,7 +237,7 @@ dashboard:
     dailyMarketBriefSchedule: 默认关闭；开启后使用固定结构的市场摘要，默认每 1440 分钟运行一次。
     tradeDisabled: 交易 Tool 全局禁用
     globalAgentBudget: Token 与 Tool 调用次数仅使用这里的全局上限控制。
-    controlledTrade: Agent Runtime 的 Trade Tool 始终禁用；这里只控制经过 Proposal → Risk → 人工批准 → Execution Service 的真实执行通道。
+    controlledTrade: Agent Runtime 的直接交易工具始终禁用；这里只控制经过交易提案 → 风险检查 → 人工批准 → 受控执行服务的真实交易通道。
     limitMode: 限价单模式
     marketMode: 市价单模式
     testAutoTradeLimit: 非 0 时，测试策略连续盈利 n 次后，自动切换真实交易，真实交易连续亏损后 n 次后，切换回测试策略
@@ -383,7 +385,7 @@ dashboard:
     tradeAllowlistRequired: 开启 AI 真实执行前必须至少配置一个交易白名单币种
   confirm:
     controlledTradeTitle: 开启 AI 真实执行
-    enableControlledTrade: 确认开启受控真实交易吗？只有通过确定性 Risk Engine 且经人工批准的 Proposal 才能执行。
+    enableControlledTrade: 确认开启受控真实交易吗？只有通过确定性风险引擎检查且经人工批准的交易提案才能执行。
     cancel: 取消
 agentTaskCenter:
   governance:
@@ -2091,7 +2093,7 @@ workflowPage:
   workflow:
     market_scan: 市场机会扫描
     strategy_review: 策略复盘
-    strategy_experiment: 策略实验
+    strategy_experiment: 策略草案验证
     alert_triage: 报警事件归并
     daily_market_brief: 每日市场摘要
   status:
@@ -2192,7 +2194,7 @@ controlledTradePage:
   history: 交易提案历史
   warning:
     title: 真实交易高风险
-    description: Agent Runtime 不拥有直接交易 Tool。即使交易提案已批准，Kill Switch、白名单、行情新鲜度或其他 Risk 条件变化也会阻止执行。
+    description: Agent Runtime 不具备直接交易工具。即使交易提案已批准，紧急停止开关、白名单、行情时效或其他风险条件变化仍会阻止执行。
   hint:
     create: 仅接受成功的 symbol_analysis Task ID，不能在此直接输入数量下单。
   button:
@@ -2507,7 +2509,7 @@ backtestPage:
 
 opportunityPage:
   title: 交易机会
-  subtitle: Opportunity Watch 自动发现并深入分析值得关注的合约；真实交易仍必须经过 Proposal、Risk 与人工批准。
+  subtitle: 机会自动监控会发现并深入分析值得关注的合约；真实交易仍必须经过交易提案、风险检查与人工批准。
   reanalysisPrompt: "基于新的市场数据重新分析这个机会，原始来源：{source}"
   filter:
     symbol: 合约
@@ -2548,19 +2550,19 @@ opportunityPage:
     search: 查询
     detail: 详情
     reanalyze: 重新分析
-    createProposal: 创建受控交易 Proposal
+    createProposal: 创建受控交易提案
     openControlledTrade: 打开仓位与受控交易
   detail:
     title: 机会详情
     expiresAt: 过期时间
     error: 分析错误
     tradingPlan: 完整 Trading Plan
-    proposalExists: 已创建受控交易 Proposal：{id}
+    proposalExists: 已创建受控交易提案：{id}
   message:
     loadFailed: 加载机会列表失败
     detailFailed: 加载机会详情失败
-    proposalCreated: 受控交易 Proposal 已创建，并已执行确定性 Risk 检查
-    proposalFailed: 创建受控交易 Proposal 失败
+    proposalCreated: 受控交易提案已创建，并已完成确定性风险检查
+    proposalFailed: 创建受控交易提案失败
 outcomeReview:
   title: 交易复盘
   subtitle: 分开查看历史回测、模拟盘和真实受控交易结果，不混合计算收益。
@@ -2592,7 +2594,7 @@ outcomeReview:
     closed: 已平仓
     open: 未平仓
     avgPnl: 平均收益
-    proposals: Proposal 数
+    proposals: 交易提案数
     executed: 已执行
     openPositions: 当前受控仓位
     closedPositions: 已关闭仓位
@@ -2608,8 +2610,8 @@ outcomeReview:
     paperPnl: 模拟盘净收益
     paperWinRate: 模拟盘胜率
   live:
-    recentProposals: 最近的受控交易 Proposal
-    traceHint: 点击详情可在本页追踪 Proposal → Risk → Execution → Managed Position → Audit。
+    recentProposals: 最近的受控交易提案
+    traceHint: 点击详情可在本页追踪交易提案 → 风险检查 → 交易执行 → 受控仓位 → 审计记录。
     detailTitle: 真实交易追踪详情
   table:
     group: 分组
@@ -2752,3 +2754,22 @@ leadTradingPage:
   openRules: "策略配置"
   startBlocked: "实际开仓入口保持锁定"
   lastChecked: "上次验证"
+
+aiHub:
+  symbol: 单币分析
+  opportunities: 机会发现
+  models: 模型
+  skills: Skill
+  mcp: MCP
+  memory: Memory
+  automation: AI 配置
+  tasks: 执行任务
+  scheduler: 定时任务与治理
+  alerts: 报警链路
+  markReviewed: 标记已查看
+  reviewed: 已标记为已查看
+  strategyValidationNote: 策略草案验证只进行表达式编译与少量模拟场景检查，不代表完成真实行情单仓回测、交易成本或 PF 验证。
+  marketScanNote: 手动市场扫描完成后，符合最低置信度要求的候选将异步进入机会分析流程。机会列表可能延迟显示，且后续单币分析还可能过滤候选。
+  marketRegimeBlocked: 市场环境分析需要配置中心的 MarketCondition 自动模式同时开启，否则定时分析不会运行。
+  confidenceRange: 最低机会置信度必须介于 1% 和 100% 之间
+  confidenceNotSaved: 机会置信度未成功保存，请检查服务端配置

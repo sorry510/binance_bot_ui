@@ -186,6 +186,22 @@ onBeforeUnmount(() => timer && clearTimeout(timer));
             />
           </el-select>
         </el-form-item>
+        <el-alert
+          v-if="form.workflow === 'strategy_experiment'"
+          :title="t('aiHub.strategyValidationNote')"
+          type="warning"
+          :closable="false"
+          show-icon
+          class="mb-3"
+        />
+        <el-alert
+          v-if="form.workflow === 'market_scan'"
+          :title="t('aiHub.marketScanNote')"
+          type="info"
+          :closable="false"
+          show-icon
+          class="mb-3"
+        />
         <el-form-item
           v-if="form.workflow === 'market_scan'"
           :label="t('workflowPage.form.analyze')"

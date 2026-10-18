@@ -117,11 +117,6 @@ async function openDetail(row: AgentOpportunity) {
   detailLoading.value = true;
   try {
     await loadDetail(row.opportunity_id);
-    if (row.status === "new") {
-      await reviewAgentOpportunity(row.opportunity_id);
-      await loadDetail(row.opportunity_id);
-      await fetchRows(false);
-    }
     detailVisible.value = true;
   } catch (error: any) {
     ElMessage.error(
@@ -131,6 +126,23 @@ async function openDetail(row: AgentOpportunity) {
     detailLoading.value = false;
   }
 }
+async function markReviewed() {
+  const row = opportunity.value;
+  if (!row || row.status !== "new") return;
+  actionLoading.value = true;
+  try {
+    await reviewAgentOpportunity(row.opportunity_id);
+    await Promise.all([loadDetail(row.opportunity_id), fetchRows(false)]);
+    ElMessage.success(t("aiHub.reviewed"));
+  } catch (error: any) {
+    ElMessage.error(
+      error?.message || t("opportunityPage.message.detailFailed")
+    );
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
 async function createProposal() {
   const row = opportunity.value;
   if (!row || hasProposal.value || !detail.value?.proposal_eligible) return;
@@ -449,6 +461,12 @@ onMounted(() => void fetchRows(true));
       </div>
       <template #footer>
         <div class="dialog-footer">
+          <el-button
+            v-if="opportunity?.status === 'new'"
+            :loading="actionLoading"
+            @click="markReviewed"
+            >{{ t("aiHub.markReviewed") }}</el-button
+          >
           <el-button @click="reanalyze(opportunity)">
             {{ t("opportunityPage.button.reanalyze") }}
           </el-button>

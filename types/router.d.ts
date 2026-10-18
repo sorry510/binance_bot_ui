@@ -1,6 +1,10 @@
 // 全局路由类型声明
 
-import type { RouteComponent, RouteLocationNormalized } from "vue-router";
+import type {
+  RouteComponent,
+  RouteLocationNormalized,
+  RouteRecordRedirectOption
+} from "vue-router";
 import type { FunctionalComponent } from "vue";
 
 declare global {
@@ -67,7 +71,7 @@ declare global {
     /** 路由名字（对应不要重复，和当前组件的`name`保持一致）`必填` */
     name?: string;
     /** 路由重定向 `可选` */
-    redirect?: string;
+    redirect?: RouteRecordRedirectOption;
     /** 按需加载组件 `可选` */
     component?: RouteComponent;
     meta?: CustomizeRouteMeta;

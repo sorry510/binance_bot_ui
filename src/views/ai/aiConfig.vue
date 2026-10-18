@@ -17,6 +17,8 @@ const { t } = useI18n();
 const loading = ref(false);
 const symbols = ref<string[]>([]);
 const aiTradeAllowedSymbols = ref<string[]>([]);
+const opportunityConfidencePercent = ref<number>(70);
+const opportunityConfidenceSaving = ref(false);
 const alertStatus = ref<AlertPipelineStatus | null>(null);
 const alertStatusLoading = ref(false);
 let alertStatusTimer: ReturnType<typeof setTimeout> | undefined;
@@ -28,6 +30,7 @@ const config = reactive<Record<string, any>>({
   AgentAlertCooldownSec: 900,
   AgentAlertMaxConcurrent: 2,
   AgentMarketRegimeScheduleEnable: 1,
+  marketConditionIsAuto: 0,
   AgentMarketRegimeIntervalMin: 60,
   AgentDailyMarketBriefScheduleEnable: 0,
   AgentDailyMarketBriefIntervalMin: 1440,
@@ -62,8 +65,17 @@ async function fetchConfig(showLoading = false) {
   if (showLoading) loading.value = true;
   try {
     const res = await getServiceConfig();
-    const data = res?.data || {};
+    if (Number(res?.code) !== 200 || !res?.data) {
+      throw new Error(res?.msg || t("dashboard.message.updateFail"));
+    }
+    const data = res.data;
     Object.assign(config, data);
+    const confidence = Number(data.AgentOpportunityMinConfidence);
+    if (Number.isFinite(confidence)) {
+      opportunityConfidencePercent.value = Number(
+        (confidence * 100).toFixed(1)
+      );
+    }
     aiTradeAllowedSymbols.value = String(data.AgentTradeAllowedSymbols || "")
       .split(",")
       .map((item: string) => item.trim())
@@ -97,13 +109,52 @@ function scheduleAlertStatusPoll() {
 async function saveField(field: string, value: any) {
   loading.value = true;
   try {
-    await editData({ [field]: value });
+    const res = await editData({ [field]: value });
+    if (Number(res?.code) !== 200) {
+      throw new Error(res?.msg || t("dashboard.message.updateFail"));
+    }
     await fetchConfig(false);
     ElMessage.success(t("dashboard.message.updateSuccess"));
-  } catch {
-    ElMessage.error(t("dashboard.message.updateFail"));
+  } catch (error: any) {
+    ElMessage.error(error?.message || t("dashboard.message.updateFail"));
+    await fetchConfig(false).catch(() => undefined);
   } finally {
     loading.value = false;
+  }
+}
+
+async function saveOpportunityConfidence(value: number | undefined) {
+  if (
+    value === undefined ||
+    !Number.isFinite(value) ||
+    value < 1 ||
+    value > 100
+  ) {
+    ElMessage.error(t("aiHub.confidenceRange"));
+    await fetchConfig(false).catch(() => undefined);
+    return;
+  }
+  opportunityConfidenceSaving.value = true;
+  const expected = Number((value / 100).toFixed(6));
+  try {
+    const res = await editData({ agent_opportunity_min_confidence: expected });
+    if (Number(res?.code) !== 200) {
+      throw new Error(res?.msg || t("dashboard.message.updateFail"));
+    }
+    await fetchConfig(false);
+    const persisted = Number(config.AgentOpportunityMinConfidence);
+    if (
+      !Number.isFinite(persisted) ||
+      Math.abs(persisted - expected) > 0.000001
+    ) {
+      throw new Error(t("aiHub.confidenceNotSaved"));
+    }
+    ElMessage.success(t("dashboard.message.updateSuccess"));
+  } catch (error: any) {
+    ElMessage.error(error?.message || t("dashboard.message.updateFail"));
+    await fetchConfig(false).catch(() => undefined);
+  } finally {
+    opportunityConfidenceSaving.value = false;
   }
 }
 
@@ -456,21 +507,15 @@ onBeforeUnmount(() => {
             <span class="field-label">{{
               t("dashboard.field.opportunityMinConfidence")
             }}</span>
-            <el-input
-              :model-value="
-                Number(config.AgentOpportunityMinConfidence || 0) * 100
-              "
-              type="number"
-              min="0"
-              max="100"
-              class="compact-input"
-              @change="
-                value =>
-                  saveField(
-                    'agent_opportunity_min_confidence',
-                    Number(value) / 100
-                  )
-              "
+            <el-input-number
+              v-model="opportunityConfidencePercent"
+              :min="1"
+              :max="100"
+              :precision="1"
+              :step="1"
+              controls-position="right"
+              :disabled="opportunityConfidenceSaving"
+              @change="saveOpportunityConfidence"
             />
             <span class="hint">%</span>
           </div>
@@ -498,6 +543,17 @@ onBeforeUnmount(() => {
           </div>
         </template>
         <div class="dashboard-body">
+          <el-alert
+            v-if="
+              config.AgentMarketRegimeScheduleEnable === 1 &&
+              config.marketConditionIsAuto !== 1
+            "
+            :title="t('aiHub.marketRegimeBlocked')"
+            type="warning"
+            show-icon
+            :closable="false"
+            class="mb-3"
+          />
           <div class="field-row">
             <span class="field-label">{{
               t("dashboard.field.marketRegimeScheduleEnable")
@@ -585,8 +641,18 @@ onBeforeUnmount(() => {
         <template #title>
           <div class="dashboard-text flex items-center gap-3">
             <span>{{ t("dashboard.section.aiGovernance") }}</span>
-            <el-tag type="warning" size="small">
-              {{ t("dashboard.hint.tradeDisabled") }}
+            <el-tag
+              :type="
+                config.AgentTradeExecutionEnable === 1 ? 'warning' : 'info'
+              "
+              size="small"
+            >
+              {{ t("dashboard.section.aiTrade") }}:
+              {{
+                config.AgentTradeExecutionEnable === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
             </el-tag>
           </div>
         </template>

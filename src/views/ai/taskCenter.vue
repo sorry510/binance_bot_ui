@@ -9,6 +9,8 @@ import {
   getAgentGovernanceStatus,
   getAgentTask,
   getAgentTasks,
+  getAgentSkills,
+  getAgentSkillImplementations,
   getSchedulerStatus,
   resumeAgentTask,
   triggerSchedulerJob,
@@ -19,6 +21,9 @@ import {
 } from "@/api/agent";
 
 defineOptions({ name: "AgentTaskCenter" });
+withDefaults(defineProps<{ mode?: "tasks" | "scheduler" }>(), {
+  mode: "tasks"
+});
 
 const { t } = useI18n();
 const route = useRoute();
@@ -43,16 +48,28 @@ const query = reactive({
   limit: 20
 });
 
-const skillOptions = [
-  "symbol_analysis",
-  "symbol_analysis_team",
-  "symbol_team_technical",
-  "symbol_team_flow",
-  "symbol_team_supervisor",
-  "alert_analysis",
-  "market_regime",
-  "strategy_builder"
-];
+const skillOptions = ref<string[]>([]);
+
+async function fetchSkillOptions() {
+  try {
+    const [skillRes, implementationsRes] = await Promise.all([
+      getAgentSkills({ page: 1, limit: 1000 }),
+      getAgentSkillImplementations()
+    ]);
+    const raw = skillRes?.data;
+    const configured = Array.isArray(raw) ? raw : raw?.list || [];
+    const implementations = implementationsRes?.data || [];
+    skillOptions.value = Array.from(
+      new Set(
+        [...configured, ...implementations]
+          .map((item: any) => String(item?.name || "").trim())
+          .filter(Boolean)
+      )
+    ).sort();
+  } catch {
+    skillOptions.value = [];
+  }
+}
 const statusOptions = [
   "queued",
   "running",
@@ -269,7 +286,12 @@ async function openTaskFromQuery() {
 }
 
 onMounted(async () => {
-  await Promise.all([fetchTasks(), fetchScheduler(), fetchGovernance()]);
+  await Promise.all([
+    fetchTasks(),
+    fetchScheduler(),
+    fetchGovernance(),
+    fetchSkillOptions()
+  ]);
   await openTaskFromQuery();
   scheduleRefresh();
 });
@@ -281,7 +303,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="task-center p-4">
-    <el-card v-loading="governanceLoading" shadow="never" class="mb-4">
+    <el-card
+      v-if="mode === 'scheduler'"
+      v-loading="governanceLoading"
+      shadow="never"
+      class="mb-4"
+    >
       <template #header>
         <div class="flex items-center justify-between">
           <span>{{ t("agentTaskCenter.governance.title") }}</span>
@@ -492,7 +519,12 @@ onBeforeUnmount(() => {
       </el-table>
     </el-card>
 
-    <el-card v-loading="schedulerLoading" shadow="never" class="mb-4">
+    <el-card
+      v-if="mode === 'scheduler'"
+      v-loading="schedulerLoading"
+      shadow="never"
+      class="mb-4"
+    >
       <template #header>
         <div class="flex items-center justify-between">
           <span>{{ t("agentTaskCenter.scheduler.title") }}</span>
@@ -606,7 +638,7 @@ onBeforeUnmount(() => {
       </el-table>
     </el-card>
 
-    <el-card shadow="never">
+    <el-card v-if="mode === 'tasks'" shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
           <span>{{ t("agentTaskCenter.tasks.title") }}</span>

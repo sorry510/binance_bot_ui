@@ -227,6 +227,13 @@ function prettyJSON(input: any) {
     </template>
 
     <template v-else-if="workflow === 'strategy_experiment'">
+      <el-alert
+        :title="t('aiHub.strategyValidationNote')"
+        type="warning"
+        :closable="false"
+        show-icon
+        class="summary-alert"
+      />
       <el-descriptions :column="2" border class="summary-block">
         <el-descriptions-item :label="t('workflowPage.result.candidate')">{{
           text(value.candidate_name)

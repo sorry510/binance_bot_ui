@@ -82,6 +82,8 @@ menus:
   dashboard: Dashboard
   ai: AI
   agentChat: Chat
+  agentMarketAnalysis: Market Analysis
+  agentSettings: AI Settings
   symbolAnalysis: Symbol Analysis
   agentOpportunities: Opportunities
   agentBacktest: Historical Backtest
@@ -2091,7 +2093,7 @@ workflowPage:
   workflow:
     market_scan: Market Scan
     strategy_review: Strategy Review
-    strategy_experiment: Strategy Experiment
+    strategy_experiment: Strategy Draft Validation
     alert_triage: Alert Triage
     daily_market_brief: Daily Market Brief
   status:
@@ -2752,3 +2754,22 @@ leadTradingPage:
   openRules: "Strategy settings"
   startBlocked: "Live entry stays locked"
   lastChecked: "Last verification"
+
+aiHub:
+  symbol: Symbol Analysis
+  opportunities: Opportunities
+  models: Models
+  skills: Skills
+  mcp: MCP
+  memory: Memory
+  automation: AI Configuration
+  tasks: Tasks
+  scheduler: Scheduler & Governance
+  alerts: Alert Pipeline
+  markReviewed: Mark Reviewed
+  reviewed: Marked as reviewed
+  strategyValidationNote: Strategy draft validation only compiles expressions and runs a few synthetic scenarios. It is not a historical single-position backtest and does not validate trading costs or profit factor.
+  marketScanNote: After a manual market scan finishes, candidates meeting the confidence threshold are queued for asynchronous opportunity analysis. They may appear later, and subsequent symbol analysis can reject candidates.
+  marketRegimeBlocked: Market-regime scheduling also requires automatic MarketCondition mode in Configuration Center; otherwise the scheduled analysis will not run.
+  confidenceRange: Minimum opportunity confidence must be between 1% and 100%
+  confidenceNotSaved: Opportunity confidence was not saved; check the server configuration
