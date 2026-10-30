@@ -11,12 +11,14 @@ import {
   getAgentTradeProposal,
   getAgentTradeProposals,
   getFuturesOwnership,
+  manualClaimFuturesOwnership,
   reconcileAgentTradeProposal,
   reconcileFuturesOwnership,
   rejectAgentTradeProposal,
   type AgentTradeProposal,
   type AgentTradeProposalDetail,
   type AgentTradeRiskResult,
+  type AccountPositionOwnership,
   type FuturesOwnershipData
 } from "@/api/agent";
 
@@ -26,6 +28,24 @@ const loading = ref(false);
 const actionLoading = ref(false);
 const ownershipLoading = ref(false);
 const ownership = ref<FuturesOwnershipData | null>(null);
+const manualVisible = ref(false);
+const manualSubmitting = ref(false);
+const manualPosition = ref<AccountPositionOwnership | null>(null);
+const manualForm = reactive({
+  owner: "auto_strategy",
+  quantity: "",
+  reason: ""
+});
+const manualOwnerOptions = ["auto_strategy", "new_coin_rush", "funding_rate"];
+const manualClaimFailureCodes = new Set([
+  "manual_claim_invalid_input",
+  "manual_claim_unauthorized",
+  "manual_claim_position_not_found",
+  "manual_claim_account_quantity_changed",
+  "manual_claim_duplicate_exchange_position",
+  "manual_claim_invalid_entry_price",
+  "manual_claim_rejected"
+]);
 const taskId = ref("");
 const rows = ref<AgentTradeProposal[]>([]);
 const total = ref(0);
@@ -130,6 +150,82 @@ async function fetchOwnership() {
     );
   } finally {
     ownershipLoading.value = false;
+  }
+}
+
+function openManualClaim(row: AccountPositionOwnership) {
+  if (
+    row.owner !== "unmanaged" ||
+    !(row.account_qty > 0) ||
+    ownership.value?.account_error
+  )
+    return;
+  manualPosition.value = row;
+  manualForm.owner = "auto_strategy";
+  manualForm.quantity = String(row.account_qty);
+  manualForm.reason = "";
+  manualVisible.value = true;
+}
+
+async function submitManualClaim() {
+  const row = manualPosition.value;
+  if (!row || manualSubmitting.value) return;
+  const qty = Number(manualForm.quantity);
+  if (
+    !/^\d+(\.\d{1,12})?$/.test(manualForm.quantity.trim()) ||
+    !Number.isFinite(qty) ||
+    qty <= 0 ||
+    qty > row.account_qty ||
+    manualForm.reason.trim().length < 5
+  ) {
+    ElMessage.warning(t("controlledTradePage.ownership.manualValidation"));
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      t("controlledTradePage.ownership.manualConfirm", {
+        symbol: row.symbol,
+        side: row.position_side,
+        owner: ownerLabel(manualForm.owner),
+        qty: manualForm.quantity
+      }),
+      t("controlledTradePage.ownership.manualTitle"),
+      {
+        type: "warning",
+        confirmButtonText: t(
+          "controlledTradePage.ownership.manualConfirmButton"
+        )
+      }
+    );
+  } catch {
+    return;
+  }
+  manualSubmitting.value = true;
+  try {
+    const response = await manualClaimFuturesOwnership({
+      symbol: row.symbol,
+      position_side: row.position_side,
+      owner: manualForm.owner,
+      quantity: qty,
+      expected_account_qty: row.account_qty,
+      reason: manualForm.reason.trim()
+    });
+    if (Number(response?.code) !== 200)
+      throw new Error(response?.msg || "manual ownership claim failed");
+    manualVisible.value = false;
+    manualPosition.value = null;
+    ElMessage.success(t("controlledTradePage.ownership.manualSuccess"));
+    await fetchOwnership();
+  } catch (error: any) {
+    const code = String(error?.response?.data?.msg || error?.message || "");
+    ElMessage.error(
+      manualClaimFailureCodes.has(code)
+        ? t(`controlledTradePage.ownership.${code}`)
+        : t("controlledTradePage.ownership.manualFailed")
+    );
+    await fetchOwnership().catch(() => undefined);
+  } finally {
+    manualSubmitting.value = false;
   }
 }
 
@@ -445,6 +541,27 @@ onMounted(() => Promise.all([fetchRows(true), fetchOwnership()]));
                 formatTime(row.last_reconciled_at)
               }}</template>
             </el-table-column>
+            <el-table-column
+              :label="t('controlledTradePage.table.operation')"
+              fixed="right"
+              width="140"
+            >
+              <template #default="{ row }">
+                <el-button
+                  v-if="
+                    row.owner === 'unmanaged' &&
+                    row.account_qty > 0 &&
+                    !ownership?.account_error
+                  "
+                  size="small"
+                  type="primary"
+                  plain
+                  @click="openManualClaim(row)"
+                >
+                  {{ t("controlledTradePage.ownership.manualAction") }}
+                </el-button>
+              </template>
+            </el-table-column>
           </el-table>
         </el-tab-pane>
         <el-tab-pane :label="t('controlledTradePage.ownership.managedOrders')">
@@ -509,8 +626,150 @@ onMounted(() => Promise.all([fetchRows(true), fetchOwnership()]));
             </el-table-column>
           </el-table>
         </el-tab-pane>
+        <el-tab-pane :label="t('controlledTradePage.ownership.manualAuditTab')">
+          <el-table
+            :data="ownership?.manual_adjustments || []"
+            size="small"
+            max-height="360"
+          >
+            <el-table-column
+              prop="symbol"
+              :label="t('controlledTradePage.table.symbol')"
+              width="130"
+            />
+            <el-table-column
+              prop="position_side"
+              :label="t('controlledTradePage.table.side')"
+              width="100"
+            />
+            <el-table-column
+              :label="t('controlledTradePage.ownership.owner')"
+              width="160"
+            >
+              <template #default="{ row }">{{
+                ownerLabel(row.owner)
+              }}</template>
+            </el-table-column>
+            <el-table-column
+              prop="managed_qty"
+              :label="t('controlledTradePage.ownership.managedQty')"
+              width="130"
+            />
+            <el-table-column
+              prop="account_qty"
+              :label="t('controlledTradePage.ownership.accountQty')"
+              width="130"
+            />
+            <el-table-column
+              prop="operator"
+              :label="t('controlledTradePage.ownership.manualOperator')"
+              min-width="120"
+            />
+            <el-table-column
+              prop="reason"
+              :label="t('controlledTradePage.ownership.manualReason')"
+              min-width="210"
+            />
+            <el-table-column
+              :label="t('controlledTradePage.ownership.manualDate')"
+              width="190"
+            >
+              <template #default="{ row }">{{
+                formatTime(row.created_at)
+              }}</template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
+
+    <el-dialog
+      v-model="manualVisible"
+      :title="t('controlledTradePage.ownership.manualTitle')"
+      width="520px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="!manualSubmitting"
+      :show-close="!manualSubmitting"
+    >
+      <template v-if="manualPosition">
+        <el-alert
+          :title="t('controlledTradePage.ownership.manualWarning')"
+          type="warning"
+          show-icon
+          :closable="false"
+          class="mb-4"
+        />
+        <el-descriptions :column="2" border class="mb-4">
+          <el-descriptions-item
+            :label="t('controlledTradePage.table.symbol')"
+            >{{ manualPosition.symbol }}</el-descriptions-item
+          >
+          <el-descriptions-item :label="t('controlledTradePage.table.side')">{{
+            manualPosition.position_side
+          }}</el-descriptions-item>
+          <el-descriptions-item
+            :label="t('controlledTradePage.ownership.accountQty')"
+            >{{
+              formatNumber(manualPosition.account_qty, 12)
+            }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :label="t('controlledTradePage.ownership.owner')"
+            >{{ ownerLabel(manualPosition.owner) }}</el-descriptions-item
+          >
+        </el-descriptions>
+        <el-form label-position="top">
+          <el-form-item :label="t('controlledTradePage.ownership.manualOwner')">
+            <el-select v-model="manualForm.owner" style="width: 100%">
+              <el-option
+                v-for="item in manualOwnerOptions"
+                :key="item"
+                :label="ownerLabel(item)"
+                :value="item"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item :label="t('controlledTradePage.ownership.manualQty')">
+            <el-input
+              v-model="manualForm.quantity"
+              type="text"
+              inputmode="decimal"
+              :placeholder="
+                t('controlledTradePage.ownership.manualQtyPlaceholder')
+              "
+            />
+          </el-form-item>
+          <el-form-item
+            :label="t('controlledTradePage.ownership.manualReason')"
+          >
+            <el-input
+              v-model="manualForm.reason"
+              type="textarea"
+              :rows="3"
+              maxlength="512"
+              show-word-limit
+              :placeholder="
+                t('controlledTradePage.ownership.manualReasonPlaceholder')
+              "
+            />
+          </el-form-item>
+        </el-form>
+      </template>
+      <template #footer>
+        <el-button
+          :disabled="manualSubmitting"
+          @click="manualVisible = false"
+          >{{ t("controlledTradePage.ownership.manualCancel") }}</el-button
+        >
+        <el-button
+          type="primary"
+          :loading="manualSubmitting"
+          @click="submitManualClaim"
+        >
+          {{ t("controlledTradePage.ownership.manualConfirmButton") }}
+        </el-button>
+      </template>
+    </el-dialog>
 
     <el-card v-loading="loading" shadow="never">
       <template #header>

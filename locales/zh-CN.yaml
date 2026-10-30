@@ -1520,7 +1520,8 @@ listenSpotPage:
     title: 提示
     delete: 确认删除 {symbol} ?
   message:
-    symbolOptionsFail: 现货交易对列表获取失败
+    symbolOptionsFail: 读取本地现货交易对失败
+    symbolOptionsEmpty: 本地现货币种表为空，请先确认现货币种数据已同步
     invalidSymbol: 请选择下拉列表中的有效现货交易对
     symbolExists: 该币种已经添加
     addFail: 新增失败，请检查交易对或网络状态
@@ -1573,7 +1574,8 @@ listenFeaturePage:
     title: 提示
     delete: 确认删除 {symbol} ?
   message:
-    symbolOptionsFail: 合约交易对列表获取失败，请稍后重试
+    symbolOptionsFail: 读取本地合约交易对失败
+    symbolOptionsEmpty: 本地合约币种表为空，请先确认合约币种数据已同步
     invalidSymbol: 请选择下拉列表中的有效永续合约交易对
     symbolExists: 该合约交易对已在监听列表中
     addFail: 新增失败，请检查交易对或网络状态
@@ -2211,7 +2213,7 @@ controlledTradePage:
     closePosition: 关闭此系统仓位
   ownership:
     title: 合约仓位 / 订单归属
-    description: 全账户仓位用于观察和冲突判断；只有明确登记归属的可管理数量才允许对应模块修改。未归属仓位始终只读。
+    description: 全账户仓位用于观察和冲突判断；未归属仓位可在核验交易所数量后人工认领。手动认领将允许对应模块管理，可能触发自动平仓。
     accountPositions: 账户仓位归属
     managedOrders: 受管订单
     accountQty: 账户数量
@@ -2223,6 +2225,30 @@ controlledTradePage:
     filledQty: 已成交数量
     lastReconciled: 最近对账
     reconcileRequiredWarning: 存在 reconcile_required 的仓位或订单，结果尚未确认。请先点击“对账仓位归属”处理，确认前不要重复提交交易。
+    manualAction: 手动修复
+    manualTitle: 手动认领未归属仓位
+    manualOwner: 目标归属类型
+    manualQty: 可管理数量
+    manualQtyPlaceholder: 输入大于 0 且不超过账户数量的仓位数量
+    manualReason: 修复原因
+    manualReasonPlaceholder: 说明为什么该仓位属于所选模块（至少 5 个字符）
+    manualWarning: 此操作只修改数据库归属，不会立即发送交易请求。但保存后该仓位可能在下一个交易周期立即按市价自动平仓！必须先核对真实成交、止盈止损和退出规则。
+    manualValidation: 请输入合法数量（最多 12 位小数，不超过账户数量）及至少 5 字的原因
+    manualConfirm: "确认将 {symbol} {side} 的 {qty} 数量认领为 {owner}？保存后可能立即触发自动市价平仓！"
+    manualConfirmButton: 确认手动认领
+    manualCancel: 取消
+    manualSuccess: 手动归属修复成功，已重新加载仓位
+    manualFailed: 手动修复失败，请检查是否有其他模块持仓或未决订单
+    manual_claim_invalid_input: 请求内容无效或超过 4KB 限制
+    manual_claim_unauthorized: 登录凭据无效，请重新登录
+    manual_claim_position_not_found: Binance 上未找到对应的真实仓位，请刷新
+    manual_claim_account_quantity_changed: Binance 仓位数量已变化，请刷新后重新确认
+    manual_claim_duplicate_exchange_position: 交易所返回重复的同方向仓位，已拒绝认领
+    manual_claim_invalid_entry_price: 真实仓位入场价无效，禁止认领以免触发异常平仓
+    manual_claim_rejected: 仓位认领未通过安全检查；请检查日志或未决订单
+    manualAuditTab: 手动修复记录
+    manualOperator: 操作人
+    manualDate: 操作时间
   owner:
     auto_strategy: 自动策略
     new_coin_rush: 合约抢新

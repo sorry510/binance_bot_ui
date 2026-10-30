@@ -605,6 +605,9 @@ async function openAddDialog() {
       label: symbol,
       value: symbol
     }));
+    if (addSymbolOptions.value.length === 0) {
+      ElMessage.warning(t(`${pageKey}.message.symbolOptionsEmpty`));
+    }
   } catch {
     addSymbolOptions.value = [];
     ElMessage.error(t(`${pageKey}.message.symbolOptionsFail`));

@@ -1444,16 +1444,46 @@ export interface AccountPositionOwnership {
   last_reconciled_at?: number;
 }
 
+export interface FuturesOwnershipAdjustment {
+  id: number;
+  symbol: string;
+  position_side: string;
+  owner: string;
+  account_qty: number;
+  managed_qty: number;
+  previous_owner?: string;
+  previous_status?: string;
+  previous_qty: number;
+  operator: string;
+  reason: string;
+  created_at: number;
+}
+
+export interface ManualOwnershipClaim {
+  symbol: string;
+  position_side: string;
+  owner: string;
+  quantity: number;
+  expected_account_qty: number;
+  reason: string;
+}
+
 export interface FuturesOwnershipData {
   positions: FuturesManagedPosition[];
   orders: FuturesManagedOrder[];
   account_positions: AccountPositionOwnership[];
+  manual_adjustments?: FuturesOwnershipAdjustment[];
   account_error?: string;
 }
 
 export const getFuturesOwnership = (owner = "") =>
   http.get<any, Query>(baseUrlApi("agents/trade/ownership"), {
     params: owner ? { owner } : {}
+  });
+
+export const manualClaimFuturesOwnership = (request: ManualOwnershipClaim) =>
+  http.post<any, Query>(baseUrlApi("agents/trade/ownership/manual-claim"), {
+    data: request
   });
 
 export const reconcileFuturesOwnership = (owner = "") =>

@@ -1521,7 +1521,8 @@ listenSpotPage:
     title: Confirm
     delete: Confirm deleting {symbol} ?
   message:
-    symbolOptionsFail: Failed to load spot trading pairs
+    symbolOptionsFail: Failed to read local spot trading pairs
+    symbolOptionsEmpty: The local spot symbol table is empty; check that symbol data has been synchronized
     invalidSymbol: Choose a valid spot trading pair from the list
     symbolExists: This trading pair is already added
     addFail: Could not add this listener
@@ -1574,7 +1575,8 @@ listenFeaturePage:
     title: Confirm
     delete: Confirm deleting {symbol} ?
   message:
-    symbolOptionsFail: Failed to load futures trading pairs
+    symbolOptionsFail: Failed to read local futures trading pairs
+    symbolOptionsEmpty: The local futures symbol table is empty; check that symbol data has been synchronized
     invalidSymbol: Select a valid perpetual futures pair from the list
     symbolExists: This futures pair is already on the listener list
     addFail: Could not add this listener
@@ -2211,7 +2213,7 @@ controlledTradePage:
     closePosition: Close This Managed Position
   ownership:
     title: Futures Position / Order Ownership
-    description: The whole account is observed for conflicts and risk, but only explicitly managed quantity can be mutated by its recorded owner. Unmanaged positions are always read-only.
+    description: Account positions are observed for conflicts. Unmanaged positions can be manually claimed after verifying fresh exchange quantities; this may enable automated closing.
     accountPositions: Account Position Ownership
     managedOrders: Managed Orders
     accountQty: Account Qty
@@ -2223,6 +2225,30 @@ controlledTradePage:
     filledQty: Filled Qty
     lastReconciled: Last Reconciled
     reconcileRequiredWarning: A position or order is in reconcile_required state and its result is not confirmed. Reconcile ownership before submitting another trade.
+    manualAction: Repair Ownership
+    manualTitle: Manually Claim Unmanaged Position
+    manualOwner: Target Owner
+    manualQty: Managed Quantity
+    manualQtyPlaceholder: Enter a positive quantity no greater than the account position
+    manualReason: Repair Reason
+    manualReasonPlaceholder: Explain why this position belongs to the selected module (min. 5 characters)
+    manualWarning: This changes ownership records only, without submitting an immediate order. After saving, the strategy may immediately close the position at market on its next cycle. Verify exchange fills and exit rules first.
+    manualValidation: Enter a valid quantity (up to 12 decimals, no greater than account qty) and a reason of at least 5 characters
+    manualConfirm: "Claim {qty} of {symbol} {side} for {owner}? Saving may immediately trigger an automatic market close!"
+    manualConfirmButton: Confirm Claim
+    manualCancel: Cancel
+    manualSuccess: Ownership updated and account positions refreshed
+    manualFailed: Manual repair failed; check existing ownership and pending orders
+    manual_claim_invalid_input: Invalid request or exceeds the 4KB limit
+    manual_claim_unauthorized: Invalid login credentials; sign in again
+    manual_claim_position_not_found: No matching Binance position exists; refresh the page
+    manual_claim_account_quantity_changed: Binance position quantity changed; refresh and confirm again
+    manual_claim_duplicate_exchange_position: Duplicate exchange positions were returned; claim rejected
+    manual_claim_invalid_entry_price: Invalid exchange entry price; claim blocked to prevent unexpected closure
+    manual_claim_rejected: Ownership claim rejected by safety checks; review logs or pending orders
+    manualAuditTab: Manual Repair History
+    manualOperator: Operator
+    manualDate: Changed At
   owner:
     auto_strategy: Auto Strategy
     new_coin_rush: New Coin Rush
