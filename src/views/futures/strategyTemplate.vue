@@ -175,6 +175,9 @@ const strategyDialogVisible = ref(false);
 const strategyDialogTitle = ref("");
 const strategySymbolId = ref<number | null>(null);
 const strategy = ref<StrategyItem[]>([]);
+const strategyNameLimit = 128;
+const strategyNameLength = (name: string) =>
+  Array.from((name || "").trim()).length;
 
 const codeDialogVisible = ref(false);
 const codeDialogTitle = ref("");
@@ -1580,6 +1583,18 @@ onBeforeUnmount(clearAIProgressTimer);
         >
           <template #default="{ row }">
             <el-input v-model="row.name" size="small" />
+            <el-text
+              v-if="strategyNameLength(row.name) > strategyNameLimit"
+              type="warning"
+              size="small"
+            >
+              {{
+                t("strategyTemplatePage.strategy.nameLengthWarning", {
+                  length: strategyNameLength(row.name),
+                  limit: strategyNameLimit
+                })
+              }}
+            </el-text>
           </template>
         </el-table-column>
         <el-table-column

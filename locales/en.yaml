@@ -1274,6 +1274,7 @@ strategyTemplatePage:
     stdDevMultiplierInvalid: "BOLL indicator {name} standard deviation multiplier must be a number greater than or equal to 0"
   strategy:
     name: Name
+    nameLengthWarning: "{length} characters (max {limit} stored in test trade records; full name remains in strategy template)"
     code: Code
     fullScreen: Full Screen
     type: Type

@@ -1273,6 +1273,7 @@ strategyTemplatePage:
     stdDevMultiplierInvalid: "BOLL 指标 {name} 的标准差乘数必须是大于或等于 0 的数字"
   strategy:
     name: 名称
+    nameLengthWarning: "当前 {length} 字符（测试交易记录最多保存 {limit} 字符；模板保留完整名称）"
     code: 代码
     fullScreen: 全屏编辑
     type: 类型
