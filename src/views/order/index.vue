@@ -1,285 +1,601 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import dayjs from "dayjs";
-import { delTrade, delTradesByQuery, getOrders } from "../../api/order";
+import { ElMessage } from "element-plus";
+import {
+  getManagedCycleDetails,
+  getManagedOrderCycles,
+  type ManagedChildOrder,
+  type ManagedCycle,
+  type ManagedCycleDetail,
+  type ManagedFill
+} from "@/api/order";
 
 defineOptions({ name: "OrderList" });
 const { t } = useI18n();
+const tr = (name: string) => t(`orderPage.${name}`);
 
-const list = ref<any[]>([]);
-const total = ref(0);
 const loading = ref(false);
-const query = reactive<any>({
+const rows = ref<ManagedCycle[]>([]);
+const total = ref(0);
+const pageVerifiedNet = ref<Record<string, string>>({});
+const detailCache = reactive<Record<string, ManagedCycleDetail>>({});
+const detailLoading = reactive<Record<string, boolean>>({});
+const query = reactive({
   page: 1,
-  limit: 200,
+  limit: 20,
+  account_id: "main",
+  owner: "",
   symbol: "",
-  type: "",
   position_side: "",
-  start_time: undefined,
-  end_time: undefined
+  status: "",
+  settlement: "",
+  range: [] as string[]
 });
+let requestToken = 0;
 
-const allProfit = computed(() =>
-  list.value
-    .reduce((sum, row) => sum + Number(row.inexact_profit || 0), 0)
-    .toFixed(2)
-);
-
-const searchParams = computed(() => ({
-  symbol: query.symbol?.trim() || undefined,
-  type: query.type && query.type !== "all" ? query.type : undefined,
-  position_side:
-    query.position_side && query.position_side !== "all"
-      ? query.position_side
-      : undefined,
-  start_time: query.start_time ? +new Date(query.start_time) : undefined,
-  end_time: query.end_time ? +new Date(query.end_time) : undefined
-}));
-
-const hasSearchCondition = computed(() =>
-  Boolean(
-    searchParams.value.symbol ||
-      searchParams.value.type ||
-      searchParams.value.position_side ||
-      searchParams.value.start_time ||
-      searchParams.value.end_time
-  )
-);
-
-function formatTime(ts: number | string) {
-  if (!ts) return "-";
-  return dayjs(Number(ts)).format("YYYY-MM-DD HH:mm:ss");
+function failureMessage(error: unknown) {
+  const value = error as {
+    message?: string;
+    response?: { data?: { msg?: string } };
+  };
+  return (
+    value?.response?.data?.msg || value?.message || tr("message.loadError")
+  );
 }
-
-function toPeriod(endTime: number, startTime: number) {
-  if (!endTime || !startTime) return "-";
-  const totalMinutes = Math.floor((endTime - startTime) / 1000 / 60);
-  return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
+function formatTime(value: number | undefined) {
+  if (!value) return "-";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleString();
 }
-
-function isClosed(row: any) {
-  return Number(row.closeOrderId || 0) > 0;
+function formatDuration(milliseconds: number) {
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) return "-";
+  const minutes = Math.floor(milliseconds / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `${days}d ${hours % 24}h`;
+  if (hours > 0) return `${hours}h ${minutes % 60}m`;
+  return `${minutes}m`;
 }
-
-function rowPrice(row: any) {
-  const value = Number(isClosed(row) ? row.closedPrice : row.now_price);
-  return Number.isFinite(value) && value > 0 ? value : 0;
+function display(value: string | number | null | undefined) {
+  return value === null || value === undefined || value === ""
+    ? "-"
+    : String(value);
 }
-
-function profitPercent(row: any) {
-  const price = rowPrice(row);
-  const amount = Math.abs(Number(row.amount || 0));
-  const leverage = Number(row.leverage || 0);
-  const profit = Number(row.inexact_profit || 0);
-  if (!price || !amount || !leverage || !Number.isFinite(profit)) return "-";
-  return ((profit / (amount * price)) * leverage * 100).toFixed(3);
+function signed(value: string | null | undefined) {
+  return value === null || value === undefined
+    ? ""
+    : Number(value) > 0
+      ? "text-green-600"
+      : Number(value) < 0
+        ? "text-red-500"
+        : "";
 }
-
-function formatProfit(value: number | string) {
-  const profit = Number(value);
-  if (!Number.isFinite(profit)) return "-";
-  return profit.toFixed(8).replace(/\.?0+$/, "");
+function feeText(fees: ManagedCycle["fees"]) {
+  return fees.length
+    ? fees.map(item => `${item.amount} ${item.asset}`).join(" / ")
+    : "-";
 }
-
-async function fetchData(resetPage = false) {
-  if (resetPage) query.page = 1;
+function statusLabel(value: string) {
+  return tr(`state.${value}`);
+}
+function settlementLabel(value: string) {
+  return tr(`settlement.${value}`);
+}
+function completenessType(value: string): "success" | "warning" | "info" {
+  if (value === "verified") return "success";
+  if (value === "incomplete") return "warning";
+  return "info";
+}
+function resetDetailCache() {
+  for (const key of Object.keys(detailCache)) delete detailCache[key];
+  for (const key of Object.keys(detailLoading)) delete detailLoading[key];
+}
+async function load(reset = false) {
+  if (reset) query.page = 1;
+  const current = ++requestToken;
   loading.value = true;
+  resetDetailCache();
   try {
-    const res = await getOrders({
-      ...query,
-      start_time: query.start_time ? +new Date(query.start_time) : undefined,
-      end_time: query.end_time ? +new Date(query.end_time) : undefined
-    });
-    const data = res?.data || {};
-    list.value = (data.list || []).map((item: any) => {
-      const row = { ...item };
-      if (isClosed(row)) {
-        row.period = toPeriod(row.closedTime, row.updateTime);
-      } else {
-        let delta = Number(row.now_price) - Number(row.avg_price);
-        if (row.positionSide === "SHORT") delta = -delta;
-        row.inexact_profit = delta * Math.abs(Number(row.amount || 0));
-      }
-      row.display_price = isClosed(row) ? row.closedPrice : row.now_price;
-      row.profit_percent = profitPercent(row);
-      return row;
-    });
+    const params = {
+      page: query.page,
+      limit: query.limit,
+      account_id: query.account_id,
+      owner: query.owner || undefined,
+      symbol: query.symbol.trim() || undefined,
+      position_side: query.position_side || undefined,
+      status: query.status || undefined,
+      settlement: query.settlement || undefined,
+      start_time: query.range?.[0] ? Number(query.range[0]) : undefined,
+      end_time: query.range?.[1] ? Number(query.range[1]) : undefined
+    };
+    const res = await getManagedOrderCycles(params);
+    if (current !== requestToken) return;
+    const data = res.data;
+    rows.value = data.list || [];
     total.value = Number(data.total || 0);
+    pageVerifiedNet.value = data.page_verified_net || {};
+  } catch (error) {
+    if (current === requestToken) {
+      rows.value = [];
+      total.value = 0;
+      pageVerifiedNet.value = {};
+      ElMessage.error(failureMessage(error));
+    }
   } finally {
-    loading.value = false;
+    if (current === requestToken) loading.value = false;
   }
 }
-
-async function onDelete(row: any) {
-  await ElMessageBox.confirm(
-    t("orderPage.confirm.delete", { symbol: row.symbol }),
-    t("orderPage.confirm.title"),
-    { type: "warning" }
-  );
-  await delTrade(row.id);
-  ElMessage.success(t("orderPage.message.deleteSuccess"));
-  await fetchData();
+function reset() {
+  Object.assign(query, {
+    page: 1,
+    limit: 20,
+    account_id: "main",
+    owner: "",
+    symbol: "",
+    position_side: "",
+    status: "",
+    settlement: "",
+    range: []
+  });
+  load();
 }
-
-async function onDeleteFiltered() {
-  if (!hasSearchCondition.value) {
-    ElMessage.warning(t("orderPage.message.searchRequired"));
-    return;
+async function onExpand(row: ManagedCycle, expandedRows: ManagedCycle[]) {
+  const key = `${row.account_id}:${row.position_id}`;
+  if (!expandedRows.some(item => item.position_id === row.position_id)) return;
+  if (detailCache[key] || detailLoading[key]) return;
+  detailLoading[key] = true;
+  try {
+    const res = await getManagedCycleDetails(row.position_id, row.account_id);
+    detailCache[key] = res.data;
+  } catch (error) {
+    ElMessage.error(failureMessage(error));
+  } finally {
+    detailLoading[key] = false;
   }
-  await ElMessageBox.confirm(
-    t("orderPage.confirm.deleteFiltered"),
-    t("orderPage.confirm.title"),
-    { type: "warning" }
-  );
-  const res = await delTradesByQuery(searchParams.value);
-  ElMessage.success(
-    t("orderPage.message.deleteFilteredSuccess", {
-      count: Number(res?.data?.deleted || 0)
-    })
-  );
-  await fetchData(true);
 }
-
-onMounted(fetchData);
+function childIntent(intent: string) {
+  return tr(`intent.${intent}`);
+}
+function fillStatus(fill: ManagedFill) {
+  return fill.rest_verified
+    ? tr("completeness.verified")
+    : tr("fill.provisional");
+}
+function fetchPage(page: number) {
+  query.page = page;
+  load();
+}
+function updatePageSize(size: number) {
+  query.limit = size;
+  load(true);
+}
+onMounted(() => load());
 </script>
 
 <template>
   <div class="p-4">
-    <div class="mb-3 flex flex-wrap items-center gap-2">
-      <el-input
-        v-model="query.symbol"
-        :placeholder="t('orderPage.placeholder.symbol')"
-        style="width: 140px"
-        @keyup.enter="fetchData(true)"
-      />
-      <el-select
-        v-model="query.type"
-        clearable
-        :placeholder="t('orderPage.placeholder.status')"
-        style="width: 100px"
-        ><el-option :label="t('orderPage.state.all')" value="all" /><el-option
-          :label="t('orderPage.state.open')"
-          value="open" /><el-option
-          :label="t('orderPage.state.closed')"
-          value="close"
-      /></el-select>
-      <el-select
-        v-model="query.position_side"
-        clearable
-        :placeholder="t('orderPage.placeholder.side')"
-        style="width: 100px"
-        ><el-option :label="t('orderPage.state.all')" value="all" /><el-option
-          :label="t('orderPage.side.long')"
-          value="LONG" /><el-option
-          :label="t('orderPage.side.short')"
-          value="SHORT"
-      /></el-select>
-      <el-date-picker
-        v-model="query.start_time"
-        type="datetime"
-        :placeholder="t('orderPage.placeholder.startTime')"
-      />
-      <el-date-picker
-        v-model="query.end_time"
-        type="datetime"
-        :placeholder="t('orderPage.placeholder.endTime')"
-      />
-      <el-button type="primary" :loading="loading" @click="fetchData(true)">{{
-        t("orderPage.button.search")
-      }}</el-button>
-      <el-button
-        type="danger"
-        :loading="loading"
-        :disabled="!hasSearchCondition"
-        @click="onDeleteFiltered"
-        >{{ t("orderPage.button.deleteFiltered") }}</el-button
-      >
-      <span class="ml-auto"
-        >{{ t("orderPage.label.currentProfit") }}: {{ allProfit }}</span
-      >
+    <el-alert
+      :title="tr('notice.title')"
+      :description="tr('notice.description')"
+      type="info"
+      :closable="false"
+      show-icon
+      class="mb-4"
+    />
+    <el-form :inline="true" class="mb-2">
+      <el-form-item :label="tr('filter.account')">
+        <el-select v-model="query.account_id" style="width: 105px">
+          <el-option label="Main" value="main" />
+          <el-option label="Lead" value="lead" />
+        </el-select>
+      </el-form-item>
+      <el-form-item :label="tr('filter.symbol')">
+        <el-input
+          v-model="query.symbol"
+          clearable
+          style="width: 130px"
+          :placeholder="tr('filter.symbolPlaceholder')"
+          @keyup.enter="load(true)"
+        />
+      </el-form-item>
+      <el-form-item :label="tr('filter.owner')">
+        <el-select
+          v-model="query.owner"
+          filterable
+          allow-create
+          default-first-option
+          clearable
+          style="width: 160px"
+          :placeholder="tr('filter.ownerPlaceholder')"
+        >
+          <el-option :label="tr('state.all')" value="" />
+          <el-option label="auto_strategy" value="auto_strategy" />
+          <el-option label="notice_auto_order" value="notice_auto_order" />
+          <el-option label="new_coin_rush" value="new_coin_rush" />
+          <el-option label="funding_rate" value="funding_rate" />
+          <el-option label="agent_trade" value="agent_trade" />
+        </el-select>
+      </el-form-item>
+      <el-form-item :label="tr('filter.side')">
+        <el-select v-model="query.position_side" style="width: 100px">
+          <el-option :label="tr('state.all')" value="" />
+          <el-option :label="tr('side.long')" value="LONG" />
+          <el-option :label="tr('side.short')" value="SHORT" />
+        </el-select>
+      </el-form-item>
+      <el-form-item :label="tr('filter.status')">
+        <el-select v-model="query.status" style="width: 120px">
+          <el-option :label="tr('state.all')" value="" />
+          <el-option :label="tr('state.active')" value="active" />
+          <el-option :label="tr('state.suspended')" value="suspended" />
+          <el-option :label="tr('state.closed')" value="closed" />
+          <el-option
+            :label="tr('state.reconcile_required')"
+            value="reconcile_required"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item :label="tr('filter.settlement')">
+        <el-select v-model="query.settlement" style="width: 140px">
+          <el-option :label="tr('state.all')" value="" />
+          <el-option :label="tr('settlement.open')" value="open" />
+          <el-option :label="tr('settlement.incomplete')" value="incomplete" />
+          <el-option :label="tr('settlement.settled')" value="settled" />
+          <el-option :label="tr('settlement.legacy')" value="legacy" />
+        </el-select>
+      </el-form-item>
+      <el-form-item :label="tr('filter.time')">
+        <el-date-picker
+          v-model="query.range"
+          type="datetimerange"
+          value-format="x"
+          style="width: 360px"
+          :start-placeholder="tr('filter.start')"
+          :end-placeholder="tr('filter.end')"
+        />
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" :loading="loading" @click="load(true)">
+          {{ tr("button.search") }}
+        </el-button>
+        <el-button @click="reset">{{ tr("button.reset") }}</el-button>
+        <el-button :loading="loading" @click="load()">{{
+          tr("button.refresh")
+        }}</el-button>
+      </el-form-item>
+    </el-form>
+
+    <div class="mb-3 flex flex-wrap items-center gap-3 text-sm">
+      <span>{{ tr("summary.total") }}: {{ total }}</span>
+      <span>{{ tr("summary.pageVerified") }}:</span>
+      <template v-if="Object.keys(pageVerifiedNet).length">
+        <span
+          v-for="(amount, asset) in pageVerifiedNet"
+          :key="asset"
+          :class="signed(amount)"
+        >
+          {{ amount }} {{ asset }}
+        </span>
+      </template>
+      <span v-else>-</span>
+      <el-tooltip :content="tr('summary.pageExplanation')" placement="top">
+        <el-tag type="info" size="small">{{ tr("summary.scope") }}</el-tag>
+      </el-tooltip>
     </div>
-    <el-table v-loading="loading" :data="list" border size="small">
+
+    <el-table
+      v-loading="loading"
+      :data="rows"
+      size="small"
+      border
+      row-key="position_id"
+      style="width: 100%"
+      @expand-change="onExpand"
+    >
+      <el-table-column type="expand" width="48">
+        <template #default="{ row }">
+          <div
+            v-loading="detailLoading[`${row.account_id}:${row.position_id}`]"
+            class="px-3 py-3"
+          >
+            <template
+              v-if="detailCache[`${row.account_id}:${row.position_id}`]"
+            >
+              <div class="mb-2 text-sm">
+                {{ tr("detail.cycle") }} #{{ row.position_id }} ·
+                {{ tr("detail.orderCount") }}
+                {{
+                  detailCache[`${row.account_id}:${row.position_id}`].orders
+                    .length
+                }}
+              </div>
+              <el-table
+                :data="
+                  detailCache[`${row.account_id}:${row.position_id}`].orders
+                "
+                size="small"
+                stripe
+                border
+                style="width: 100%"
+                row-key="managed.id"
+              >
+                <el-table-column type="expand" width="42">
+                  <template #default="{ row: child }">
+                    <el-table
+                      :data="child.fills"
+                      size="small"
+                      border
+                      style="width: 100%"
+                      class="ml-2"
+                    >
+                      <el-table-column
+                        prop="trade_id"
+                        :label="tr('fill.tradeId')"
+                        min-width="100"
+                      />
+                      <el-table-column
+                        prop="order_id"
+                        :label="tr('fill.orderId')"
+                        min-width="120"
+                      />
+                      <el-table-column
+                        prop="qty"
+                        :label="tr('detail.quantity')"
+                        min-width="130"
+                      />
+                      <el-table-column
+                        prop="price"
+                        :label="tr('detail.avgPrice')"
+                        min-width="130"
+                      />
+                      <el-table-column
+                        :label="tr('detail.fee')"
+                        min-width="140"
+                      >
+                        <template #default="{ row: trade }">
+                          {{ display(trade.commission) }}
+                          {{ display(trade.commission_asset) }}
+                        </template>
+                      </el-table-column>
+                      <el-table-column
+                        :label="tr('fill.realizedPnl')"
+                        min-width="140"
+                      >
+                        <template #default="{ row: trade }">
+                          {{ display(trade.realized_pnl) }}
+                          {{ display(trade.pnl_asset) }}
+                        </template>
+                      </el-table-column>
+                      <el-table-column
+                        :label="tr('fill.verified')"
+                        min-width="155"
+                      >
+                        <template #default="{ row: trade }">
+                          <el-tag
+                            :type="trade.rest_verified ? 'success' : 'warning'"
+                            size="small"
+                          >
+                            {{ fillStatus(trade) }}
+                          </el-tag>
+                        </template>
+                      </el-table-column>
+                      <el-table-column
+                        :label="tr('table.updatedAt')"
+                        min-width="170"
+                      >
+                        <template #default="{ row: trade }">{{
+                          formatTime(trade.trade_time)
+                        }}</template>
+                      </el-table-column>
+                    </el-table>
+                    <el-empty
+                      v-if="child.fills.length === 0"
+                      :description="tr('detail.noFills')"
+                      :image-size="48"
+                    />
+                  </template>
+                </el-table-column>
+                <el-table-column :label="tr('detail.intent')" min-width="115">
+                  <template #default="{ row: child }">{{
+                    childIntent(child.managed.intent)
+                  }}</template>
+                </el-table-column>
+                <el-table-column
+                  prop="managed.status"
+                  :label="tr('filter.status')"
+                  min-width="125"
+                />
+                <el-table-column
+                  prop="managed.order_type"
+                  :label="tr('detail.type')"
+                  min-width="155"
+                />
+                <el-table-column
+                  prop="managed.requested_qty"
+                  :label="tr('detail.requestedQty')"
+                  min-width="120"
+                />
+                <el-table-column
+                  prop="filled_qty_from_fills"
+                  :label="tr('detail.filledQty')"
+                  min-width="130"
+                />
+                <el-table-column :label="tr('detail.avgPrice')" min-width="145">
+                  <template #default="{ row: child }">{{
+                    display(child.avg_price)
+                  }}</template>
+                </el-table-column>
+                <el-table-column :label="tr('detail.fee')" min-width="150">
+                  <template #default="{ row: child }">
+                    {{
+                      child.completeness === "verified"
+                        ? feeText(child.fees)
+                        : "-"
+                    }}
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  :label="tr('detail.orderGrossPnl')"
+                  min-width="155"
+                >
+                  <template #default="{ row: child }">
+                    {{
+                      child.completeness === "verified"
+                        ? display(child.gross_pnl)
+                        : "-"
+                    }}
+                    {{
+                      child.completeness === "verified"
+                        ? display(child.pnl_asset)
+                        : ""
+                    }}
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  prop="managed.client_order_id"
+                  :label="tr('detail.clientId')"
+                  min-width="195"
+                  show-overflow-tooltip
+                />
+                <el-table-column
+                  prop="managed.exchange_order_id"
+                  :label="tr('detail.exchangeId')"
+                  min-width="130"
+                />
+                <el-table-column
+                  prop="managed.actual_order_id"
+                  :label="tr('detail.actualId')"
+                  min-width="130"
+                />
+                <el-table-column
+                  :label="tr('table.completeness')"
+                  min-width="135"
+                >
+                  <template #default="{ row: child }">
+                    <el-tag
+                      :type="completenessType(child.completeness)"
+                      size="small"
+                    >
+                      {{ tr(`completeness.${child.completeness}`) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </template>
+            <el-empty
+              v-else-if="!detailLoading[`${row.account_id}:${row.position_id}`]"
+              :description="tr('detail.retry')"
+              :image-size="48"
+            />
+          </div>
+        </template>
+      </el-table-column>
+
       <el-table-column
-        prop="symbol"
-        :label="t('orderPage.table.symbol')"
-        min-width="120"
+        prop="position_id"
+        :label="tr('table.positionId')"
+        width="110"
       />
-      <el-table-column
-        prop="positionSide"
-        :label="t('orderPage.table.side')"
-        min-width="90"
-      />
-      <el-table-column
-        prop="amount"
-        :label="t('orderPage.table.amount')"
-        min-width="90"
-      />
-      <el-table-column
-        prop="leverage"
-        :label="t('orderPage.table.leverage')"
-        min-width="80"
-      />
-      <el-table-column
-        prop="avg_price"
-        :label="t('orderPage.table.avgPrice')"
-        min-width="110"
-      />
-      <el-table-column
-        prop="display_price"
-        :label="t('orderPage.table.nowPrice')"
-        min-width="130"
-      />
-      <el-table-column :label="t('orderPage.table.profit')" min-width="110">
-        <template #default="{ row }">{{
-          formatProfit(row.inexact_profit)
-        }}</template>
+      <el-table-column prop="symbol" :label="tr('table.symbol')" width="115" />
+      <el-table-column :label="tr('table.side')" width="90">
+        <template #default="{ row }">
+          <el-tag
+            :type="row.position_side === 'LONG' ? 'success' : 'danger'"
+            size="small"
+          >
+            {{
+              row.position_side === "LONG" ? tr("side.long") : tr("side.short")
+            }}
+          </el-tag>
+        </template>
       </el-table-column>
       <el-table-column
-        prop="profit_percent"
-        :label="t('orderPage.table.profitRate')"
-        min-width="100"
+        prop="owner"
+        :label="tr('filter.owner')"
+        min-width="130"
+        show-overflow-tooltip
       />
-      <el-table-column
-        prop="period"
-        :label="t('orderPage.table.period')"
-        min-width="100"
-      />
-      <el-table-column :label="t('orderPage.table.updateTime')" min-width="170"
-        ><template #default="{ row }">{{
-          formatTime(row.updateTime)
-        }}</template></el-table-column
-      >
-      <el-table-column :label="t('orderPage.table.operation')" width="90"
-        ><template #default="{ row }"
-          ><el-button type="danger" size="small" @click="onDelete(row)">{{
-            t("orderPage.button.delete")
-          }}</el-button></template
-        ></el-table-column
-      >
+      <el-table-column :label="tr('table.status')" min-width="100">
+        <template #default="{ row }">{{ statusLabel(row.status) }}</template>
+      </el-table-column>
+      <el-table-column :label="tr('table.completeness')" min-width="130">
+        <template #default="{ row }">
+          <el-tooltip
+            :content="
+              row.incomplete_reason
+                ? tr(`reason.${row.incomplete_reason}`)
+                : settlementLabel(row.settlement_status)
+            "
+          >
+            <el-tag :type="completenessType(row.completeness)" size="small">
+              {{ tr(`completeness.${row.completeness}`) }}
+            </el-tag>
+          </el-tooltip>
+        </template>
+      </el-table-column>
+      <el-table-column :label="tr('table.openQty')" min-width="120">
+        <template #default="{ row }">{{ display(row.open_qty) }}</template>
+      </el-table-column>
+      <el-table-column :label="tr('table.closeQty')" min-width="120">
+        <template #default="{ row }">{{ display(row.close_qty) }}</template>
+      </el-table-column>
+      <el-table-column :label="tr('table.remaining')" min-width="120">
+        <template #default="{ row }">{{ display(row.remaining_qty) }}</template>
+      </el-table-column>
+      <el-table-column :label="tr('table.leverage')" min-width="90">
+        <template #default="{ row }">{{
+          row.leverage == null ? "-" : row.leverage + "x"
+        }}</template>
+      </el-table-column>
+      <el-table-column :label="tr('table.openAvg')" min-width="155">
+        <template #default="{ row }">{{
+          display(row.open_avg_price)
+        }}</template>
+      </el-table-column>
+      <el-table-column :label="tr('table.closeAvg')" min-width="155">
+        <template #default="{ row }">{{
+          display(row.close_avg_price)
+        }}</template>
+      </el-table-column>
+      <el-table-column :label="tr('table.fee')" min-width="165">
+        <template #default="{ row }">{{
+          row.completeness === "verified" ? feeText(row.fees) : "-"
+        }}</template>
+      </el-table-column>
+      <el-table-column :label="tr('table.profit')" min-width="170">
+        <template #default="{ row }">
+          <span :class="signed(row.net_pnl)"
+            >{{ display(row.net_pnl) }} {{ row.pnl_asset }}</span
+          >
+        </template>
+      </el-table-column>
+      <el-table-column :label="tr('table.returnPct')" min-width="130">
+        <template #default="{ row }">
+          <span :class="signed(row.return_pct)">{{
+            row.return_pct == null ? "-" : row.return_pct + "%"
+          }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column :label="tr('table.duration')" min-width="105">
+        <template #default="{ row }">{{
+          formatDuration(row.duration_millis)
+        }}</template>
+      </el-table-column>
+      <el-table-column :label="tr('table.updatedAt')" min-width="168">
+        <template #default="{ row }">{{ formatTime(row.updated_at) }}</template>
+      </el-table-column>
     </el-table>
-    <div class="mt-3 flex items-center justify-between">
-      <span>{{ t("orderPage.label.total") }}: {{ total }}</span>
+
+    <div class="mt-4 flex justify-end">
       <el-pagination
-        :current-page="query.page"
-        :page-size="query.limit"
-        background
+        v-model:current-page="query.page"
+        v-model:page-size="query.limit"
         layout="total, sizes, prev, pager, next"
-        :page-sizes="[20, 50, 100, 200, 500, 1000, 10000]"
+        :page-sizes="[10, 20, 50, 100]"
         :total="total"
-        @current-change="
-          page => {
-            query.page = page;
-            fetchData();
-          }
-        "
-        @size-change="
-          size => {
-            query.limit = size;
-            fetchData(true);
-          }
-        "
+        @current-change="fetchPage"
+        @size-change="updatePageSize"
       />
     </div>
   </div>

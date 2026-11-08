@@ -1613,46 +1613,117 @@ listenFundingRatePage:
   message:
     updateSuccess: Updated successfully
 orderPage:
+  notice:
+    title: "Managed position history · Binance exchange fills"
+    description: "Each row represents one position cycle. Net trading PnL (gross realized trades minus commissions; funding excluded) is shown only after REST trade-fee verification and final settlement. Return is verified net PnL divided by opening notional, NOT leveraged margin ROI. Historical leverage and live unrealized PnL are unavailable without trustworthy snapshots. Legacy order history is not migrated or deletable."
   button:
-    search: Search
-    delete: Delete
-    deleteFiltered: Delete Filtered
-  placeholder:
-    symbol: Symbol
-    status: Status
-    side: Side
-    startTime: Start Time
-    endTime: End Time
-  state:
-    all: All
-    open: Open
-    closed: Closed
+    search: "Search"
+    reset: "Reset"
+    refresh: "Refresh"
+  filter:
+    account: "Account"
+    symbol: "Symbol"
+    symbolPlaceholder: "e.g. BTC or USDT (contains match)"
+    owner: "Owner"
+    ownerPlaceholder: "Select or enter Owner"
+    side: "Side"
+    status: "Status"
+    settlement: "Settlement"
+    time: "Opened"
+    start: "From"
+    end: "To"
   side:
-    long: Long
-    short: Short
-  label:
-    currentProfit: Current Profit
-    total: Total
+    long: "Long"
+    short: "Short"
+  state:
+    all: "All"
+    active: "Active"
+    suspended: "Suspended"
+    closed: "Closed"
+    reconcile_required: "Reconciliation needed"
+  settlement:
+    open: "Open"
+    incomplete: "Incomplete"
+    settled: "Settled"
+    legacy: "Legacy cycle (missing Fill history)"
+  completeness:
+    verified: "Verified"
+    pending: "In progress"
+    incomplete: "Needs reconciliation"
+  summary:
+    total: "Total position cycles"
+    pageVerified: "Verified net PnL on this page"
+    scope: "Page only"
+    pageExplanation: "Sum of settled, verified cycles on the current page only. Not a total across the entire filter or other accounts."
   table:
-    symbol: Symbol
-    side: Side
-    amount: Amount
-    leverage: Leverage
-    avgPrice: Avg Price
-    nowPrice: Current / Close Price
-    profit: Profit
-    profitRate: Profit Rate
-    period: Holding Duration
-    updateTime: Update Time
-    operation: Operation
-  confirm:
-    title: Confirm
-    delete: Delete {symbol} and its linked close order?
-    deleteFiltered: Delete open orders matching the current filters and their linked close orders?
+    positionId: "Cycle ID"
+    symbol: "Symbol"
+    side: "Side"
+    status: "Position status"
+    completeness: "Data integrity"
+    openQty: "Opening fills"
+    closeQty: "Closing fills"
+    remaining: "Remaining"
+    leverage: "Historic leverage"
+    openAvg: "Entry VWAP"
+    closeAvg: "Exit VWAP"
+    fee: "Verified fees"
+    profit: "Verified trading net PnL"
+    returnPct: "Notional return"
+    duration: "Cycle duration"
+    updatedAt: "Updated"
+  detail:
+    cycle: "Position cycle"
+    orderCount: "Managed orders"
+    intent: "Intent"
+    type: "Order type"
+    requestedQty: "Requested qty"
+    filledQty: "Actual fill qty"
+    quantity: "Quantity"
+    avgPrice: "Price / VWAP"
+    fee: "Commission"
+    orderGrossPnl: "Verified order gross PnL"
+    clientId: "Client order ID"
+    exchangeId: "Exchange / Algo ID"
+    actualId: "Actual matching order ID"
+    noFills: "No exchange executions"
+    retry: "Could not load details. Collapse and expand to retry."
+  intent:
+    open: "Open"
+    close: "Close"
+    take_profit: "Take profit"
+    stop_loss: "Stop loss"
+  fill:
+    tradeId: "Trade ID"
+    orderId: "Real order ID"
+    realizedPnl: "Gross realized PnL"
+    verified: "Fee source"
+    provisional: "Provisional WS, pending REST"
   message:
-    deleteSuccess: Deleted successfully
-    searchRequired: Set at least one search condition before deleting
-    deleteFilteredSuccess: Deleted {count} open orders and their linked close orders
+    loadError: "Could not load managed order history"
+  reason:
+    filled_order_missing_real_exchange_id: "Filled order lacks actual matching order ID"
+    duplicate_exchange_matching_order: "Multiple managed orders share one exchange match ID"
+    legacy_cycle_without_complete_fills: "Legacy cycle lacks complete exchange fills"
+    no_linked_managed_orders: "No linked managed orders"
+    managed_order_cycle_identity_mismatch: "Managed order cycle identity mismatch"
+    duplicate_client_order: "Duplicate client order identity"
+    outstanding_managed_order: "Outstanding order on a closed cycle"
+    fill_order_cycle_identity_mismatch: "Fill does not match a linked exchange order"
+    invalid_exchange_fill_decimal: "Invalid execution quantity or price"
+    fee_and_pnl_not_rest_verified: "Trade fee and PnL not verified by REST"
+    settled_fill_missing_pnl_asset: "Settled fill lacks PnL asset"
+    mixed_pnl_assets: "Mixed realized PnL assets"
+    nonzero_fee_missing_asset: "Nonzero fee has no denomination"
+    unsupported_order_intent: "Unsupported managed order intent"
+    order_fill_quantity_mismatch: "Managed cumulative quantity differs from fills"
+    opening_and_closing_fills_unbalanced: "Opening and closing fills do not balance"
+    settlement_status_conflict: "Position and settlement statuses conflict"
+    settled_cycle_missing_executions: "Settled cycle is missing executions"
+    unknown_settlement_asset: "Unverified or unsupported settlement asset"
+    settled_pnl_sign_mismatch: "Persisted settlement sign differs from fills"
+    mixed_commission_assets: "Fees include an unconvertible asset"
+    cycle_not_settled: "Full settlement is not yet confirmed"
 testOrderPage:
   button:
     search: Search
