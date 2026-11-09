@@ -1614,46 +1614,157 @@ listenFundingRatePage:
   message:
     updateSuccess: 更新成功
 orderPage:
+  notice:
+    title: "新订单历史 · 仅显示 Managed 周期及 Binance 逐笔成交"
+    description: "一行代表一个持仓周期。批量删除将永久删除符合条件的已结束周期、关联 Managed 订单和真实 Fill；正在交易、待结算或近期成交的记录不可删除。手动状态/完整性仅影响页面显示，不会伪造 REST 核实或影响风控。收益率为名义成交额口径（不含资金费）。"
+  bulk:
+    delete: "批量删除筛选结果"
+    update: "批量修改状态 / 完整性"
+    deleteConfirmTitle: "确认永久删除历史记录"
+    deleteConfirmMessage: "将永久删除符合当前搜索条件的 {count} 个已结束持仓周期及其关联订单、Fill、人工操作记录。此操作不可撤销，是否继续？"
+    manual: "人工"
+    scope: "操作全部搜索结果（不限当前页），状态筛选依据系统实际状态"
+    realStatus: "系统真实状态："
+    actualCompleteness: "系统原始数据完整性："
+    title:
+      hide: "批量删除"
+      restore: "恢复"
+      update: "批量修改页面状态与完整性"
+    safetyTitle: "仅历史展示层操作"
+    safetyDescription: "这里仅批量修改历史页面状态/完整性，不会改变交易系统真实仓位、成交与结算。人工标记不能直接设为 REST 已核实，修改写入审计日志。"
+    statusLabel: "页面持仓状态（不改变真实仓位）"
+    completenessLabel: "页面数据完整性（不改变 REST 核验）"
+    unchanged: "不修改"
+    clear: "清除人工修改，恢复系统计算值"
+    reason: "操作原因（必填，至少 8 个字符）"
+    reasonPlaceholder: "说明为什么要批量隐藏或人工修复"
+    chooseField: "请至少选择一项要修改的字段"
+    empty: "当前筛选范围没有符合条件的周期"
+    reasonRequired: "请输入至少 8 个字符的操作原因"
+    preview: "预览命中数量"
+    matched: "预计影响仓位周期"
+    confirmScope: "范围包含所有符合搜索条件的记录，不限于当前分页。实际提交前将再次验证快照；若列表发生变化会拒绝操作。"
+    confirmTitle: "再次确认批量操作"
+    confirmDescription: "将操作的仓位周期数："
+    typeHint: "请准确输入"
+    confirmInvalid: "输入与要求的确认文本不一致"
+    confirm: "确认执行"
+    cancel: "取消"
+    success: "已成功处理的周期数"
+    deleteSuccess: "已永久删除周期 {positions} 条、Managed 订单 {orders} 条、Fill {fills} 条"
   button:
-    search: 查询
-    delete: 删除
-    deleteFiltered: 删除筛选结果
-  placeholder:
-    symbol: 币种
-    status: 状态
-    side: 方向
-    startTime: 开始时间
-    endTime: 结束时间
-  state:
-    all: 全部
-    open: 未平仓
-    closed: 已平仓
+    search: "查询"
+    reset: "重置"
+    refresh: "刷新"
+  filter:
+    account: "账户"
+    symbol: "币种"
+    symbolPlaceholder: "例如 BTC 或 USDT（模糊匹配）"
+    owner: "归属"
+    ownerPlaceholder: "选择或输入 Owner"
+    side: "方向"
+    status: "状态"
+
+    settlement: "结算"
+    time: "开仓时间"
+    start: "起始时间"
+    end: "结束时间"
   side:
-    long: 做多
-    short: 做空
-  label:
-    currentProfit: 当前收益
-    total: 总数
+    long: "做多"
+    short: "做空"
+  state:
+    all: "全部"
+    active: "持仓中"
+    suspended: "暂停管理"
+    closed: "已平仓"
+    reconcile_required: "待对账"
+  settlement:
+    open: "尚未结算"
+    incomplete: "未完成"
+    settled: "已结算"
+    legacy: "旧周期（无完整成交账本）"
+  completeness:
+    verified: "已核实"
+    pending: "进行中"
+    incomplete: "待核对"
+    manual_reviewed: "人工已检查（非自动核实）"
+  summary:
+    total: "仓位周期总数"
+    pageVerified: "本页已核实净收益"
+    scope: "仅本页"
+    pageExplanation: "只对当前页已完成成交核对及结算的周期求和；不代表全部筛选结果或所有账户的收益。"
   table:
-    symbol: 币种
-    side: 方向
-    amount: 数量
-    leverage: 杠杆
-    avgPrice: 均价
-    nowPrice: 现价 / 平仓价
-    profit: 盈亏
-    profitRate: 收益率(%)
-    period: 持仓时长
-    updateTime: 更新时间
-    operation: 操作
-  confirm:
-    title: 提示
-    delete: 确认删除 {symbol} 及其对应的平仓记录?
-    deleteFiltered: 确认删除当前筛选条件命中的开仓记录及其对应平仓记录?
+    positionId: "周期 ID"
+    symbol: "币种"
+    side: "方向"
+    status: "持仓状态"
+    completeness: "数据完整性"
+    openQty: "开仓成交量"
+    closeQty: "平仓成交量"
+    remaining: "当前剩余"
+    leverage: "历史杠杆"
+    openAvg: "开仓均价"
+    closeAvg: "平仓均价"
+    fee: "已核实手续费"
+    profit: "已核实净交易盈亏"
+    returnPct: "名义收益率"
+    duration: "周期时长"
+    updatedAt: "更新时间"
+  detail:
+    cycle: "仓位周期"
+    orderCount: "子订单"
+    intent: "意图"
+    type: "订单类型"
+    requestedQty: "委托量"
+    filledQty: "真实成交量"
+    quantity: "成交量"
+    avgPrice: "成交价 / 均价"
+    fee: "手续费"
+    orderGrossPnl: "订单已核实毛盈亏"
+    clientId: "客户端订单号"
+    exchangeId: "交易所订单号 / Algo ID"
+    actualId: "真实成交订单号"
+    noFills: "无真实成交记录"
+    retry: "无法加载成交明细，请重新展开"
+  intent:
+    open: "开仓"
+    close: "平仓"
+    take_profit: "止盈"
+    stop_loss: "止损"
+  fill:
+    tradeId: "成交 ID"
+    orderId: "真实订单 ID"
+    realizedPnl: "已实现毛盈亏"
+    verified: "费用核实"
+    provisional: "WS 暂存，待 REST 核实"
   message:
-    deleteSuccess: 删除成功
-    searchRequired: 请至少设置一个查询条件后再删除
-    deleteFilteredSuccess: 已删除 {count} 条开仓记录及其对应平仓记录
+    loadError: "读取新订单历史失败"
+  reason:
+    history_manual_review: "人工已标记历史数据状态；不代表 REST 自动核实"
+    history_not_activated: "该账户尚未设置真实启用时间 T0，历史收益不予认证"
+    pre_activation_position_cycle: "该仓位周期早于该账户真实启用时间 T0，不能作为完整新历史结算"
+    filled_order_missing_real_exchange_id: "已成交订单缺少真实撮合订单号"
+    duplicate_exchange_matching_order: "两个子订单指向同一真实撮合订单"
+    legacy_cycle_without_complete_fills: "旧周期缺少真实成交历史"
+    no_linked_managed_orders: "没有关联的 Managed 订单"
+    managed_order_cycle_identity_mismatch: "订单与仓位账户/归属不匹配"
+    duplicate_client_order: "存在重复客户端订单号"
+    outstanding_managed_order: "仍有未完成的关联订单"
+    fill_order_cycle_identity_mismatch: "逐笔成交与真实交易订单关联不符"
+    invalid_exchange_fill_decimal: "成交数量或价格无效"
+    fee_and_pnl_not_rest_verified: "费用和盈亏尚未由 REST 确认"
+    settled_fill_missing_pnl_asset: "已结算成交缺失盈亏币种"
+    mixed_pnl_assets: "成交盈亏币种不一致"
+    nonzero_fee_missing_asset: "非零手续费缺少币种"
+    unsupported_order_intent: "无法识别订单意图"
+    order_fill_quantity_mismatch: "订单累计成交量与逐笔成交不一致"
+    opening_and_closing_fills_unbalanced: "开平仓成交量不平衡"
+    settlement_status_conflict: "结算状态与仓位状态冲突"
+    settled_cycle_missing_executions: "已结算周期缺开仓或平仓成交"
+    unknown_settlement_asset: "结算币种未知或不受支持"
+    settled_pnl_sign_mismatch: "结算盈亏方向与逐笔成交不符"
+    mixed_commission_assets: "手续费存在无法直接换算的其他币种"
+    cycle_not_settled: "尚未通过完整结算核验"
 testOrderPage:
   button:
     search: 查询
