@@ -35,8 +35,14 @@ export interface ManagedCycle {
   symbol: string;
   position_side: "LONG" | "SHORT";
   status: string;
+  system_status: string;
+  system_completeness: string;
+  system_incomplete_reason?: string;
+  status_manually_set: boolean;
+  completeness_manually_set: boolean;
+  history_modified_at: number;
   settlement_status: string;
-  completeness: "verified" | "pending" | "incomplete";
+  completeness: "verified" | "pending" | "incomplete" | "manual_reviewed";
   incomplete_reason?: string;
   open_qty: string;
   close_qty: string;
@@ -124,4 +130,53 @@ export const getManagedCycleDetails = (id: number, accountId = "main") =>
   http.get<OrderHistoryApiResult<ManagedCycleDetail>, unknown>(
     baseUrlApi(`orders/${id}/details`),
     { params: { account_id: accountId } }
+  );
+
+// Manual status/integrity edits are presentation-only. Actual deletion is
+// a separate terminal-cycle transaction, never an exchange cancel order.
+export interface HistoryBulkRequest {
+  filters: ManagedHistoryFilters;
+  action: "update";
+  status_override?: string;
+  completeness_override?: string;
+  clear_status?: boolean;
+  clear_completeness?: boolean;
+  expected_digest?: string;
+  reason?: string;
+}
+export interface HistoryBulkPreview {
+  count: number;
+  active_count: number;
+  digest: string;
+  limit: number;
+}
+export interface HistoryBulkResult {
+  updated: number;
+  audit_rows: number;
+}
+export const previewHistoryBulk = (data: HistoryBulkRequest) =>
+  http.post<OrderHistoryApiResult<HistoryBulkPreview>, HistoryBulkRequest>(
+    baseUrlApi("orders/batch/preview"),
+    { data }
+  );
+
+export const applyHistoryBulk = (data: HistoryBulkRequest) =>
+  http.post<OrderHistoryApiResult<HistoryBulkResult>, HistoryBulkRequest>(
+    baseUrlApi("orders/batch/apply"),
+    { data }
+  );
+
+export interface PhysicalDeleteRequest {
+  filters: ManagedHistoryFilters;
+  expected_count: number;
+}
+export interface PhysicalDeleteResult {
+  positions: number;
+  orders: number;
+  fills: number;
+}
+export const deleteManagedHistory = (data: PhysicalDeleteRequest) =>
+  http.post<OrderHistoryApiResult<PhysicalDeleteResult>, PhysicalDeleteRequest>(
+    baseUrlApi("orders/batch/delete"),
+    { data }
   );

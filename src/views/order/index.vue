@@ -1,14 +1,20 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import {
   getManagedCycleDetails,
   getManagedOrderCycles,
+  previewHistoryBulk,
+  applyHistoryBulk,
+  deleteManagedHistory,
   type ManagedChildOrder,
   type ManagedCycle,
   type ManagedCycleDetail,
-  type ManagedFill
+  type ManagedFill,
+  type ManagedHistoryFilters,
+  type HistoryBulkRequest,
+  type HistoryBulkPreview
 } from "@/api/order";
 
 defineOptions({ name: "OrderList" });
@@ -33,7 +39,175 @@ const query = reactive({
   range: [] as string[]
 });
 let requestToken = 0;
+const bulkVisible = ref(false);
+const bulkBusy = ref(false);
+const deleteBusy = ref(false);
+const bulkAction = ref<HistoryBulkRequest["action"]>("update");
+const bulkStatus = ref("");
+const bulkCompleteness = ref("");
+const bulkReason = ref("");
+const bulkPreview = ref<HistoryBulkPreview | null>(null);
+const bulkRequest = ref<HistoryBulkRequest | null>(null);
 
+function currentFilters(): ManagedHistoryFilters {
+  return {
+    account_id: query.account_id,
+    owner: query.owner || undefined,
+    symbol: query.symbol.trim() || undefined,
+    position_side: query.position_side || undefined,
+    status: query.status || undefined,
+    settlement: query.settlement || undefined,
+    start_time: query.range?.[0] ? Number(query.range[0]) : undefined,
+    end_time: query.range?.[1] ? Number(query.range[1]) : undefined,
+    page: query.page,
+    limit: query.limit
+  };
+}
+function openBulk(action: HistoryBulkRequest["action"]) {
+  bulkAction.value = action;
+  bulkStatus.value = "";
+  bulkCompleteness.value = "";
+  bulkReason.value = "";
+  bulkPreview.value = null;
+  bulkRequest.value = null;
+  bulkVisible.value = true;
+}
+function invalidateBulkPreview() {
+  bulkPreview.value = null;
+  bulkRequest.value = null;
+}
+function createBulkRequest(): HistoryBulkRequest {
+  const request: HistoryBulkRequest = {
+    filters: currentFilters(),
+    action: bulkAction.value
+  };
+  if (bulkAction.value === "update") {
+    if (bulkStatus.value === "__clear__") request.clear_status = true;
+    else if (bulkStatus.value) request.status_override = bulkStatus.value;
+    if (bulkCompleteness.value === "__clear__") {
+      request.clear_completeness = true;
+    } else if (bulkCompleteness.value) {
+      request.completeness_override = bulkCompleteness.value;
+    }
+  }
+  return request;
+}
+async function prepareBulk() {
+  if (
+    bulkAction.value === "update" &&
+    !bulkStatus.value &&
+    !bulkCompleteness.value
+  ) {
+    ElMessage.warning(tr("bulk.chooseField"));
+    return;
+  }
+  bulkBusy.value = true;
+  invalidateBulkPreview();
+  try {
+    const request = createBulkRequest();
+    const response = await previewHistoryBulk(request);
+    if (!response.data.count) {
+      ElMessage.warning(tr("bulk.empty"));
+      return;
+    }
+    bulkRequest.value = request;
+    bulkPreview.value = response.data;
+  } catch (error) {
+    ElMessage.error(failureMessage(error));
+  } finally {
+    bulkBusy.value = false;
+  }
+}
+async function applyBulk() {
+  const preview = bulkPreview.value;
+  const request = bulkRequest.value;
+  if (!preview || !request) return;
+  if (bulkReason.value.trim().length < 8) {
+    ElMessage.warning(tr("bulk.reasonRequired"));
+    return;
+  }
+  const keyword = `UPDATE ${preview.count}`;
+  try {
+    await ElMessageBox.prompt(
+      `${tr("bulk.confirmDescription")} ${preview.count}. ${tr("bulk.typeHint")} ${keyword}`,
+      tr("bulk.confirmTitle"),
+      {
+        type: "info",
+        confirmButtonText: tr("bulk.confirm"),
+        cancelButtonText: tr("bulk.cancel"),
+        inputPattern: new RegExp(`^${keyword}$`),
+        inputErrorMessage: tr("bulk.confirmInvalid")
+      }
+    );
+  } catch {
+    return;
+  }
+  bulkBusy.value = true;
+  try {
+    const response = await applyHistoryBulk({
+      ...request,
+      expected_digest: preview.digest,
+      reason: bulkReason.value.trim()
+    });
+    ElMessage.success(`${tr("bulk.success")}: ${response.data.updated}`);
+    bulkVisible.value = false;
+    invalidateBulkPreview();
+    await load(true);
+  } catch (error) {
+    ElMessage.error(failureMessage(error));
+    invalidateBulkPreview();
+  } finally {
+    bulkBusy.value = false;
+  }
+}
+
+// Only the current search criteria are used; deleting ignores pagination.
+// The backend independently verifies the expected count and terminal state.
+async function deleteFiltered() {
+  if (deleteBusy.value) return;
+  deleteBusy.value = true;
+  try {
+    const filters = currentFilters();
+    const refreshed = await getManagedOrderCycles({
+      ...filters,
+      page: 1,
+      limit: 1
+    });
+    const count = Number(refreshed.data.total || 0);
+    if (!count) {
+      ElMessage.warning(tr("bulk.empty"));
+      return;
+    }
+    await ElMessageBox.confirm(
+      t("orderPage.bulk.deleteConfirmMessage", { count }),
+      tr("bulk.deleteConfirmTitle"),
+      {
+        confirmButtonText: tr("bulk.confirm"),
+        cancelButtonText: tr("bulk.cancel"),
+        type: "warning",
+        closeOnClickModal: false
+      }
+    );
+    const outcome = await deleteManagedHistory({
+      filters,
+      expected_count: count
+    });
+    ElMessage.success(
+      t("orderPage.bulk.deleteSuccess", {
+        positions: outcome.data.positions,
+        orders: outcome.data.orders,
+        fills: outcome.data.fills
+      })
+    );
+    await load(true);
+  } catch (error) {
+    if (error !== "cancel" && error !== "close") {
+      ElMessage.error(failureMessage(error));
+    }
+  } finally {
+    deleteBusy.value = false;
+  }
+}
 function failureMessage(error: unknown) {
   const value = error as {
     message?: string;
@@ -97,19 +271,7 @@ async function load(reset = false) {
   loading.value = true;
   resetDetailCache();
   try {
-    const params = {
-      page: query.page,
-      limit: query.limit,
-      account_id: query.account_id,
-      owner: query.owner || undefined,
-      symbol: query.symbol.trim() || undefined,
-      position_side: query.position_side || undefined,
-      status: query.status || undefined,
-      settlement: query.settlement || undefined,
-      start_time: query.range?.[0] ? Number(query.range[0]) : undefined,
-      end_time: query.range?.[1] ? Number(query.range[1]) : undefined
-    };
-    const res = await getManagedOrderCycles(params);
+    const res = await getManagedOrderCycles(currentFilters());
     if (current !== requestToken) return;
     const data = res.data;
     rows.value = data.list || [];
@@ -265,6 +427,26 @@ onMounted(() => load());
         }}</el-button>
       </el-form-item>
     </el-form>
+
+    <div class="mb-3 flex flex-wrap items-center gap-2">
+      <el-button
+        type="danger"
+        plain
+        :loading="deleteBusy"
+        @click="deleteFiltered"
+      >
+        {{ tr("bulk.delete") }}
+      </el-button>
+      <el-button
+        type="primary"
+        plain
+        :loading="bulkBusy"
+        @click="openBulk('update')"
+      >
+        {{ tr("bulk.update") }}
+      </el-button>
+      <el-text size="small" type="info">{{ tr("bulk.scope") }}</el-text>
+    </div>
 
     <div class="mb-3 flex flex-wrap items-center gap-3 text-sm">
       <span>{{ tr("summary.total") }}: {{ total }}</span>
@@ -516,20 +698,61 @@ onMounted(() => load());
         min-width="130"
         show-overflow-tooltip
       />
-      <el-table-column :label="tr('table.status')" min-width="100">
-        <template #default="{ row }">{{ statusLabel(row.status) }}</template>
+      <el-table-column :label="tr('table.status')" min-width="125">
+        <template #default="{ row }">
+          <el-tooltip
+            :content="
+              row.status_manually_set
+                ? tr('bulk.realStatus') + statusLabel(row.system_status)
+                : statusLabel(row.status)
+            "
+          >
+            <span>{{ statusLabel(row.status) }}</span>
+          </el-tooltip>
+          <el-tag v-if="row.status_manually_set" size="small" type="warning">
+            {{ tr("bulk.manual") }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column :label="tr('table.profit')" min-width="170">
+        <template #default="{ row }">
+          <span :class="signed(row.net_pnl)"
+            >{{ display(row.net_pnl) }} {{ row.pnl_asset }}</span
+          >
+        </template>
+      </el-table-column>
+      <el-table-column :label="tr('table.returnPct')" min-width="130">
+        <template #default="{ row }">
+          <span :class="signed(row.return_pct)">{{
+            row.return_pct == null ? "-" : row.return_pct + "%"
+          }}</span>
+        </template>
       </el-table-column>
       <el-table-column :label="tr('table.completeness')" min-width="130">
         <template #default="{ row }">
           <el-tooltip
             :content="
-              row.incomplete_reason
-                ? tr(`reason.${row.incomplete_reason}`)
-                : settlementLabel(row.settlement_status)
+              row.completeness_manually_set
+                ? tr('bulk.actualCompleteness') +
+                  tr(`completeness.${row.system_completeness}`) +
+                  (row.system_incomplete_reason
+                    ? ' · ' + tr(`reason.${row.system_incomplete_reason}`)
+                    : '')
+                : row.incomplete_reason
+                  ? tr(`reason.${row.incomplete_reason}`)
+                  : settlementLabel(row.settlement_status)
             "
           >
             <el-tag :type="completenessType(row.completeness)" size="small">
               {{ tr(`completeness.${row.completeness}`) }}
+            </el-tag>
+            <el-tag
+              v-if="row.completeness_manually_set"
+              size="small"
+              type="warning"
+              class="ml-1"
+            >
+              {{ tr("bulk.manual") }}
             </el-tag>
           </el-tooltip>
         </template>
@@ -563,20 +786,6 @@ onMounted(() => load());
           row.completeness === "verified" ? feeText(row.fees) : "-"
         }}</template>
       </el-table-column>
-      <el-table-column :label="tr('table.profit')" min-width="170">
-        <template #default="{ row }">
-          <span :class="signed(row.net_pnl)"
-            >{{ display(row.net_pnl) }} {{ row.pnl_asset }}</span
-          >
-        </template>
-      </el-table-column>
-      <el-table-column :label="tr('table.returnPct')" min-width="130">
-        <template #default="{ row }">
-          <span :class="signed(row.return_pct)">{{
-            row.return_pct == null ? "-" : row.return_pct + "%"
-          }}</span>
-        </template>
-      </el-table-column>
       <el-table-column :label="tr('table.duration')" min-width="105">
         <template #default="{ row }">{{
           formatDuration(row.duration_millis)
@@ -598,5 +807,102 @@ onMounted(() => load());
         @size-change="updatePageSize"
       />
     </div>
+
+    <el-dialog
+      v-model="bulkVisible"
+      :title="tr('bulk.title.update')"
+      width="560px"
+      :close-on-click-modal="false"
+      destroy-on-close
+      @closed="invalidateBulkPreview"
+    >
+      <el-alert
+        :title="tr('bulk.safetyTitle')"
+        :description="tr('bulk.safetyDescription')"
+        type="warning"
+        :closable="false"
+        show-icon
+        class="mb-4"
+      />
+      <el-form label-position="top">
+        <el-form-item
+          v-if="bulkAction === 'update'"
+          :label="tr('bulk.statusLabel')"
+        >
+          <el-select
+            v-model="bulkStatus"
+            style="width: 100%"
+            @change="invalidateBulkPreview"
+          >
+            <el-option :label="tr('bulk.unchanged')" value="" />
+            <el-option :label="tr('bulk.clear')" value="__clear__" />
+            <el-option :label="tr('state.active')" value="active" />
+            <el-option :label="tr('state.suspended')" value="suspended" />
+            <el-option :label="tr('state.closed')" value="closed" />
+            <el-option
+              :label="tr('state.reconcile_required')"
+              value="reconcile_required"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item
+          v-if="bulkAction === 'update'"
+          :label="tr('bulk.completenessLabel')"
+        >
+          <el-select
+            v-model="bulkCompleteness"
+            style="width: 100%"
+            @change="invalidateBulkPreview"
+          >
+            <el-option :label="tr('bulk.unchanged')" value="" />
+            <el-option :label="tr('bulk.clear')" value="__clear__" />
+            <el-option :label="tr('completeness.pending')" value="pending" />
+            <el-option
+              :label="tr('completeness.incomplete')"
+              value="incomplete"
+            />
+            <el-option
+              :label="tr('completeness.manual_reviewed')"
+              value="manual_reviewed"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="tr('bulk.reason')">
+          <el-input
+            v-model="bulkReason"
+            type="textarea"
+            :rows="3"
+            maxlength="512"
+            show-word-limit
+            :placeholder="tr('bulk.reasonPlaceholder')"
+          />
+        </el-form-item>
+      </el-form>
+      <el-button :loading="bulkBusy" @click="prepareBulk">
+        {{ tr("bulk.preview") }}
+      </el-button>
+      <el-alert
+        v-if="bulkPreview"
+        type="info"
+        :closable="false"
+        show-icon
+        class="mt-3"
+        :title="`${tr('bulk.matched')}: ${bulkPreview.count}`"
+        :description="tr('bulk.confirmScope')"
+      />
+      <template #footer>
+        <el-button @click="bulkVisible = false">{{
+          tr("bulk.cancel")
+        }}</el-button>
+        <el-button
+          type="primary"
+          :loading="bulkBusy"
+          :disabled="!bulkPreview || bulkReason.trim().length < 8"
+          @click="applyBulk"
+        >
+          {{ tr("bulk.confirm") }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
