@@ -16,7 +16,9 @@ interface PopupScrollData {
 const PAGE_SIZE = 20;
 export const strategyTemplatePopperClass = "strategy-template-select-dropdown";
 
-export function useStrategyTemplateOptions() {
+export function useStrategyTemplateOptions(
+  fetchTemplates: typeof getStrategyTemplateList = getStrategyTemplateList
+) {
   const options = ref<StrategyTemplateOption[]>([]);
   const total = ref(0);
   const currentPage = ref(0);
@@ -47,7 +49,7 @@ export function useStrategyTemplateOptions() {
 
     loading.value = true;
     try {
-      const res = await getStrategyTemplateList({
+      const res = await fetchTemplates({
         page,
         limit: PAGE_SIZE,
         ...(keyword.value ? { name: keyword.value } : {})

@@ -62,6 +62,13 @@ export interface ManagedCycle {
   order_count: number;
   fill_count: number;
   rest_verified_fills: number;
+  current_price: string | null;
+  price_updated_at: number;
+  realized_pnl: string | null;
+  unrealized_pnl: string | null;
+  total_pnl: string | null;
+  display_return_pct: string | null;
+  display_pnl_asset?: string;
 }
 
 export interface ManagedChildOrder {
@@ -98,6 +105,11 @@ export interface ManagedOrderPage {
   limit: number;
   list: ManagedCycle[];
   page_verified_net: Record<string, string>;
+  filtered_pnl: Record<
+    string,
+    { realized: string; unrealized: string; total: string }
+  >;
+  pnl_unpriced_count: number;
 }
 
 export interface ManagedCycleDetail {

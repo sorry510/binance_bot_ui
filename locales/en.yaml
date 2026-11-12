@@ -102,6 +102,10 @@ menus:
   notifyConfig: Notify Config
   notificationHistory: Notification History
   futuresTrade: Futures Trade
+  spotQuantTrading: Spot Quant Trading
+  spotQuantAccount: Local Spot Account
+  spotQuantControlledTrade: Spot Positions & Controlled Trade
+  spotQuantTemplates: Spot Strategy Templates
   leadTrading: Copy Trading
   futuresAccount: Futures Account
   futuresTradeOrder: Futures Orders
@@ -1690,9 +1694,12 @@ orderPage:
     manual_reviewed: "Manually reviewed (not exchange verified)"
   summary:
     total: "Total position cycles"
-    pageVerified: "Verified net PnL on this page"
-    scope: "Page only"
-    pageExplanation: "Sum of settled, verified cycles on the current page only. Not a total across the entire filter or other accounts."
+    filtered: "Filtered total PnL"
+    realized: "Realized"
+    unrealized: "Unrealized"
+    filterScope: "All filtered cycles"
+    explanation: "Calculated across all filtered cycles, not the current page. Realized PnL uses executed prices and unrealized PnL uses the latest symbols table price. Trading fees and funding are excluded; last price may differ from Binance mark price."
+    unpriced: "Cycles with unavailable PnL"
   table:
     positionId: "Cycle ID"
     symbol: "Symbol"
@@ -1706,7 +1713,11 @@ orderPage:
     openAvg: "Entry VWAP"
     closeAvg: "Exit VWAP"
     fee: "Verified fees"
-    profit: "Verified trading net PnL"
+    currentPrice: "Latest price"
+    priceUpdated: "Price updated"
+    realizedPnl: "Realized PnL"
+    unrealizedPnl: "Unrealized PnL"
+    profit: "Total PnL (before fees)"
     returnPct: "Notional return"
     duration: "Cycle duration"
     updatedAt: "Updated"
@@ -2911,3 +2922,88 @@ aiHub:
   marketRegimeBlocked: Market-regime scheduling also requires automatic MarketCondition mode in Configuration Center; otherwise the scheduled analysis will not run.
   confidenceRange: Minimum opportunity confidence must be between 1% and 100%
   confidenceNotSaved: Opportunity confidence was not saved; check the server configuration
+
+spotQuant062:
+  budget: Budget (quote asset)
+  selectSymbols: Select symbols to batch edit
+  enableConfigured: Enable configured symbols
+  configurationOnly: Stage 06-2 only saves Spot Quant settings. Live trading is not connected; enabling a symbol does not place orders.
+  synthetic: Synthetic preview, not a live signal
+  syntaxOnly: Syntax validated only; no actual indicator evaluation
+  exportJson: Export JSON
+  batchBudget: Per-symbol budget (each symbol's quote currency)
+  importOverwriteTitle: Confirm template overwrite
+  importOverwrite: A Spot template named "{name}" already exists. Importing will replace its indicators and rules. Continue?
+  importNameRequired: Imported JSON must contain a non-empty template name
+
+spotQuantPage:
+  config:
+    title: Spot Quant Trading
+    enable: Enable Spot Quant
+    safety: Local configuration and ledgers only. Live Spot orders remain disabled until stage 06-6 has passed integration review.
+  account:
+    positions: Strategy Positions
+    orders: Strategy Orders
+  summary:
+    title: Spot Strategy PnL Summary
+    filteredTotal: All filtered positions, not just this page; quote currencies are kept separate
+    positions: Positions
+    incomplete: Incomplete (missing price / unpriced fees / reconciliation)
+  table:
+    symbol: Symbol
+    status: Status
+    side: Side
+    remaining: Remaining Qty
+    quantity: Filled Qty
+    average: Average Entry Cost
+    price: Current Spot Price
+    realized: Realized PnL
+    unrealized: Unrealized PnL
+    totalPnl: Total PnL
+    requested: Requested Qty
+    filled: Filled Qty
+    clientId: Client Order ID
+    tradeId: Exchange Trade ID
+    fee: Commission
+    created: Created
+    closed: Closed
+    review: Data Health
+    actions: Actions
+  status:
+    PENDING_BUY: Pending Buy
+    OPEN: Open
+    CLOSED: Closed
+  actions:
+    detail: Details
+    refresh: Refresh
+    manualRefresh: Manual refresh
+    search: Search
+    reset: Reset
+    close: Close
+    rebuild: Rebuild Local Ledger
+    manualSell: Manual Sell
+    reconcile: Reconcile
+    cancel: Cancel
+    confirm: Confirm
+  detail:
+    title: Spot Position and Trade Details
+    orders: Buy / Sell Orders
+    fills: Actual Trade Fills
+  controlled:
+    title: Local Controlled Trading
+    warning: Only managed strategy orders and trades are shown. Manually held assets are never claimed. Selling, canceling and exchange reconciliation require a separate Testnet approval in stage 06-6.
+    notReleased: This action remains disabled until Testnet and release checks pass.
+  confirm:
+    title: Confirm Local Data Operation
+    rebuild: Recalculate the {symbol} position cache from recorded immutable fills? This will not modify exchange orders or trades.
+  message:
+    localOnly: Local Spot Strategy Ledger
+    accountScope: This is not the Binance wallet or manual position balance; only independent Spot Quant strategy records appear.
+    loadFailed: Failed to load Spot ledger
+    noData: No local Spot strategy records
+    needsReview: Order requires exchange reconciliation
+    unpriced: Fees in other assets are unpriced; the reported PnL is not final net profit
+    priceMissing: No current valid Spot quote (or feed is stale)
+    verified: Verified
+    rebuildSuccess: Local position rebuilt from recorded trades
+    rebuildFailed: Failed to rebuild; inspect trade and order consistency

@@ -31,6 +31,7 @@ let marketProgressTimer: ReturnType<typeof setTimeout> | undefined;
 let marketProgressPollFailures = 0;
 const config = reactive<Record<string, any>>({
   tradeFutureEnable: 0,
+  spot_quant_enable: 0,
   WsFuturesFastMoveEnable: 0,
   WsFuturesFastMoveThreshold: 0,
   WsFuturesFastMoveRecover: 0,
@@ -255,6 +256,7 @@ onBeforeUnmount(() => {
       v-loading="loading"
       :model-value="[
         'futures',
+        'spot_quant',
         'fast_move',
         'liquidation',
         'market_condition',
@@ -267,6 +269,44 @@ onBeforeUnmount(() => {
         'external'
       ]"
     >
+      <el-collapse-item name="spot_quant">
+        <template #title>
+          <div class="dashboard-text flex items-center gap-3">
+            <span>{{ t("spotQuantPage.config.title") }}</span>
+            <el-tag
+              :type="
+                Number(config.spot_quant_enable) === 1 ? 'success' : 'info'
+              "
+              size="small"
+            >
+              {{
+                Number(config.spot_quant_enable) === 1
+                  ? t("dashboard.state.on")
+                  : t("dashboard.state.off")
+              }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="dashboard-body">
+          <div class="field-row">
+            <span class="field-label">{{
+              t("spotQuantPage.config.enable")
+            }}</span>
+            <el-switch
+              :model-value="Number(config.spot_quant_enable)"
+              :active-value="1"
+              :inactive-value="0"
+              @change="value => saveField('spot_quant_enable', value)"
+            />
+          </div>
+          <el-alert
+            :title="t('spotQuantPage.config.safety')"
+            type="warning"
+            show-icon
+            :closable="false"
+          />
+        </div>
+      </el-collapse-item>
       <el-collapse-item name="futures">
         <template #title>
           <div class="dashboard-text flex items-center gap-3">

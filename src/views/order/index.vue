@@ -24,7 +24,10 @@ const tr = (name: string) => t(`orderPage.${name}`);
 const loading = ref(false);
 const rows = ref<ManagedCycle[]>([]);
 const total = ref(0);
-const pageVerifiedNet = ref<Record<string, string>>({});
+const filteredPnL = ref<
+  Record<string, { realized: string; unrealized: string; total: string }>
+>({});
+const pnlUnpriced = ref(0);
 const detailCache = reactive<Record<string, ManagedCycleDetail>>({});
 const detailLoading = reactive<Record<string, boolean>>({});
 const query = reactive({
@@ -276,12 +279,14 @@ async function load(reset = false) {
     const data = res.data;
     rows.value = data.list || [];
     total.value = Number(data.total || 0);
-    pageVerifiedNet.value = data.page_verified_net || {};
+    filteredPnL.value = data.filtered_pnl || {};
+    pnlUnpriced.value = Number(data.pnl_unpriced_count || 0);
   } catch (error) {
     if (current === requestToken) {
       rows.value = [];
       total.value = 0;
-      pageVerifiedNet.value = {};
+      filteredPnL.value = {};
+      pnlUnpriced.value = 0;
       ElMessage.error(failureMessage(error));
     }
   } finally {
@@ -450,20 +455,28 @@ onMounted(() => load());
 
     <div class="mb-3 flex flex-wrap items-center gap-3 text-sm">
       <span>{{ tr("summary.total") }}: {{ total }}</span>
-      <span>{{ tr("summary.pageVerified") }}:</span>
-      <template v-if="Object.keys(pageVerifiedNet).length">
-        <span
-          v-for="(amount, asset) in pageVerifiedNet"
-          :key="asset"
-          :class="signed(amount)"
-        >
-          {{ amount }} {{ asset }}
+      <span>{{ tr("summary.filtered") }}:</span>
+      <template v-if="Object.keys(filteredPnL).length">
+        <span v-for="(amount, asset) in filteredPnL" :key="asset">
+          <strong :class="signed(amount.total)"
+            >{{ amount.total }} {{ asset }}</strong
+          >
+          ({{ tr("summary.realized") }}:
+          <span :class="signed(amount.realized)">{{ amount.realized }}</span
+          >, {{ tr("summary.unrealized") }}:
+          <span :class="signed(amount.unrealized)">{{ amount.unrealized }}</span
+          >)
         </span>
       </template>
       <span v-else>-</span>
-      <el-tooltip :content="tr('summary.pageExplanation')" placement="top">
-        <el-tag type="info" size="small">{{ tr("summary.scope") }}</el-tag>
+      <el-tooltip :content="tr('summary.explanation')" placement="top">
+        <el-tag type="info" size="small">{{
+          tr("summary.filterScope")
+        }}</el-tag>
       </el-tooltip>
+      <el-text v-if="pnlUnpriced" type="warning" size="small">
+        {{ tr("summary.unpriced") }}: {{ pnlUnpriced }}
+      </el-text>
     </div>
 
     <el-table
@@ -650,19 +663,6 @@ onMounted(() => load());
                   :label="tr('detail.actualId')"
                   min-width="130"
                 />
-                <el-table-column
-                  :label="tr('table.completeness')"
-                  min-width="135"
-                >
-                  <template #default="{ row: child }">
-                    <el-tag
-                      :type="completenessType(child.completeness)"
-                      size="small"
-                    >
-                      {{ tr(`completeness.${child.completeness}`) }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
               </el-table>
             </template>
             <el-empty
@@ -680,6 +680,17 @@ onMounted(() => load());
         width="110"
       />
       <el-table-column prop="symbol" :label="tr('table.symbol')" width="115" />
+      <el-table-column :label="tr('table.currentPrice')" min-width="125">
+        <template #default="{ row }">
+          <el-tooltip
+            :content="
+              tr('table.priceUpdated') + ': ' + formatTime(row.price_updated_at)
+            "
+          >
+            <span>{{ display(row.current_price) }}</span>
+          </el-tooltip>
+        </template>
+      </el-table-column>
       <el-table-column :label="tr('table.side')" width="90">
         <template #default="{ row }">
           <el-tag
@@ -714,49 +725,39 @@ onMounted(() => load());
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column :label="tr('table.profit')" min-width="170">
+      <el-table-column :label="tr('table.realizedPnl')" min-width="135">
         <template #default="{ row }">
-          <span :class="signed(row.net_pnl)"
-            >{{ display(row.net_pnl) }} {{ row.pnl_asset }}</span
-          >
+          <span :class="signed(row.realized_pnl)">{{
+            display(row.realized_pnl)
+          }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column :label="tr('table.unrealizedPnl')" min-width="135">
+        <template #default="{ row }">
+          <span :class="signed(row.unrealized_pnl)">{{
+            display(row.unrealized_pnl)
+          }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column :label="tr('table.profit')" min-width="175">
+        <template #default="{ row }">
+          <span :class="signed(row.total_pnl)">
+            {{ display(row.total_pnl) }} {{ row.display_pnl_asset || "" }}
+          </span>
         </template>
       </el-table-column>
       <el-table-column :label="tr('table.returnPct')" min-width="130">
         <template #default="{ row }">
-          <span :class="signed(row.return_pct)">{{
-            row.return_pct == null ? "-" : row.return_pct + "%"
-          }}</span>
+          <span :class="signed(row.display_return_pct)">
+            {{
+              row.display_return_pct == null
+                ? "-"
+                : row.display_return_pct + "%"
+            }}
+          </span>
         </template>
       </el-table-column>
-      <el-table-column :label="tr('table.completeness')" min-width="130">
-        <template #default="{ row }">
-          <el-tooltip
-            :content="
-              row.completeness_manually_set
-                ? tr('bulk.actualCompleteness') +
-                  tr(`completeness.${row.system_completeness}`) +
-                  (row.system_incomplete_reason
-                    ? ' · ' + tr(`reason.${row.system_incomplete_reason}`)
-                    : '')
-                : row.incomplete_reason
-                  ? tr(`reason.${row.incomplete_reason}`)
-                  : settlementLabel(row.settlement_status)
-            "
-          >
-            <el-tag :type="completenessType(row.completeness)" size="small">
-              {{ tr(`completeness.${row.completeness}`) }}
-            </el-tag>
-            <el-tag
-              v-if="row.completeness_manually_set"
-              size="small"
-              type="warning"
-              class="ml-1"
-            >
-              {{ tr("bulk.manual") }}
-            </el-tag>
-          </el-tooltip>
-        </template>
-      </el-table-column>
+
       <el-table-column :label="tr('table.openQty')" min-width="120">
         <template #default="{ row }">{{ display(row.open_qty) }}</template>
       </el-table-column>

@@ -102,6 +102,10 @@ menus:
   notifyConfig: 通知配置
   notificationHistory: 历史通知
   futuresTrade: 合约交易
+  spotQuantTrading: 现货量化交易
+  spotQuantAccount: 本地现货账户
+  spotQuantControlledTrade: 现货仓位与受控交易
+  spotQuantTemplates: 现货策略模板
   leadTrading: 合约带单
   futuresAccount: 合约账户
   futuresTradeOrder: 合约订单
@@ -1690,9 +1694,12 @@ orderPage:
     manual_reviewed: "人工已检查（非自动核实）"
   summary:
     total: "仓位周期总数"
-    pageVerified: "本页已核实净收益"
-    scope: "仅本页"
-    pageExplanation: "只对当前页已完成成交核对及结算的周期求和；不代表全部筛选结果或所有账户的收益。"
+    filtered: "筛选结果总盈亏"
+    realized: "已平仓"
+    unrealized: "未平仓浮盈亏"
+    filterScope: "全部筛选结果"
+    explanation: "按全部筛选条件累计，而非当前页。已平仓按成交价与开仓均价计算；未平仓以 symbols 表最新价估算。未扣手续费及资金费。行情非币安标记价格，显示值可能与交易所未实现盈亏略有差异。"
+    unpriced: "无法完整估值的周期"
   table:
     positionId: "周期 ID"
     symbol: "币种"
@@ -1706,7 +1713,11 @@ orderPage:
     openAvg: "开仓均价"
     closeAvg: "平仓均价"
     fee: "已核实手续费"
-    profit: "已核实净交易盈亏"
+    currentPrice: "当前价格"
+    priceUpdated: "价格更新时间"
+    realizedPnl: "已平仓盈亏"
+    unrealizedPnl: "浮动盈亏"
+    profit: "合计盈亏(未扣费用)"
     returnPct: "名义收益率"
     duration: "周期时长"
     updatedAt: "更新时间"
@@ -2911,3 +2922,88 @@ aiHub:
   marketRegimeBlocked: 市场环境分析需要配置中心的 MarketCondition 自动模式同时开启，否则定时分析不会运行。
   confidenceRange: 最低机会置信度必须介于 1% 和 100% 之间
   confidenceNotSaved: 机会置信度未成功保存，请检查服务端配置
+
+spotQuant062:
+  budget: 交易预算（报价资产）
+  selectSymbols: 请先选择需要批量修改的币种
+  enableConfigured: 启用已配置币种
+  configurationOnly: 06-2 仅管理现货策略配置，尚未连接真实下单；启用币种不会立即下单。
+  synthetic: 模拟校验，非实盘信号
+  syntaxOnly: 仅完成语法检查，未计算实际指标
+  exportJson: 导出 JSON
+  batchBudget: 单币预算（各币报价资产）
+  importOverwriteTitle: 确认覆盖同名模板
+  importOverwrite: 已存在名为「{name}」的现货模板。导入会覆盖该模板的指标与策略，是否继续？
+  importNameRequired: 导入的 JSON 必须包含非空的模板名称
+
+spotQuantPage:
+  config:
+    title: 现货量化交易
+    enable: 启用现货量化
+    safety: 当前仅提供本地配置与账本页面。06-6 联调验收之前，不会自动执行真实现货订单。
+  account:
+    positions: 策略持仓
+    orders: 策略订单
+  summary:
+    title: 现货策略收益汇总
+    filteredTotal: 按全部筛选结果统计，不限当前分页；不同报价币不合并
+    positions: 仓位数量
+    incomplete: 数据不完整（缺价格 / 未折价 / 需复核）
+  table:
+    symbol: 币种
+    status: 状态
+    side: 方向
+    remaining: 剩余数量
+    quantity: 成交数量
+    average: 持仓成本均价
+    price: 现货当前价格
+    realized: 已实现盈亏
+    unrealized: 未实现盈亏
+    totalPnl: 总盈亏
+    requested: 委托数量
+    filled: 已成交数量
+    clientId: 客户端订单号
+    tradeId: 交易所成交号
+    fee: 手续费
+    created: 创建时间
+    closed: 平仓时间
+    review: 数据状态
+    actions: 操作
+  status:
+    PENDING_BUY: 等待买入成交
+    OPEN: 持仓中
+    CLOSED: 已平仓
+  actions:
+    detail: 详情
+    refresh: 刷新
+    manualRefresh: 手动刷新
+    search: 搜索
+    reset: 重置
+    close: 关闭
+    rebuild: 重算本地账本
+    manualSell: 手动卖出
+    reconcile: 交易所对账
+    cancel: 撤单
+    confirm: 确认
+  detail:
+    title: 现货仓位与成交明细
+    orders: 买入／卖出委托
+    fills: 真实逐笔成交
+  controlled:
+    title: 本地受控交易
+    warning: 仅展示属于本系统的策略订单与成交。不自动归属手动持币；真实卖出、撤单与交易所对账需要在 06-6 经过 Testnet 验收后单独开放。
+    notReleased: 该操作尚未开放，必须先通过 Testnet 及发布安全检查。
+  confirm:
+    title: 确认本地数据操作
+    rebuild: 确认使用已记录的真实成交重算 {symbol} 的本地仓位汇总？不会新增、删除或更改真实成交，也不会下单。
+  message:
+    localOnly: 本地现货策略账本
+    accountScope: 此页不代表 Binance 钱包余额或手工持仓；只显示独立 Spot Quant 的策略数据。
+    loadFailed: 读取现货账本失败
+    noData: 暂无本地现货策略记录
+    needsReview: 订单需要交易所核对
+    unpriced: 存在未折价的其他币种手续费，不能认定为完整净收益
+    priceMissing: 暂无有效现货报价（或行情已过期）
+    verified: 已核算
+    rebuildSuccess: 已根据真实逐笔成交重算本地仓位
+    rebuildFailed: 账本重算失败，请先检查成交与委托状态
