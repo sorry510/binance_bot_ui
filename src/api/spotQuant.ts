@@ -3,7 +3,7 @@ import { http, baseUrlApi } from "@/utils/http";
 type Query = Record<string, any>;
 const api = (path: string) => baseUrlApi(`spot-quant/${path}`);
 
-// Spot Quant: only local ticker settings and templates in stage 06-2.
+// Spot Quant API: symbol settings, templates, managed positions and orders.
 // None of these endpoints place Binance orders.
 export const getFeatures = (params: Query = {}) =>
   http.get<any, Query>(api("symbols"), { params });

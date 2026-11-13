@@ -1618,9 +1618,6 @@ listenFundingRatePage:
   message:
     updateSuccess: Updated successfully
 orderPage:
-  notice:
-    title: "Managed position history · Binance exchange fills"
-    description: "One row represents a Managed position cycle. Bulk delete permanently removes eligible terminal cycles with their Managed orders, exchange Fills and related admin records. Active, unsettled and recent cycles are protected. Manual status/integrity edits are presentation-only and cannot forge REST verification or change risk controls."
   bulk:
     delete: "Delete filtered history"
     update: "Bulk edit status / integrity"
@@ -2927,7 +2924,6 @@ spotQuant062:
   budget: Budget (quote asset)
   selectSymbols: Select symbols to batch edit
   enableConfigured: Enable configured symbols
-  configurationOnly: Stage 06-2 only saves Spot Quant settings. Live trading is not connected; enabling a symbol does not place orders.
   synthetic: Synthetic preview, not a live signal
   syntaxOnly: Syntax validated only; no actual indicator evaluation
   exportJson: Export JSON
@@ -2940,7 +2936,6 @@ spotQuantPage:
   config:
     title: Spot Quant Trading
     enable: Enable Spot Quant
-    safety: Local configuration and ledgers only. Live Spot orders remain disabled until stage 06-6 has passed integration review.
   account:
     positions: Strategy Positions
     orders: Strategy Orders
@@ -2990,8 +2985,6 @@ spotQuantPage:
     orders: Buy / Sell Orders
     fills: Actual Trade Fills
   controlled:
-    title: Local Controlled Trading
-    warning: Only managed strategy orders and trades are shown. Manually held assets are never claimed. Selling, canceling and exchange reconciliation require a separate Testnet approval in stage 06-6.
     notReleased: This action remains disabled until Testnet and release checks pass.
   confirm:
     title: Confirm Local Data Operation

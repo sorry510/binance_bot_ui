@@ -856,13 +856,6 @@ onMounted(fetchData);
 
 <template>
   <div class="p-4 strategy-template-page">
-    <el-alert
-      class="mb-3"
-      :title="t('spotQuant062.configurationOnly')"
-      type="info"
-      :closable="false"
-      show-icon
-    />
     <div class="mb-3 flex items-center gap-2">
       <el-button type="success" @click="openCreateDialog">{{
         t("strategyTemplatePage.button.add")

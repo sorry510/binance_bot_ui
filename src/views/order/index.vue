@@ -342,14 +342,6 @@ onMounted(() => load());
 
 <template>
   <div class="p-4">
-    <el-alert
-      :title="tr('notice.title')"
-      :description="tr('notice.description')"
-      type="info"
-      :closable="false"
-      show-icon
-      class="mb-4"
-    />
     <el-form :inline="true" class="mb-2">
       <el-form-item :label="tr('filter.account')">
         <el-select v-model="query.account_id" style="width: 105px">

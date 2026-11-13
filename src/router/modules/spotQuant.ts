@@ -2,7 +2,6 @@ import { $t } from "@/plugins/i18n";
 const Layout = () => import("@/layout/index.vue");
 
 // 06-5: mirror the four core Futures page types, but only Spot BUY/SELL.
-// Order mutation is intentionally not exposed until the 06-6 release gate.
 export default [
   {
     path: "/spot-quant",

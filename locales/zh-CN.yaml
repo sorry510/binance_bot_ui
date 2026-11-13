@@ -1618,9 +1618,6 @@ listenFundingRatePage:
   message:
     updateSuccess: 更新成功
 orderPage:
-  notice:
-    title: "新订单历史 · 仅显示 Managed 周期及 Binance 逐笔成交"
-    description: "一行代表一个持仓周期。批量删除将永久删除符合条件的已结束周期、关联 Managed 订单和真实 Fill；正在交易、待结算或近期成交的记录不可删除。手动状态/完整性仅影响页面显示，不会伪造 REST 核实或影响风控。收益率为名义成交额口径（不含资金费）。"
   bulk:
     delete: "批量删除筛选结果"
     update: "批量修改状态 / 完整性"
@@ -2927,7 +2924,6 @@ spotQuant062:
   budget: 交易预算（报价资产）
   selectSymbols: 请先选择需要批量修改的币种
   enableConfigured: 启用已配置币种
-  configurationOnly: 06-2 仅管理现货策略配置，尚未连接真实下单；启用币种不会立即下单。
   synthetic: 模拟校验，非实盘信号
   syntaxOnly: 仅完成语法检查，未计算实际指标
   exportJson: 导出 JSON
@@ -2940,7 +2936,6 @@ spotQuantPage:
   config:
     title: 现货量化交易
     enable: 启用现货量化
-    safety: 当前仅提供本地配置与账本页面。06-6 联调验收之前，不会自动执行真实现货订单。
   account:
     positions: 策略持仓
     orders: 策略订单
@@ -2990,8 +2985,6 @@ spotQuantPage:
     orders: 买入／卖出委托
     fills: 真实逐笔成交
   controlled:
-    title: 本地受控交易
-    warning: 仅展示属于本系统的策略订单与成交。不自动归属手动持币；真实卖出、撤单与交易所对账需要在 06-6 经过 Testnet 验收后单独开放。
     notReleased: 该操作尚未开放，必须先通过 Testnet 及发布安全检查。
   confirm:
     title: 确认本地数据操作

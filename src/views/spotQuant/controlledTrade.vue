@@ -112,14 +112,6 @@ onMounted(() => {
 
 <template>
   <div class="p-4">
-    <el-alert
-      :title="t('spotQuantPage.controlled.title')"
-      :description="t('spotQuantPage.controlled.warning')"
-      type="warning"
-      show-icon
-      :closable="false"
-      class="mb-4"
-    />
     <el-card shadow="never">
       <el-tabs v-model="tab" @tab-change="changeTab">
         <el-tab-pane

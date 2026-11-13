@@ -299,12 +299,6 @@ onBeforeUnmount(() => {
               @change="value => saveField('spot_quant_enable', value)"
             />
           </div>
-          <el-alert
-            :title="t('spotQuantPage.config.safety')"
-            type="warning"
-            show-icon
-            :closable="false"
-          />
         </div>
       </el-collapse-item>
       <el-collapse-item name="futures">
