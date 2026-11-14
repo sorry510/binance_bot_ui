@@ -95,15 +95,6 @@ export default [
         }
       },
       {
-        path: "/futures/outcome-review",
-        name: "OutcomeReview",
-        component: () => import("@/views/futures/outcomeReview.vue"),
-        meta: {
-          title: "menus.outcomeReview",
-          showLink: true
-        }
-      },
-      {
         path: "/futures/liquidation-orders",
         name: "futuresLiquidationOrders",
         component: () => import("@/views/futures/liquidationOrder.vue"),
