@@ -3,7 +3,7 @@ import { $t } from "@/plugins/i18n";
 import { emitter } from "@/utils/mitt";
 import { RouteConfigs } from "../../types";
 import { useTags } from "../../hooks/useTag";
-import { routerArrays } from "@/layout/types";
+import { getFixedTags } from "@/layout/types";
 import { onClickOutside } from "@vueuse/core";
 import TagChrome from "./components/TagChrome.vue";
 import { handleAliveRoute, getTopMenu } from "@/router/utils";
@@ -62,10 +62,7 @@ const contextmenuRef = ref();
 const isShowArrow = ref(false);
 const topPath = getTopMenu()?.path;
 const { VITE_HIDE_HOME } = import.meta.env;
-const fixedTags = [
-  ...routerArrays,
-  ...usePermissionStoreHook().flatteningRoutes.filter(v => v?.meta?.fixedTag)
-];
+const fixedTags = getFixedTags(usePermissionStoreHook().flatteningRoutes);
 
 const dynamicTagView = async () => {
   await nextTick();

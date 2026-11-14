@@ -90,7 +90,7 @@ menus:
   agentSkillManagement: Skill Management
   agentTaskCenter: Task Center
   agentWorkflows: Workflows
-  agentControlledTrade: Positions & Controlled Trade
+  agentControlledTrade: Futures Positions
   systemDashboard: System Dashboard
   agentMemoryManagement: Memory Management
   llmConfig: LLM Config
@@ -1089,6 +1089,8 @@ futuresSymbolPage:
     search: Search
     delete: Delete
     batchEdit: Batch Edit
+    marketLiquidation: Market Liquidations
+    fundingRate: Funding Rate
     technology: Technology
     strategy: Strategy
     cancel: Cancel
@@ -1442,6 +1444,8 @@ futuresAccount2Page:
     openOrder: Local Open Orders
   button:
     search: Search
+    exchangePositions: Exchange Positions
+    exchangeOrders: Exchange Orders
     delete: Delete
   placeholder:
     symbol: Symbol
@@ -2149,7 +2153,6 @@ agentObservabilityPage:
   tab:
     overview: Operations
     traces: Trace
-    changes: Change History
   metric:
     chatStartErrors: Chat start errors
     llmErrors: LLM errors
@@ -2160,7 +2163,6 @@ agentObservabilityPage:
     contextTokens: Avg Context Tokens
     memoryHit: Memory Hit Rate
     evalScore: Avg Eval Score
-    changes: Change Events
     contextTrim: Context Trim Rate
     evidenceCoverage: Evidence Coverage
     evalPass: Eval Pass Rate
@@ -2193,20 +2195,88 @@ agentObservabilityPage:
     tokens: Tokens
     teamRole: Team Role
     teamRun: Team Run
-    entityType: Entity Type
-    entity: Entity
-    from: From
-    to: To
   placeholder:
     task: Task ID
     type: Trace Type
     source: Tool Source
-    category: Category
-    changeType: Change Type
   button:
     refresh: Refresh
     search: Search
-
+  labels:
+    taskId: Task ID
+    step: Step
+    skill: Skill
+    p95: P95 latency
+    repair: Repair
+    error: Error
+    native: Native
+    online: Online
+    offline: Offline
+    durationMs: ms
+    teamRole: Team role
+  traceType:
+    task_started: Task started
+    context_build: Context build
+    llm_call: LLM call
+    tool_call: Tool call
+    validation: Validation
+    repair: Repair
+    task_finished: Task finished
+    eval: Evaluation
+    skill_validation: Skill validation
+    chat_message_start: Chat start
+  values:
+    success: Success
+    succeeded: Succeeded
+    failed: Failed
+    error: Error
+    healthy: Healthy
+    warning: Warning
+    unknown: Unknown
+    disabled: Disabled
+    enabled: Enabled
+    running: Running
+    queued: Queued
+    pending: Pending
+    skipped: Skipped
+    timeout: Timeout
+    partial: Partial
+    review_required: Review required
+    active: Active
+    available: Available
+    unavailable: Unavailable
+    native: Native
+    mcp: MCP
+    skill: Skill
+    mcp_server: MCP server
+    mcp_tool: MCP tool
+    skill_revision: Skill revision
+    catalog_refresh: Catalog refresh
+    catalog_changed: Catalog changed
+    schema_changed: Schema changed
+    trade_restricted: Trade restricted
+    import: Import
+    activated: Activated
+    deactivated: Deactivated
+    revision_created: Revision created
+    provider_error: Provider error
+    chat_start_error: Chat start error
+    skill_validation_error: Skill validation error
+    offline: Offline
+    online: Online
+    ready: Ready
+    blocked: Blocked
+    unconfigured: Unconfigured
+    configured: Configured
+    read_only: Read-only
+    invalid: Invalid
+    disconnected: Disconnected
+    connected: Connected
+    partial_success: Partial success
+  period:
+    hours24: Last 24 hours
+    days7: Last 7 days
+    days30: Last 30 days
 workflowPage:
   title: Business Workflows
   subtitle: Deterministic services perform scanning, aggregation, validation and testing. Agents only rank, judge and summarize small structured inputs; they never execute trades or overwrite production strategies.
@@ -2310,7 +2380,7 @@ workflowPage:
     startFailed: Failed to start workflow
 
 controlledTradePage:
-  title: Positions & Controlled Trade
+  title: Futures Positions
   subtitle: View futures position and order ownership in one place. Agent Proposals can only come from successful Symbol Analysis Tasks; real execution requires deterministic Risk, human approval, and another Risk check immediately before execution.
   history: Proposal History
   warning:
@@ -2331,7 +2401,7 @@ controlledTradePage:
     reconcileOwnership: Reconcile Ownership
     closePosition: Close This Managed Position
   ownership:
-    title: Futures Position / Order Ownership
+    title: Futures Positions
     description: Account positions are observed for conflicts. Unmanaged positions can be manually claimed after verifying fresh exchange quantities; this may enable automated closing.
     accountPositions: Account Position Ownership
     managedOrders: Managed Orders
@@ -2711,7 +2781,8 @@ opportunityPage:
 systemDashboard:
   health:
     title: System Health
-    subtitle: Read-only checks for core dependencies, scheduler, and trade safety. It never places orders, reconciles positions, or migrates the database.
+    subtitle: Read-only checks for core dependencies, scheduler, and trade safety. It never places orders, reconciles positions, or migrates the
+      database.
     status:
       healthy: Healthy
       warning: Warning
@@ -2722,6 +2793,7 @@ systemDashboard:
       database: Database
       binanceRest: Binance REST
       futuresWs: Futures WS
+      marketWs: Market WS
       announcementWs: Announcement WS
       marketIntelligence: Market Intelligence
       mcp: MCP
@@ -2729,6 +2801,14 @@ systemDashboard:
       scheduler: Scheduler
       agent: Agent Runtime
       trade: Trade Safety
+    wsDetails: WS Market Details
+    moreDetails: Other Health Details
+    market: Market
+    details: Details
+    wsMarketValues:
+      futures: USD-M Futures
+      spot: Spot
+      delivery: COIN-M Futures
     marketSources: Market Intelligence Sources
     mcpServers: MCP Servers
     schedulerJobs: Scheduler Jobs
@@ -2738,9 +2818,82 @@ systemDashboard:
     lastRun: Last Run
     running: Running
     enabled: Enabled
+    tradeCounts:
+      executionUncertain: Execution uncertain
+      protectionFailed: Protection failed
+      reconcileRequired: Reconciliation required
+    messages:
+      database connection failed: Database connection failed
+      load database schema version failed: Load database schema version failed
+      network check not requested: Network check not requested
+      read market intelligence source status failed: Read market intelligence source status failed
+      announcement websocket status unavailable: Announcement websocket status unavailable
+      invalid Binance proxy: Invalid Binance proxy
+      build Binance REST request failed: Build Binance REST request failed
+      Binance REST unavailable: Binance REST unavailable
+      read futures websocket freshness failed: Read futures websocket freshness failed
+      market WS healthy: Market WS healthy
+      market WS needs attention: Market WS requires attention
+      market WS not started: Market WS is not started
+      read spot websocket freshness failed: Failed to read Spot WS freshness
+      no spot market update has been recorded: No Spot market updates recorded
+      read delivery websocket freshness failed: Failed to read COIN-M WS freshness
+      no delivery market update has been recorded: No COIN-M market updates recorded
+      no futures market update has been recorded: No futures market update has been recorded
+      no market intelligence source status: No market intelligence source status
+      announcement websocket has no status: Announcement websocket has no status
+      Binance announcement credentials are not configured: Binance announcement credentials are not configured
+      read MCP status failed: Read MCP status failed
+      no enabled MCP servers: No enabled MCP servers
+      read LLM configuration failed: Read LLM configuration failed
+      no enabled LLM routing candidate: No enabled LLM routing candidate
+      read LLM observation failures failed: Read LLM observation failures failed
+      read latest LLM observation failed: Read latest LLM observation failed
+      no enabled scheduler jobs: No enabled scheduler jobs
+      read scheduler task freshness failed: Read scheduler task freshness failed
+      read Agent task count failed: Read Agent task count failed
+      read Agent failed task count failed: Read Agent failed task count failed
+      read Agent max-round failure count failed: Read Agent max-round failure count failed
+      no trade safety issue: No trade safety issue
+      read managed position reconcile count failed: Read managed position reconcile count failed
+      read managed order reconcile count failed: Read managed order reconcile count failed
+      schema: Database schema version {version}
+      schemaOutdated: Database schema version {version} is below required {required}
+      restCode: Binance REST returned status {code}
+      reachable: Connection successful in {duration} ms
+      lastMarketUpdate: Last market update {age} ago
+      sourceCounts: '{healthy} healthy, {errors} error, {other} other market sources'
+      sourceNonHealthy: '{healthy} healthy, {other} non-healthy market sources'
+      sourcesHealthy: '{count} healthy market sources'
+      mcpNotHealthy: '{bad}/{total} MCP servers are not healthy'
+      mcpHealthy: '{count} healthy MCP servers'
+      llmCandidates: '{count} LLM routing candidates'
+      llmCandidatesFailures: '{count} LLM routing candidates; {failures} failures in 24h'
+      jobsErrors: '{count} scheduler jobs report errors'
+      jobsEnabled: '{count} scheduler jobs enabled'
+      jobsNeedAttention: '{count} scheduler jobs need attention (database freshness)'
+      jobsRecent: '{count} scheduler jobs have recent task results'
+      agentTasks: '{count} tasks in 24h'
+      agentFailures: '{failed}/{total} tasks failed in 24h'
+      protectionFailures: '{count} protection failures need review'
+      tradeCounters: Execution uncertain {uncertain}, reconciliation required {reconcile}, protection failed {protection}
+      tradeReadFailed: Could not read trade safety statistics
+      ageSeconds: '{count} seconds'
+      ageMinutes: '{count} minutes'
+      ageHoursMinutes: '{hours} hours {minutes} minutes'
+    sourceValues:
+      binance_announcement: Binance announcements
+      binance_exchange: Binance exchange
+      rss: RSS
+    jobValues:
+      market_regime: Market regime analysis
+      opportunity_market_scan: Market opportunity scan
+      daily_market_brief: Daily market brief
   binanceApi:
+    moreDetails: REST Diagnostics
     title: Binance API Usage
-    subtitle: Unified rolling observability for Futures / Spot / Delivery REST. Used Weight and Order Count come from Binance response headers when available. Estimated weight is only for endpoint ranking, not authoritative limit usage.
+    subtitle: Unified rolling observability for Futures / Spot / Delivery REST. Used Weight and Order Count come from Binance response headers
+      when available. Estimated weight is only for endpoint ranking, not authoritative limit usage.
     requests1m: Requests in 1m
     estimatedWeight1m: Estimated Weight in 1m
     rateLimited: 429 / 418 (5m)
@@ -2782,8 +2935,64 @@ systemDashboard:
     status: HTTP
     retainedEvents: Retained Events
     droppedEvents: Dropped Events
-    truncated: "The last 5-minute window exceeded the in-memory cap. {count} events have been dropped during this process lifetime; current window totals may be lower than actual usage."
-
+    truncated: The last 5-minute window exceeded the in-memory cap. {count} events have been dropped during this process lifetime; current window
+      totals may be lower than actual usage.
+    p95: P95 latency
+    retryAfter: Retry-After (seconds)
+    requestWindow: '{duration}: {requests} requests / estimated weight {weight}'
+    productValues:
+      futures: Futures
+      spot: Spot
+      delivery: Coin-margined delivery
+      unknown: Unknown
+    environmentValues:
+      mainnet: Mainnet
+      testnet: Testnet
+      unknown: Unknown
+    requestTypes:
+      read: Read
+      trade: Trade
+      unknown: Unknown
+    sourceValues:
+      unknown: Unknown
+      go_binance: Binance interface
+      system_health: System health check
+      start_trade: Automated trading
+      exchange_info: Exchange rules
+      lead_trading: Copy trading
+      lead_trading_sapi: Copy trading account query
+      funding_rate: Funding rate
+      funding_rate_history: Funding history
+      new_coin_rush: New coin rush
+      notice_auto_order: Automated alert order
+      user_data_sync: Account data sync
+      ownership_reconcile: Ownership reconciliation
+      market_intelligence: Market intelligence
+      historical_market: Historical market
+      agent_trade: Agent trading
+      manual_api: Manual interface query
+      spot_exchange_info: Spot rules
+      spot_runtime: Spot runtime
+      spot_quant_24h: Spot quant 24-hour market
+      spot_quant_klines: Spot quant candlesticks
+      spot_listen_price_fallback: Spot listener price fallback
+      spot_quant_testnet: Spot quant testnet
+      spot_quant_rules: Spot quant rules
+      spot_quant_price: Spot quant price
+      spot_quant_balance: Spot quant balance
+      spot_quant_lookup: Spot quant order lookup
+      spot_quant_place: Spot quant order placement
+      spot_quant_cancel: Spot quant cancellation
+      spot_quant_my_trades: Spot quant fills
+      spot_new_coin_rush: Spot new coin rush
+      spot_notice: Spot alerts
+      spot_listen: Spot listener
+    timeUnit:
+      second: s
+      minute: min
+      10s: 10 seconds
+      1m: 1 minute
+      5m: 5 minutes
 leadTradingPage:
   title: "Copy Trading"
   offline: "Management only · live trading not authorized"

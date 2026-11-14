@@ -8,27 +8,40 @@ import {
   isNumber,
   isBoolean,
   getConfig,
-  routerArrays,
   storageLocal,
   responsiveStorageNameSpace
 } from "../utils";
 import { usePermissionStoreHook } from "./permission";
+import { getFixedTags } from "@/layout/types";
+
+/** Restore existing tabs, replace the old "Home" label and move fixed tags first. */
+function initialTags() {
+  const fixedTags = getFixedTags(usePermissionStoreHook().flatteningRoutes);
+  const namespace = responsiveStorageNameSpace();
+  const cacheEnabled = storageLocal().getItem<StorageConfigs>(
+    `${namespace}configure`
+  )?.multiTagsCache;
+  if (!cacheEnabled) return fixedTags;
+
+  const cached = storageLocal().getItem<StorageConfigs>(`${namespace}tags`);
+  const tags = Array.isArray(cached) ? cached : [];
+  const dynamic = tags
+    .filter(tag => tag && !fixedTags.some(fixed => fixed.path === tag.path))
+    .map(tag =>
+      tag.path === "/dashboard"
+        ? {
+            ...tag,
+            meta: { ...tag.meta, title: "menus.dashboard", fixedTag: false }
+          }
+        : tag
+    );
+  return [...fixedTags, ...dynamic];
+}
 
 export const useMultiTagsStore = defineStore("pure-multiTags", {
   state: () => ({
     // 存储标签页信息（路由信息）
-    multiTags: storageLocal().getItem<StorageConfigs>(
-      `${responsiveStorageNameSpace()}configure`
-    )?.multiTagsCache
-      ? storageLocal().getItem<StorageConfigs>(
-          `${responsiveStorageNameSpace()}tags`
-        )
-      : ([
-          ...routerArrays,
-          ...usePermissionStoreHook().flatteningRoutes.filter(
-            v => v?.meta?.fixedTag
-          )
-        ] as any),
+    multiTags: initialTags() as any,
     multiTagsCache: storageLocal().getItem<StorageConfigs>(
       `${responsiveStorageNameSpace()}configure`
     )?.multiTagsCache

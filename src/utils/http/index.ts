@@ -67,8 +67,8 @@ class PureHttp {
   private httpInterceptorsRequest(): void {
     PureHttp.axiosInstance.interceptors.request.use(
       async (config: PureHttpRequestConfig): Promise<any> => {
-        // 开启进度条动画
-        NProgress.start();
+        // Background polling should not flash the global progress bar.
+        if (!config.skipProgress) NProgress.start();
         // FormData 必须由浏览器自动生成 multipart/form-data boundary。
         // 全局默认 application/json 会导致 Axios 将 FormData 按 JSON 处理。
         if (
@@ -143,8 +143,8 @@ class PureHttp {
     instance.interceptors.response.use(
       (response: PureHttpResponse) => {
         const $config = response.config;
-        // 关闭进度条动画
-        NProgress.done();
+        // Only requests that started the progress bar may finish it.
+        if (!$config.skipProgress) NProgress.done();
         // 优先判断post/get等方法是否传入回调，否则执行初始化设置等回调
         if (typeof $config.beforeResponseCallback === "function") {
           $config.beforeResponseCallback(response);
@@ -159,8 +159,9 @@ class PureHttp {
       (error: PureHttpError) => {
         const $error = error;
         $error.isCancelRequest = Axios.isCancel($error);
-        // 关闭进度条动画
-        NProgress.done();
+        // A failed silent poll must not alter another request's progress state.
+        if (!(error.config as PureHttpRequestConfig | undefined)?.skipProgress)
+          NProgress.done();
         // 所有的响应异常 区分来源为取消请求/非取消请求
         return Promise.reject($error);
       }

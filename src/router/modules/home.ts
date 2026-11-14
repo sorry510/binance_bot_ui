@@ -27,7 +27,11 @@ export default [
         path: "/system-dashboard/overview",
         name: "SystemDashboardOverview",
         component: () => import("@/views/ai/observability.vue"),
-        meta: { title: "menus.systemDashboard", showLink: true }
+        meta: {
+          title: "menus.systemDashboard",
+          showLink: true,
+          fixedTag: true
+        }
       }
     ]
   },
@@ -51,7 +55,7 @@ export default [
     name: "AI",
     component: Layout,
     redirect: "/ai/chat",
-    meta: { icon: RobotIcon, title: "menus.ai", rank: 1.1 },
+    meta: { icon: RobotIcon, title: "menus.ai", rank: 4.1 },
     children: [
       {
         path: "/ai/chat",

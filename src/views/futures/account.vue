@@ -8,6 +8,7 @@ import {
   watch
 } from "vue";
 import { useI18n } from "vue-i18n";
+import { useRoute } from "vue-router";
 import {
   getFuturesAccount,
   getFuturesOpenOrders,
@@ -18,8 +19,22 @@ defineOptions({
   name: "futuresAccount"
 });
 const { t } = useI18n();
+const route = useRoute();
 
-const tabName = ref("position");
+function exchangeTab(queryTab: unknown): "account" | "position" | "openOrder" {
+  return queryTab === "account" || queryTab === "openOrder"
+    ? queryTab
+    : "position";
+}
+
+const tabName = ref(exchangeTab(route.query.tab));
+watch(
+  () => route.query.tab,
+  next => {
+    const requested = exchangeTab(next);
+    if (tabName.value !== requested) tabName.value = requested;
+  }
+);
 const accountAssets = ref<any[]>([]);
 const positions = ref<any[]>([]);
 const openOrders = ref<any[]>([]);

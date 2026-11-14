@@ -2,14 +2,11 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import {
-  getAgentObservabilityChanges,
   getAgentObservabilitySummary,
   getAgentObservabilityTraces,
-  type AgentChangeEvent,
   type AgentObservationTrace,
   type AgentObservabilitySummary
 } from "@/api/agent";
-import { leadStatus, leadMetrics, type LeadStatus } from "@/api/leadTrading";
 import {
   getBinanceAPIUsage,
   getSystemHealth,
@@ -20,36 +17,25 @@ import {
 } from "@/api/system";
 
 defineOptions({ name: "SystemDashboard" });
-const { t } = useI18n();
+const { t, te, locale } = useI18n();
 const loading = ref(false);
 const healthLoading = ref(false);
 const health = ref<SystemHealthReport | null>(null);
 const binanceUsageLoading = ref(false);
 const binanceUsage = ref<BinanceAPIUsageSnapshot | null>(null);
-const leadOverview = ref<LeadStatus | null>(null);
-const leadUsageSummary = ref<Record<string, number | boolean> | null>(null);
 let binanceUsageRefreshTimer: number | undefined;
+let healthRefreshTimer: number | undefined;
 const traceLoading = ref(false);
-const changeLoading = ref(false);
 const period = ref("24h");
 const summary = ref<AgentObservabilitySummary | null>(null);
 const traces = ref<AgentObservationTrace[]>([]);
-const changes = ref<AgentChangeEvent[]>([]);
 const traceTotal = ref(0);
-const changeTotal = ref(0);
 const traceQuery = reactive({
   task_id: "",
   skill: "",
   type: "",
   status: "",
   tool_source: "",
-  page: 1,
-  limit: 20
-});
-const changeQuery = reactive({
-  category: "",
-  change_type: "",
-  status: "",
   page: 1,
   limit: 20
 });
@@ -67,13 +53,14 @@ function number(value?: number) {
   return Number(value || 0).toLocaleString();
 }
 function duration(value?: number) {
-  return `${Math.round(Number(value || 0))} ms`;
+  return (
+    String(Math.round(Number(value || 0))) +
+    " " +
+    t("agentObservabilityPage.labels.durationMs")
+  );
 }
 function formatTime(value?: number) {
-  return value ? new Date(value).toLocaleString() : "-";
-}
-function shortHash(value?: string) {
-  return value ? `${value.slice(0, 12)}…` : "-";
+  return value ? new Date(value).toLocaleString(locale.value) : "-";
 }
 function pretty(value: unknown) {
   try {
@@ -91,12 +78,102 @@ function healthTagType(status?: HealthStatus | string) {
 function healthStatusLabel(status?: string) {
   const key = `systemDashboard.health.status.${status || "unknown"}`;
   const translated = t(key);
-  return translated === key ? status || "unknown" : translated;
+  return translated === key
+    ? displayValue("agentObservabilityPage.values", status || "unknown")
+    : translated;
+}
+// Translate display values without altering API identifiers, filters or raw diagnostic JSON.
+function displayValue(group: string, value?: string | null) {
+  if (!value) return "-";
+  const key = group + "." + value;
+  return te(key) ? t(key) : value;
+}
+function healthAge(age: string) {
+  let m = age.match(/^(\d+)h(\d+)m$/);
+  if (m)
+    return t("systemDashboard.health.messages.ageHoursMinutes", {
+      hours: m[1],
+      minutes: m[2]
+    });
+  m = age.match(/^(\d+)m$/);
+  if (m)
+    return t("systemDashboard.health.messages.ageMinutes", { count: m[1] });
+  m = age.match(/^(\d+)s$/);
+  if (m)
+    return t("systemDashboard.health.messages.ageSeconds", { count: m[1] });
+  return age;
+}
+function translatedHealthMessage(message?: string) {
+  const raw = (message || "").trim();
+  if (!raw) return "-";
+  const group = "systemDashboard.health.messages";
+  let m: RegExpMatchArray | null;
+  if ((m = raw.match(/^schema v(\d+) is older than required v(\d+)$/)))
+    return t(group + ".schemaOutdated", { version: m[1], required: m[2] });
+  if ((m = raw.match(/^schema v(\d+)$/)))
+    return t(group + ".schema", { version: m[1] });
+  if ((m = raw.match(/^Binance REST HTTP (\d+)$/)))
+    return t(group + ".restCode", { code: m[1] });
+  if ((m = raw.match(/^reachable in (\d+) ms$/)))
+    return t(group + ".reachable", { duration: m[1] });
+  if ((m = raw.match(/^last market update (\S+) ago$/)))
+    return t(group + ".lastMarketUpdate", { age: healthAge(m[1]) });
+  if (
+    (m = raw.match(/^(\d+) healthy, (\d+) error, (\d+) other market sources$/))
+  )
+    return t(group + ".sourceCounts", {
+      healthy: m[1],
+      errors: m[2],
+      other: m[3]
+    });
+  if ((m = raw.match(/^(\d+) healthy, (\d+) non-healthy market sources$/)))
+    return t(group + ".sourceNonHealthy", { healthy: m[1], other: m[2] });
+  if ((m = raw.match(/^(\d+) sources healthy$/)))
+    return t(group + ".sourcesHealthy", { count: m[1] });
+  if ((m = raw.match(/^(\d+)\/(\d+) MCP servers are not healthy$/)))
+    return t(group + ".mcpNotHealthy", { bad: m[1], total: m[2] });
+  if ((m = raw.match(/^(\d+) MCP servers healthy$/)))
+    return t(group + ".mcpHealthy", { count: m[1] });
+  if ((m = raw.match(/^(\d+) routing candidates; (\d+) LLM failures in 24h$/)))
+    return t(group + ".llmCandidatesFailures", { count: m[1], failures: m[2] });
+  if ((m = raw.match(/^(\d+) routing candidates$/)))
+    return t(group + ".llmCandidates", { count: m[1] });
+  const counters: Array<[RegExp, string]> = [
+    [/^(\d+) scheduler jobs report errors$/, "jobsErrors"],
+    [/^(\d+) scheduler jobs enabled$/, "jobsEnabled"],
+    [
+      /^(\d+) scheduler jobs need attention \(database freshness check\)$/,
+      "jobsNeedAttention"
+    ],
+    [/^(\d+) scheduler jobs have recent task results$/, "jobsRecent"],
+    [/^(\d+) tasks in 24h$/, "agentTasks"],
+    [/^(\d+) protection failures need review$/, "protectionFailures"]
+  ];
+  for (const [pattern, name] of counters) {
+    m = raw.match(pattern);
+    if (m) return t(group + "." + name, { count: m[1] });
+  }
+  if ((m = raw.match(/^(\d+)\/(\d+) tasks failed in 24h$/)))
+    return t(group + ".agentFailures", { failed: m[1], total: m[2] });
+  if (
+    (m = raw.match(
+      /^execution_uncertain=(\d+) reconcile_required=(\d+) protection_failed=(\d+)$/
+    ))
+  )
+    return t(group + ".tradeCounters", {
+      uncertain: m[1],
+      reconcile: m[2],
+      protection: m[3]
+    });
+  if (/^read trade safety .* count failed$/.test(raw))
+    return t(group + ".tradeReadFailed");
+  return displayValue(group, raw);
 }
 function healthMessage(check?: SystemHealthCheck) {
   if (!check) return "-";
-  return check.last_error || check.message || "-";
+  return translatedHealthMessage(check.message || check.last_error);
 }
+
 function apiUsagePercent(value?: number) {
   return Math.max(0, Math.min(100, Number(value || 0)));
 }
@@ -122,42 +199,8 @@ function budgetLevelLabel(level?: string) {
   const translated = t(key);
   return translated === key ? level || "unknown" : translated;
 }
-const optimizationTotals = computed(() =>
-  (binanceUsage.value?.optimizations || []).reduce(
-    (acc, row) => {
-      acc.cacheHits += Number(row.cache_hits || 0);
-      acc.coalesced += Number(row.coalesced_requests || 0);
-      acc.localWsHits += Number(row.local_ws_hits || 0);
-      acc.prevented += Number(row.prevented_duplicate_calls || 0);
-      acc.deferred += Number(row.deferred_requests || 0);
-      return acc;
-    },
-    {
-      cacheHits: 0,
-      coalesced: 0,
-      localWsHits: 0,
-      prevented: 0,
-      deferred: 0
-    }
-  )
-);
-async function fetchLeadOverview() {
-  // These are local authenticated management APIs. An old backend that has
-  // not deployed Stage 6 yet will not have the route; never treat 404 as
-  // evidence that the Binance Lead account is healthy.
-  try {
-    const [statusResult, metricResult] = await Promise.all([
-      leadStatus(),
-      leadMetrics()
-    ]);
-    leadOverview.value = (statusResult?.data || null) as LeadStatus | null;
-    leadUsageSummary.value = metricResult?.data?.metrics || null;
-  } catch {
-    leadOverview.value = null;
-    leadUsageSummary.value = null;
-  }
-}
 async function fetchHealth() {
+  if (healthLoading.value) return;
   healthLoading.value = true;
   try {
     const res = await getSystemHealth();
@@ -172,7 +215,12 @@ async function fetchBinanceUsage() {
   binanceUsageLoading.value = true;
   try {
     const res = await getBinanceAPIUsage();
-    binanceUsage.value = (res?.data || null) as BinanceAPIUsageSnapshot | null;
+    // Keep the previous successful snapshot if the API returns no usable data.
+    if (res?.code === 200 && res?.data) {
+      binanceUsage.value = res.data as BinanceAPIUsageSnapshot;
+    }
+  } catch {
+    // Polling is silent: preserve the last snapshot and retry on the next tick.
   } finally {
     binanceUsageLoading.value = false;
   }
@@ -180,7 +228,11 @@ async function fetchBinanceUsage() {
 
 function startBinanceUsageAutoRefresh() {
   if (binanceUsageRefreshTimer) window.clearInterval(binanceUsageRefreshTimer);
-  binanceUsageRefreshTimer = window.setInterval(fetchBinanceUsage, 5000);
+  binanceUsageRefreshTimer = window.setInterval(fetchBinanceUsage, 1000);
+}
+function startHealthAutoRefresh() {
+  if (healthRefreshTimer) window.clearInterval(healthRefreshTimer);
+  healthRefreshTimer = window.setInterval(fetchHealth, 60000);
 }
 
 async function fetchSummary() {
@@ -205,48 +257,30 @@ async function fetchTraces() {
     traceLoading.value = false;
   }
 }
-async function fetchChanges() {
-  changeLoading.value = true;
-  try {
-    const res = await getAgentObservabilityChanges({
-      ...changeQuery,
-      ...windowParams.value
-    });
-    changes.value = (res?.data?.list || []) as AgentChangeEvent[];
-    changeTotal.value = Number(res?.data?.total || 0);
-  } finally {
-    changeLoading.value = false;
-  }
-}
 async function refreshAll() {
   await Promise.all([
     fetchHealth(),
     fetchBinanceUsage(),
-    fetchLeadOverview(),
     fetchSummary(),
-    fetchTraces(),
-    fetchChanges()
+    fetchTraces()
   ]);
 }
 function changePeriod() {
   traceQuery.page = 1;
-  changeQuery.page = 1;
-  refreshAll();
+  void Promise.all([fetchSummary(), fetchTraces()]);
 }
 function searchTraces() {
   traceQuery.page = 1;
   fetchTraces();
 }
-function searchChanges() {
-  changeQuery.page = 1;
-  fetchChanges();
-}
 onMounted(() => {
   refreshAll();
   startBinanceUsageAutoRefresh();
+  startHealthAutoRefresh();
 });
 
 onBeforeUnmount(() => {
+  if (healthRefreshTimer) window.clearInterval(healthRefreshTimer);
   if (binanceUsageRefreshTimer) {
     window.clearInterval(binanceUsageRefreshTimer);
     binanceUsageRefreshTimer = undefined;
@@ -272,58 +306,24 @@ onBeforeUnmount(() => {
             style="width: 120px"
             @change="changePeriod"
           >
-            <el-option label="24h" value="24h" />
-            <el-option label="7d" value="7d" />
-            <el-option label="30d" value="30d" />
+            <el-option
+              :label="t('agentObservabilityPage.period.hours24')"
+              value="24h"
+            />
+            <el-option
+              :label="t('agentObservabilityPage.period.days7')"
+              value="7d"
+            />
+            <el-option
+              :label="t('agentObservabilityPage.period.days30')"
+              value="30d"
+            />
           </el-select>
           <el-button @click="refreshAll">{{
             t("agentObservabilityPage.button.refresh")
           }}</el-button>
         </div>
       </div>
-    </el-card>
-
-    <el-card shadow="never" class="mb-4">
-      <template #header>
-        <div class="flex items-center justify-between">
-          <div class="font-medium">{{ t("leadTradingPage.title") }}</div>
-          <div class="flex items-center gap-2">
-            <el-button size="small" @click="fetchLeadOverview">
-              {{ t("leadTradingPage.refresh") }}
-            </el-button>
-            <router-link to="/futures/lead" class="text-blue-500">
-              {{ t("leadTradingPage.title") }}
-            </router-link>
-          </div>
-        </div>
-      </template>
-      <el-alert
-        :title="t('leadTradingPage.offline')"
-        type="warning"
-        :closable="false"
-        class="mb-2"
-      />
-      <el-descriptions :column="3" border size="small">
-        <el-descriptions-item :label="t('leadTradingPage.ready')">
-          {{ leadOverview?.readiness || "offline" }}
-        </el-descriptions-item>
-        <el-descriptions-item :label="t('leadTradingPage.ws')">
-          {{ leadOverview?.ws_healthy ? "ONLINE" : "OFFLINE" }}
-        </el-descriptions-item>
-        <el-descriptions-item :label="t('leadTradingPage.api')">
-          {{ leadUsageSummary?.requests ?? "-" }}
-        </el-descriptions-item>
-        <el-descriptions-item :label="t('leadTradingPage.weight')">
-          {{ leadUsageSummary?.estimated_weight ?? "-" }}
-        </el-descriptions-item>
-        <el-descriptions-item :label="t('leadTradingPage.dropped')">
-          {{
-            leadUsageSummary?.alert_queue_present === true
-              ? (leadUsageSummary?.alerts_dropped ?? "-")
-              : "-"
-          }}
-        </el-descriptions-item>
-      </el-descriptions>
     </el-card>
 
     <el-card v-loading="healthLoading" shadow="never" class="mb-4">
@@ -353,12 +353,8 @@ onBeforeUnmount(() => {
           v-for="item in [
             { key: 'database', check: health?.database },
             { key: 'binanceRest', check: health?.binance_rest },
-            { key: 'futuresWs', check: health?.futures_ws },
-            { key: 'announcementWs', check: health?.announcement_ws },
-            { key: 'marketIntelligence', check: health?.market_intelligence },
-            { key: 'mcp', check: health?.mcp },
+            { key: 'marketWs', check: health?.market_ws || health?.futures_ws },
             { key: 'llm', check: health?.llm },
-            { key: 'scheduler', check: health?.scheduler },
             { key: 'agent', check: health?.agent },
             { key: 'trade', check: health?.trade }
           ]"
@@ -373,129 +369,218 @@ onBeforeUnmount(() => {
               {{ healthStatusLabel(item.check?.status) }}
             </el-tag>
           </div>
-          <div class="health-message">{{ healthMessage(item.check) }}</div>
+          <div
+            class="health-message"
+            :title="item.check?.last_error || item.check?.message"
+          >
+            {{ healthMessage(item.check) }}
+          </div>
         </div>
       </div>
 
-      <el-row :gutter="12" class="mt-4">
-        <el-col :xs="24" :lg="8">
-          <div class="health-detail-title">
-            {{ t("systemDashboard.health.marketSources") }}
-          </div>
-          <el-table
-            :data="health?.market_sources || []"
-            size="small"
-            max-height="260"
-          >
+      <el-collapse class="mt-4">
+        <el-collapse-item
+          :title="t('systemDashboard.health.wsDetails')"
+          name="ws"
+        >
+          <el-table :data="health?.ws_markets || []" size="small">
             <el-table-column
-              prop="source"
-              :label="t('systemDashboard.health.name')"
+              :label="t('systemDashboard.health.market')"
               min-width="150"
-            />
+            >
+              <template #default="{ row }">{{
+                displayValue(
+                  "systemDashboard.health.wsMarketValues",
+                  row.market
+                )
+              }}</template>
+            </el-table-column>
             <el-table-column
               :label="t('systemDashboard.health.state')"
-              width="100"
+              min-width="130"
             >
               <template #default="{ row }">
-                <el-tag size="small" :type="healthTagType(row.status)">{{
+                <el-tag :type="healthTagType(row.status)" size="small">{{
                   healthStatusLabel(row.status)
                 }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column
               :label="t('systemDashboard.health.lastSuccess')"
-              min-width="170"
+              min-width="175"
             >
               <template #default="{ row }">{{
-                formatTime(row.last_success_at)
+                formatTime(row.last_update_at)
               }}</template>
             </el-table-column>
-          </el-table>
-        </el-col>
-        <el-col :xs="24" :lg="8">
-          <div class="health-detail-title">
-            {{ t("systemDashboard.health.mcpServers") }}
-          </div>
-          <el-table
-            :data="health?.mcp_servers || []"
-            size="small"
-            max-height="260"
-          >
             <el-table-column
-              prop="name"
-              :label="t('systemDashboard.health.name')"
-              min-width="150"
-            />
-            <el-table-column
-              :label="t('systemDashboard.health.state')"
-              width="100"
+              :label="t('systemDashboard.health.details')"
+              min-width="190"
             >
-              <template #default="{ row }">
-                <el-tag size="small" :type="healthTagType(row.status)">{{
-                  healthStatusLabel(row.status)
-                }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column
-              :label="t('systemDashboard.health.lastSuccess')"
-              min-width="170"
-            >
-              <template #default="{ row }">{{
-                formatTime(row.last_success_at)
-              }}</template>
+              <template #default="{ row }">{{ healthMessage(row) }}</template>
             </el-table-column>
           </el-table>
-        </el-col>
-        <el-col :xs="24" :lg="8">
-          <div class="health-detail-title">
-            {{ t("systemDashboard.health.schedulerJobs") }}
-          </div>
-          <el-table
-            :data="health?.scheduler_jobs || []"
-            size="small"
-            max-height="260"
-          >
-            <el-table-column
-              prop="name"
-              :label="t('systemDashboard.health.name')"
-              min-width="170"
-            />
-            <el-table-column
-              :label="t('systemDashboard.health.state')"
-              width="110"
+        </el-collapse-item>
+        <el-collapse-item
+          :title="t('systemDashboard.health.moreDetails')"
+          name="other"
+        >
+          <el-descriptions :column="4" border size="small" class="mb-4">
+            <el-descriptions-item
+              v-for="item in [
+                { key: 'announcementWs', check: health?.announcement_ws },
+                {
+                  key: 'marketIntelligence',
+                  check: health?.market_intelligence
+                },
+                { key: 'mcp', check: health?.mcp },
+                { key: 'scheduler', check: health?.scheduler }
+              ]"
+              :key="item.key"
+              :label="t('systemDashboard.health.component.' + item.key)"
             >
-              <template #default="{ row }">
-                <el-tag
-                  size="small"
-                  :type="
-                    row.enabled
-                      ? healthTagType(
-                          row.last_status === 'failed' ? 'warning' : 'healthy'
-                        )
-                      : 'info'
-                  "
+              <el-tag size="small" :type="healthTagType(item.check?.status)">
+                {{ healthStatusLabel(item.check?.status) }}
+              </el-tag>
+              <div class="health-message">{{ healthMessage(item.check) }}</div>
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <el-row :gutter="12" class="mt-4">
+            <el-col :xs="24" :lg="8">
+              <div class="health-detail-title">
+                {{ t("systemDashboard.health.marketSources") }}
+              </div>
+              <el-table
+                :data="health?.market_sources || []"
+                size="small"
+                max-height="260"
+              >
+                <el-table-column
+                  :label="t('systemDashboard.health.name')"
+                  min-width="150"
+                  ><template #default="{ row }">{{
+                    displayValue(
+                      "systemDashboard.health.sourceValues",
+                      row.source
+                    )
+                  }}</template></el-table-column
                 >
-                  {{
-                    row.enabled
-                      ? row.running
-                        ? t("systemDashboard.health.running")
-                        : row.last_status || t("systemDashboard.health.enabled")
-                      : t("systemDashboard.health.status.disabled")
-                  }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column
-              :label="t('systemDashboard.health.lastRun')"
-              min-width="170"
-            >
-              <template #default="{ row }">{{
-                formatTime(row.last_run_at)
-              }}</template>
-            </el-table-column>
-          </el-table>
-        </el-col>
-      </el-row>
+                <el-table-column
+                  :label="t('systemDashboard.health.state')"
+                  width="100"
+                >
+                  <template #default="{ row }">
+                    <el-tag size="small" :type="healthTagType(row.status)">{{
+                      healthStatusLabel(row.status)
+                    }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  :label="t('systemDashboard.health.lastSuccess')"
+                  min-width="170"
+                >
+                  <template #default="{ row }">{{
+                    formatTime(row.last_success_at)
+                  }}</template>
+                </el-table-column>
+              </el-table>
+            </el-col>
+            <el-col :xs="24" :lg="8">
+              <div class="health-detail-title">
+                {{ t("systemDashboard.health.mcpServers") }}
+              </div>
+              <el-table
+                :data="health?.mcp_servers || []"
+                size="small"
+                max-height="260"
+              >
+                <el-table-column
+                  prop="name"
+                  :label="t('systemDashboard.health.name')"
+                  min-width="150"
+                />
+                <el-table-column
+                  :label="t('systemDashboard.health.state')"
+                  width="100"
+                >
+                  <template #default="{ row }">
+                    <el-tag size="small" :type="healthTagType(row.status)">{{
+                      healthStatusLabel(row.status)
+                    }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  :label="t('systemDashboard.health.lastSuccess')"
+                  min-width="170"
+                >
+                  <template #default="{ row }">{{
+                    formatTime(row.last_success_at)
+                  }}</template>
+                </el-table-column>
+              </el-table>
+            </el-col>
+            <el-col :xs="24" :lg="8">
+              <div class="health-detail-title">
+                {{ t("systemDashboard.health.schedulerJobs") }}
+              </div>
+              <el-table
+                :data="health?.scheduler_jobs || []"
+                size="small"
+                max-height="260"
+              >
+                <el-table-column
+                  :label="t('systemDashboard.health.name')"
+                  min-width="170"
+                  ><template #default="{ row }">{{
+                    displayValue("systemDashboard.health.jobValues", row.name)
+                  }}</template></el-table-column
+                >
+                <el-table-column
+                  :label="t('systemDashboard.health.state')"
+                  width="110"
+                >
+                  <template #default="{ row }">
+                    <el-tag
+                      size="small"
+                      :type="
+                        row.enabled
+                          ? healthTagType(
+                              row.last_status === 'failed'
+                                ? 'warning'
+                                : 'healthy'
+                            )
+                          : 'info'
+                      "
+                    >
+                      {{
+                        row.enabled
+                          ? row.running
+                            ? t("systemDashboard.health.running")
+                            : row.last_status
+                              ? displayValue(
+                                  "agentObservabilityPage.values",
+                                  row.last_status
+                                )
+                              : t("systemDashboard.health.enabled")
+                          : t("systemDashboard.health.status.disabled")
+                      }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  :label="t('systemDashboard.health.lastRun')"
+                  min-width="170"
+                >
+                  <template #default="{ row }">{{
+                    formatTime(row.last_run_at)
+                  }}</template>
+                </el-table-column>
+              </el-table>
+            </el-col>
+          </el-row>
+        </el-collapse-item>
+      </el-collapse>
 
       <el-descriptions
         v-if="health?.trade"
@@ -504,15 +589,18 @@ onBeforeUnmount(() => {
         size="small"
         class="mt-4"
       >
-        <el-descriptions-item label="execution_uncertain">{{
-          health.trade.execution_uncertain
-        }}</el-descriptions-item>
-        <el-descriptions-item label="protection_failed">{{
-          health.trade.protection_failed
-        }}</el-descriptions-item>
-        <el-descriptions-item label="reconcile_required">{{
-          health.trade.reconcile_required
-        }}</el-descriptions-item>
+        <el-descriptions-item
+          :label="t('systemDashboard.health.tradeCounts.executionUncertain')"
+          >{{ health.trade.execution_uncertain }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="t('systemDashboard.health.tradeCounts.protectionFailed')"
+          >{{ health.trade.protection_failed }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="t('systemDashboard.health.tradeCounts.reconcileRequired')"
+          >{{ health.trade.reconcile_required }}</el-descriptions-item
+        >
       </el-descriptions>
     </el-card>
 
@@ -574,7 +662,9 @@ onBeforeUnmount(() => {
         >
         <el-col :xs="12" :sm="6"
           ><div class="api-usage-metric">
-            <div class="metric-label">P95</div>
+            <div class="metric-label">
+              {{ t("agentObservabilityPage.labels.p95") }}
+            </div>
             <div class="metric-value">
               {{ duration(binanceUsage?.window_1m?.p95_latency_ms) }}
             </div>
@@ -593,65 +683,8 @@ onBeforeUnmount(() => {
         >
       </el-row>
 
-      <div class="health-detail-title">
-        {{ t("systemDashboard.binanceApi.exchangeLimits") }}
-      </div>
-      <el-table
-        :data="binanceUsage?.exchange_limits || []"
-        size="small"
-        class="mb-4"
-      >
-        <el-table-column
-          prop="product"
-          :label="t('systemDashboard.binanceApi.product')"
-          width="100"
-        />
-        <el-table-column
-          prop="environment"
-          :label="t('systemDashboard.binanceApi.environment')"
-          width="100"
-        />
-        <el-table-column
-          :label="t('systemDashboard.binanceApi.usedWeight1m')"
-          min-width="250"
-        >
-          <template #default="{ row }">
-            <div class="api-weight-cell">
-              <span
-                >{{ number(row.used_weight_1m) }} /
-                {{ number(row.weight_limit_1m) }} ({{
-                  Number(row.weight_percent_1m || 0).toFixed(1)
-                }}%)</span
-              >
-              <el-progress
-                :percentage="apiUsagePercent(row.weight_percent_1m)"
-                :status="apiUsageStatus(row.weight_percent_1m)"
-                :show-text="false"
-              />
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="order_count_10s"
-          :label="t('systemDashboard.binanceApi.orderCount10s')"
-          width="130"
-        />
-        <el-table-column
-          prop="order_count_1m"
-          :label="t('systemDashboard.binanceApi.orderCount1m')"
-          width="130"
-        />
-        <el-table-column
-          :label="t('systemDashboard.binanceApi.lastResponse')"
-          min-width="170"
-          ><template #default="{ row }">{{
-            formatTime(row.last_response_at)
-          }}</template></el-table-column
-        >
-      </el-table>
-
       <el-row :gutter="12" class="mb-4">
-        <el-col :xs="24" :xl="12">
+        <el-col :xs="24" :xl="24">
           <div class="health-detail-title">
             {{ t("systemDashboard.binanceApi.budgetState") }}
           </div>
@@ -661,15 +694,27 @@ onBeforeUnmount(() => {
             max-height="300"
           >
             <el-table-column
-              prop="product"
               :label="t('systemDashboard.binanceApi.product')"
               width="90"
-            />
+            >
+              <template #default="{ row }">{{
+                displayValue(
+                  "systemDashboard.binanceApi.productValues",
+                  row.product
+                )
+              }}</template>
+            </el-table-column>
             <el-table-column
-              prop="environment"
               :label="t('systemDashboard.binanceApi.environment')"
               width="100"
-            />
+            >
+              <template #default="{ row }">{{
+                displayValue(
+                  "systemDashboard.binanceApi.environmentValues",
+                  row.environment
+                )
+              }}</template>
+            </el-table-column>
             <el-table-column
               :label="t('systemDashboard.binanceApi.budgetLevelLabel')"
               width="130"
@@ -721,277 +766,225 @@ onBeforeUnmount(() => {
             </el-table-column>
           </el-table>
         </el-col>
+      </el-row>
 
-        <el-col :xs="24" :xl="12">
-          <div class="health-detail-title">
-            {{ t("systemDashboard.binanceApi.optimizations") }}
-          </div>
-          <el-descriptions :column="5" border size="small" class="mb-3">
+      <el-collapse>
+        <el-collapse-item
+          :title="t('systemDashboard.binanceApi.moreDetails')"
+          name="api"
+        >
+          <el-descriptions :column="3" border size="small" class="mb-4">
             <el-descriptions-item
-              :label="t('systemDashboard.binanceApi.preventedDuplicate')"
+              :label="t('systemDashboard.binanceApi.timeUnit.10s')"
             >
-              {{ number(optimizationTotals.prevented) }}
+              {{
+                t("systemDashboard.binanceApi.requestWindow", {
+                  duration: t("systemDashboard.binanceApi.timeUnit.10s"),
+                  requests: number(binanceUsage?.window_10s?.request_count),
+                  weight: number(binanceUsage?.window_10s?.estimated_weight)
+                })
+              }}
             </el-descriptions-item>
+            >
             <el-descriptions-item
-              :label="t('systemDashboard.binanceApi.localWsHits')"
+              :label="t('systemDashboard.binanceApi.timeUnit.1m')"
             >
-              {{ number(optimizationTotals.localWsHits) }}
+              {{
+                t("systemDashboard.binanceApi.requestWindow", {
+                  duration: t("systemDashboard.binanceApi.timeUnit.1m"),
+                  requests: number(binanceUsage?.window_1m?.request_count),
+                  weight: number(binanceUsage?.window_1m?.estimated_weight)
+                })
+              }}
             </el-descriptions-item>
+            >
             <el-descriptions-item
-              :label="t('systemDashboard.binanceApi.cacheHits')"
+              :label="t('systemDashboard.binanceApi.timeUnit.5m')"
             >
-              {{ number(optimizationTotals.cacheHits) }}
+              {{
+                t("systemDashboard.binanceApi.requestWindow", {
+                  duration: t("systemDashboard.binanceApi.timeUnit.5m"),
+                  requests: number(binanceUsage?.window_5m?.request_count),
+                  weight: number(binanceUsage?.window_5m?.estimated_weight)
+                })
+              }}
             </el-descriptions-item>
+            >
             <el-descriptions-item
-              :label="t('systemDashboard.binanceApi.coalesced')"
+              :label="t('systemDashboard.binanceApi.retainedEvents')"
+              >{{ number(binanceUsage?.retained_events) }}</el-descriptions-item
             >
-              {{ number(optimizationTotals.coalesced) }}
-            </el-descriptions-item>
             <el-descriptions-item
-              :label="t('systemDashboard.binanceApi.deferred')"
+              :label="t('systemDashboard.binanceApi.droppedEvents')"
+              >{{ number(binanceUsage?.dropped_events) }}</el-descriptions-item
             >
-              {{ number(optimizationTotals.deferred) }}
-            </el-descriptions-item>
           </el-descriptions>
-          <el-table
-            :data="binanceUsage?.optimizations || []"
-            size="small"
-            max-height="240"
-          >
-            <el-table-column
-              prop="source"
-              :label="t('systemDashboard.binanceApi.source')"
-              min-width="120"
-            />
-            <el-table-column
-              prop="local_ws_hits"
-              :label="t('systemDashboard.binanceApi.localWsHits')"
-              width="100"
-            />
-            <el-table-column
-              prop="cache_hits"
-              :label="t('systemDashboard.binanceApi.cacheHits')"
-              width="90"
-            />
-            <el-table-column
-              prop="coalesced_requests"
-              :label="t('systemDashboard.binanceApi.coalesced')"
-              width="90"
-            />
-            <el-table-column
-              prop="prevented_duplicate_calls"
-              :label="t('systemDashboard.binanceApi.preventedDuplicate')"
-              width="110"
-            />
-            <el-table-column
-              prop="deferred_requests"
-              :label="t('systemDashboard.binanceApi.deferred')"
-              width="90"
-            />
-          </el-table>
-        </el-col>
-      </el-row>
 
-      <el-descriptions :column="3" border size="small" class="mb-4">
-        <el-descriptions-item label="10s"
-          >{{ number(binanceUsage?.window_10s?.request_count) }} req /
-          {{ number(binanceUsage?.window_10s?.estimated_weight) }}
-          weight</el-descriptions-item
-        >
-        <el-descriptions-item label="1m"
-          >{{ number(binanceUsage?.window_1m?.request_count) }} req /
-          {{ number(binanceUsage?.window_1m?.estimated_weight) }}
-          weight</el-descriptions-item
-        >
-        <el-descriptions-item label="5m"
-          >{{ number(binanceUsage?.window_5m?.request_count) }} req /
-          {{ number(binanceUsage?.window_5m?.estimated_weight) }}
-          weight</el-descriptions-item
-        >
-        <el-descriptions-item
-          :label="t('systemDashboard.binanceApi.retainedEvents')"
-          >{{ number(binanceUsage?.retained_events) }}</el-descriptions-item
-        >
-        <el-descriptions-item
-          :label="t('systemDashboard.binanceApi.droppedEvents')"
-          >{{ number(binanceUsage?.dropped_events) }}</el-descriptions-item
-        >
-      </el-descriptions>
+          <el-row :gutter="12">
+            <el-col :xs="24" :xl="24">
+              <div class="health-detail-title">
+                {{ t("systemDashboard.binanceApi.topByWeight") }}
+              </div>
+              <el-table
+                :data="binanceUsage?.top_endpoints_by_weight || []"
+                size="small"
+                max-height="420"
+                class="mb-4"
+              >
+                <el-table-column
+                  :label="t('systemDashboard.binanceApi.endpoint')"
+                  min-width="220"
+                  ><template #default="{ row }">{{
+                    apiEndpointLabel(row)
+                  }}</template></el-table-column
+                >
+                <el-table-column
+                  :label="t('systemDashboard.binanceApi.product')"
+                  width="85"
+                >
+                  <template #default="{ row }">{{
+                    displayValue(
+                      "systemDashboard.binanceApi.productValues",
+                      row.product
+                    )
+                  }}</template>
+                </el-table-column>
+                <el-table-column
+                  :label="t('systemDashboard.binanceApi.source')"
+                  width="110"
+                >
+                  <template #default="{ row }">{{
+                    displayValue(
+                      "systemDashboard.binanceApi.sourceValues",
+                      row.source
+                    )
+                  }}</template>
+                </el-table-column>
+                <el-table-column
+                  :label="t('systemDashboard.binanceApi.requestType')"
+                  width="90"
+                >
+                  <template #default="{ row }">{{
+                    displayValue(
+                      "systemDashboard.binanceApi.requestTypes",
+                      row.request_type
+                    )
+                  }}</template>
+                </el-table-column>
+                <el-table-column
+                  prop="count"
+                  :label="t('systemDashboard.binanceApi.count')"
+                  width="80"
+                />
+                <el-table-column
+                  prop="estimated_weight"
+                  :label="t('systemDashboard.binanceApi.weight')"
+                  width="90"
+                />
+                <el-table-column
+                  :label="t('systemDashboard.binanceApi.p95')"
+                  width="90"
+                  ><template #default="{ row }">{{
+                    duration(row.p95_latency_ms)
+                  }}</template></el-table-column
+                >
+              </el-table>
+            </el-col>
+          </el-row>
 
-      <el-row :gutter="12">
-        <el-col :xs="24" :xl="12">
-          <div class="health-detail-title">
-            {{ t("systemDashboard.binanceApi.topByWeight") }}
-          </div>
-          <el-table
-            :data="binanceUsage?.top_endpoints_by_weight || []"
-            size="small"
-            max-height="420"
-            class="mb-4"
-          >
-            <el-table-column
-              :label="t('systemDashboard.binanceApi.endpoint')"
-              min-width="220"
-              ><template #default="{ row }">{{
-                apiEndpointLabel(row)
-              }}</template></el-table-column
-            >
-            <el-table-column
-              prop="product"
-              :label="t('systemDashboard.binanceApi.product')"
-              width="85"
-            />
-            <el-table-column
-              prop="source"
-              :label="t('systemDashboard.binanceApi.source')"
-              width="110"
-            />
-            <el-table-column
-              prop="request_type"
-              :label="t('systemDashboard.binanceApi.requestType')"
-              width="90"
-            />
-            <el-table-column
-              prop="count"
-              :label="t('systemDashboard.binanceApi.count')"
-              width="80"
-            />
-            <el-table-column
-              prop="estimated_weight"
-              :label="t('systemDashboard.binanceApi.weight')"
-              width="90"
-            />
-            <el-table-column label="P95" width="90"
-              ><template #default="{ row }">{{
-                duration(row.p95_latency_ms)
-              }}</template></el-table-column
-            >
-          </el-table>
-        </el-col>
-        <el-col :xs="24" :xl="12">
-          <div class="health-detail-title">
-            {{ t("systemDashboard.binanceApi.topByCount") }}
-          </div>
-          <el-table
-            :data="binanceUsage?.top_endpoints_by_count || []"
-            size="small"
-            max-height="420"
-            class="mb-4"
-          >
-            <el-table-column
-              :label="t('systemDashboard.binanceApi.endpoint')"
-              min-width="220"
-              ><template #default="{ row }">{{
-                apiEndpointLabel(row)
-              }}</template></el-table-column
-            >
-            <el-table-column
-              prop="product"
-              :label="t('systemDashboard.binanceApi.product')"
-              width="85"
-            />
-            <el-table-column
-              prop="source"
-              :label="t('systemDashboard.binanceApi.source')"
-              width="110"
-            />
-            <el-table-column
-              prop="request_type"
-              :label="t('systemDashboard.binanceApi.requestType')"
-              width="90"
-            />
-            <el-table-column
-              prop="count"
-              :label="t('systemDashboard.binanceApi.count')"
-              width="80"
-            />
-            <el-table-column
-              prop="estimated_weight"
-              :label="t('systemDashboard.binanceApi.weight')"
-              width="90"
-            />
-            <el-table-column
-              prop="error_count"
-              :label="t('systemDashboard.binanceApi.errors')"
-              width="80"
-            />
-          </el-table>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="12">
-        <el-col :xs="24" :lg="8">
-          <div class="health-detail-title">
-            {{ t("systemDashboard.binanceApi.sources") }}
-          </div>
-          <el-table
-            :data="binanceUsage?.sources_5m || []"
-            size="small"
-            max-height="300"
-          >
-            <el-table-column
-              prop="source"
-              :label="t('systemDashboard.binanceApi.source')"
-              min-width="130"
-            />
-            <el-table-column
-              prop="count"
-              :label="t('systemDashboard.binanceApi.count')"
-              width="75"
-            />
-            <el-table-column
-              prop="estimated_weight"
-              :label="t('systemDashboard.binanceApi.weight')"
-              width="85"
-            />
-          </el-table>
-        </el-col>
-        <el-col :xs="24" :lg="16">
-          <div class="health-detail-title">
-            {{ t("systemDashboard.binanceApi.recentRateLimits") }}
-          </div>
-          <el-table
-            :data="binanceUsage?.recent_rate_limits || []"
-            size="small"
-            max-height="300"
-          >
-            <el-table-column
-              :label="t('systemDashboard.binanceApi.time')"
-              width="170"
-              ><template #default="{ row }">{{
-                formatTime(row.at)
-              }}</template></el-table-column
-            >
-            <el-table-column
-              prop="status_code"
-              :label="t('systemDashboard.binanceApi.status')"
-              width="80"
-            />
-            <el-table-column
-              :label="t('systemDashboard.binanceApi.endpoint')"
-              min-width="210"
-              ><template #default="{ row }">{{
-                apiEndpointLabel(row)
-              }}</template></el-table-column
-            >
-            <el-table-column
-              prop="environment"
-              :label="t('systemDashboard.binanceApi.environment')"
-              width="100"
-            />
-            <el-table-column
-              prop="request_type"
-              :label="t('systemDashboard.binanceApi.requestType')"
-              width="90"
-            />
-            <el-table-column
-              prop="retry_after"
-              label="Retry-After"
-              width="110"
-            />
-          </el-table>
-        </el-col>
-      </el-row>
+          <el-row :gutter="12">
+            <el-col :xs="24" :lg="8">
+              <div class="health-detail-title">
+                {{ t("systemDashboard.binanceApi.sources") }}
+              </div>
+              <el-table
+                :data="binanceUsage?.sources_5m || []"
+                size="small"
+                max-height="300"
+              >
+                <el-table-column
+                  :label="t('systemDashboard.binanceApi.source')"
+                  min-width="130"
+                >
+                  <template #default="{ row }">{{
+                    displayValue(
+                      "systemDashboard.binanceApi.sourceValues",
+                      row.source
+                    )
+                  }}</template>
+                </el-table-column>
+                <el-table-column
+                  prop="count"
+                  :label="t('systemDashboard.binanceApi.count')"
+                  width="75"
+                />
+                <el-table-column
+                  prop="estimated_weight"
+                  :label="t('systemDashboard.binanceApi.weight')"
+                  width="85"
+                />
+              </el-table>
+            </el-col>
+            <el-col :xs="24" :lg="16">
+              <div class="health-detail-title">
+                {{ t("systemDashboard.binanceApi.recentRateLimits") }}
+              </div>
+              <el-table
+                :data="binanceUsage?.recent_rate_limits || []"
+                size="small"
+                max-height="300"
+              >
+                <el-table-column
+                  :label="t('systemDashboard.binanceApi.time')"
+                  width="170"
+                  ><template #default="{ row }">{{
+                    formatTime(row.at)
+                  }}</template></el-table-column
+                >
+                <el-table-column
+                  prop="status_code"
+                  :label="t('systemDashboard.binanceApi.status')"
+                  width="80"
+                />
+                <el-table-column
+                  :label="t('systemDashboard.binanceApi.endpoint')"
+                  min-width="210"
+                  ><template #default="{ row }">{{
+                    apiEndpointLabel(row)
+                  }}</template></el-table-column
+                >
+                <el-table-column
+                  :label="t('systemDashboard.binanceApi.environment')"
+                  width="100"
+                >
+                  <template #default="{ row }">{{
+                    displayValue(
+                      "systemDashboard.binanceApi.environmentValues",
+                      row.environment
+                    )
+                  }}</template>
+                </el-table-column>
+                <el-table-column
+                  :label="t('systemDashboard.binanceApi.requestType')"
+                  width="90"
+                >
+                  <template #default="{ row }">{{
+                    displayValue(
+                      "systemDashboard.binanceApi.requestTypes",
+                      row.request_type
+                    )
+                  }}</template>
+                </el-table-column>
+                <el-table-column
+                  prop="retry_after"
+                  :label="t('systemDashboard.binanceApi.retryAfter')"
+                  width="110"
+                />
+              </el-table>
+            </el-col>
+          </el-row>
+        </el-collapse-item>
+      </el-collapse>
     </el-card>
 
     <el-row v-loading="loading" :gutter="12" class="mb-4">
@@ -1025,64 +1018,7 @@ onBeforeUnmount(() => {
           </div></el-card
         ></el-col
       >
-      <el-col :xs="12" :sm="6" :lg="3"
-        ><el-card shadow="never"
-          ><div class="metric-label">P95</div>
-          <div class="metric-value">
-            {{ duration(summary?.global?.p95_duration_ms) }}
-          </div></el-card
-        ></el-col
-      >
-      <el-col :xs="12" :sm="6" :lg="3"
-        ><el-card shadow="never"
-          ><div class="metric-label">
-            {{ t("agentObservabilityPage.metric.contextTokens") }}
-          </div>
-          <div class="metric-value">
-            {{ number(summary?.context?.average_tokens) }}
-          </div></el-card
-        ></el-col
-      >
-      <el-col :xs="12" :sm="6" :lg="3"
-        ><el-card shadow="never"
-          ><div class="metric-label">
-            {{ t("agentObservabilityPage.metric.memoryHit") }}
-          </div>
-          <div class="metric-value">
-            {{ rate(summary?.context?.memory_hit_rate) }}
-          </div></el-card
-        ></el-col
-      >
-      <el-col :xs="12" :sm="6" :lg="3"
-        ><el-card shadow="never"
-          ><div class="metric-label">
-            {{ t("agentObservabilityPage.metric.evalScore") }}
-          </div>
-          <div class="metric-value">
-            {{ Number(summary?.eval?.average_score || 0).toFixed(1) }}
-          </div></el-card
-        ></el-col
-      >
-      <el-col :xs="12" :sm="6" :lg="3"
-        ><el-card shadow="never"
-          ><div class="metric-label">
-            {{ t("agentObservabilityPage.metric.changes") }}
-          </div>
-          <div class="metric-value">
-            {{ number(summary?.change_events) }}
-          </div></el-card
-        ></el-col
-      >
-      <el-col :xs="12" :sm="6" :lg="3"
-        ><el-card shadow="never"
-          ><div class="metric-label">
-            {{ t("agentObservabilityPage.metric.chatStartErrors") }}
-          </div>
-          <div class="metric-value">
-            {{ number(summary?.chat_start_errors) }}
-          </div></el-card
-        ></el-col
-      >
+
       <el-col :xs="12" :sm="6" :lg="3"
         ><el-card shadow="never"
           ><div class="metric-label">
@@ -1090,16 +1026,6 @@ onBeforeUnmount(() => {
           </div>
           <div class="metric-value">
             {{ number(summary?.llm_errors) }}
-          </div></el-card
-        ></el-col
-      >
-      <el-col :xs="12" :sm="6" :lg="3"
-        ><el-card shadow="never"
-          ><div class="metric-label">
-            {{ t("agentObservabilityPage.metric.skillValidationErrors") }}
-          </div>
-          <div class="metric-value">
-            {{ number(summary?.skill_validation_errors) }}
           </div></el-card
         ></el-col
       >
@@ -1138,7 +1064,9 @@ onBeforeUnmount(() => {
                     number(row.total_tokens)
                   }}</template></el-table-column
                 >
-                <el-table-column label="P95" width="100"
+                <el-table-column
+                  :label="t('agentObservabilityPage.labels.p95')"
+                  width="100"
                   ><template #default="{ row }">{{
                     duration(row.p95_duration_ms)
                   }}</template></el-table-column
@@ -1180,119 +1108,7 @@ onBeforeUnmount(() => {
             </el-card>
           </el-col>
         </el-row>
-        <el-row :gutter="12">
-          <el-col :xs="24" :lg="12">
-            <el-card shadow="never" class="mb-4">
-              <template #header>{{
-                t("agentObservabilityPage.section.prompt")
-              }}</template>
-              <el-table :data="summary?.by_prompt || []" size="small">
-                <el-table-column
-                  prop="label"
-                  :label="t('agentObservabilityPage.table.dimension')"
-                  min-width="170"
-                />
-                <el-table-column
-                  prop="tasks"
-                  :label="t('agentObservabilityPage.metric.tasks')"
-                  width="80"
-                />
-                <el-table-column
-                  :label="t('agentObservabilityPage.metric.successRate')"
-                  width="110"
-                  ><template #default="{ row }">{{
-                    rate(row.success_rate)
-                  }}</template></el-table-column
-                >
-                <el-table-column
-                  :label="t('agentObservabilityPage.metric.tokens')"
-                  width="110"
-                  ><template #default="{ row }">{{
-                    number(row.total_tokens)
-                  }}</template></el-table-column
-                >
-              </el-table>
-            </el-card>
-          </el-col>
-          <el-col :xs="24" :lg="12">
-            <el-card shadow="never" class="mb-4">
-              <template #header>{{
-                t("agentObservabilityPage.section.revision")
-              }}</template>
-              <el-table :data="summary?.by_skill_revision || []" size="small">
-                <el-table-column
-                  prop="label"
-                  :label="t('agentObservabilityPage.table.dimension')"
-                  min-width="180"
-                />
-                <el-table-column
-                  prop="tasks"
-                  :label="t('agentObservabilityPage.metric.tasks')"
-                  width="80"
-                />
-                <el-table-column
-                  :label="t('agentObservabilityPage.metric.successRate')"
-                  width="110"
-                  ><template #default="{ row }">{{
-                    rate(row.success_rate)
-                  }}</template></el-table-column
-                >
-                <el-table-column
-                  :label="t('agentObservabilityPage.metric.tokens')"
-                  width="110"
-                  ><template #default="{ row }">{{
-                    number(row.total_tokens)
-                  }}</template></el-table-column
-                >
-              </el-table>
-            </el-card>
-          </el-col>
-        </el-row>
-        <el-card shadow="never" class="mb-4">
-          <template #header>{{
-            t("agentObservabilityPage.section.quality")
-          }}</template>
-          <el-descriptions :column="4" border size="small">
-            <el-descriptions-item
-              :label="t('agentObservabilityPage.metric.contextTrim')"
-              >{{ rate(summary?.context?.trim_rate) }}</el-descriptions-item
-            >
-            <el-descriptions-item
-              :label="t('agentObservabilityPage.metric.evidenceCoverage')"
-              >{{
-                rate(summary?.evidence?.coverage_rate)
-              }}</el-descriptions-item
-            >
-            <el-descriptions-item
-              :label="t('agentObservabilityPage.metric.evalPass')"
-              >{{ rate(summary?.eval?.pass_rate) }}</el-descriptions-item
-            >
-            <el-descriptions-item
-              :label="t('agentObservabilityPage.metric.repairs')"
-              >{{
-                number(
-                  (summary?.repairs || []).reduce((n, x) => n + x.count, 0)
-                )
-              }}</el-descriptions-item
-            >
-          </el-descriptions>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <el-tag
-              v-for="item in summary?.repairs || []"
-              :key="`repair-${item.name}`"
-              type="warning"
-              effect="plain"
-              >repair: {{ item.name }} × {{ item.count }}</el-tag
-            >
-            <el-tag
-              v-for="item in summary?.errors || []"
-              :key="`error-${item.name}`"
-              type="danger"
-              effect="plain"
-              >error: {{ item.name }} × {{ item.count }}</el-tag
-            >
-          </div>
-        </el-card>
+
         <el-card shadow="never" class="mb-4">
           <template #header>{{
             t("agentObservabilityPage.section.tools")
@@ -1304,10 +1120,13 @@ onBeforeUnmount(() => {
               min-width="210"
             />
             <el-table-column
-              prop="source"
               :label="t('agentObservabilityPage.table.source')"
               width="90"
-            />
+            >
+              <template #default="{ row }">{{
+                displayValue("agentObservabilityPage.values", row.source)
+              }}</template>
+            </el-table-column>
             <el-table-column
               prop="calls"
               :label="t('agentObservabilityPage.table.calls')"
@@ -1339,55 +1158,11 @@ onBeforeUnmount(() => {
               :label="t('agentObservabilityPage.table.timeouts')"
               width="90"
             />
-            <el-table-column label="P95" width="100"
+            <el-table-column
+              :label="t('agentObservabilityPage.labels.p95')"
+              width="100"
               ><template #default="{ row }">{{
                 duration(row.p95_latency_ms)
-              }}</template></el-table-column
-            >
-          </el-table>
-        </el-card>
-        <el-card shadow="never">
-          <template #header>{{
-            t("agentObservabilityPage.section.mcp")
-          }}</template>
-          <el-table :data="summary?.mcp_servers || []" size="small">
-            <el-table-column
-              prop="name"
-              :label="t('agentObservabilityPage.table.server')"
-              min-width="150"
-            />
-            <el-table-column
-              prop="status"
-              :label="t('agentObservabilityPage.table.status')"
-              width="110"
-            />
-            <el-table-column
-              prop="protocol_version"
-              :label="t('agentObservabilityPage.table.protocol')"
-              width="130"
-            />
-            <el-table-column
-              :label="t('agentObservabilityPage.table.availability')"
-              width="110"
-              ><template #default="{ row }">{{
-                row.calls ? rate(row.availability) : "-"
-              }}</template></el-table-column
-            >
-            <el-table-column
-              prop="calls"
-              :label="t('agentObservabilityPage.table.calls')"
-              width="80"
-            />
-            <el-table-column label="P95" width="100"
-              ><template #default="{ row }">{{
-                duration(row.p95_latency_ms)
-              }}</template></el-table-column
-            >
-            <el-table-column
-              :label="t('agentObservabilityPage.table.catalog')"
-              min-width="150"
-              ><template #default="{ row }">{{
-                shortHash(row.catalog_hash)
               }}</template></el-table-column
             >
           </el-table>
@@ -1406,7 +1181,7 @@ onBeforeUnmount(() => {
             <el-input
               v-model="traceQuery.skill"
               clearable
-              placeholder="Skill"
+              :placeholder="t('agentObservabilityPage.labels.skill')"
               style="width: 160px"
             />
             <el-select
@@ -1426,7 +1201,7 @@ onBeforeUnmount(() => {
                   'eval'
                 ]"
                 :key="x"
-                :label="x"
+                :label="displayValue('agentObservabilityPage.traceType', x)"
                 :value="x"
             /></el-select>
             <el-select
@@ -1434,9 +1209,10 @@ onBeforeUnmount(() => {
               clearable
               :placeholder="t('agentObservabilityPage.placeholder.source')"
               style="width: 130px"
-              ><el-option label="native" value="native" /><el-option
-                label="mcp"
-                value="mcp"
+              ><el-option
+                :label="t('agentObservabilityPage.labels.native')"
+                value="native" />
+              <el-option label="MCP" value="mcp"
             /></el-select>
             <el-button type="primary" @click="searchTraces">{{
               t("agentObservabilityPage.button.search")
@@ -1455,7 +1231,11 @@ onBeforeUnmount(() => {
                 formatTime(row.created_at)
               }}</template></el-table-column
             >
-            <el-table-column prop="task_id" label="Task ID" min-width="210" />
+            <el-table-column
+              prop="task_id"
+              :label="t('agentObservabilityPage.labels.taskId')"
+              min-width="210"
+            />
             <el-table-column
               prop="team_role"
               :label="t('agentObservabilityPage.table.teamRole')"
@@ -1468,32 +1248,52 @@ onBeforeUnmount(() => {
               show-overflow-tooltip
             />
             <el-table-column
-              prop="type"
               :label="t('agentObservabilityPage.placeholder.type')"
               width="125"
+            >
+              <template #default="{ row }">{{
+                displayValue("agentObservabilityPage.traceType", row.type)
+              }}</template>
+            </el-table-column>
+            <el-table-column
+              prop="step_id"
+              :label="t('agentObservabilityPage.labels.step')"
+              width="100"
             />
-            <el-table-column prop="step_id" label="Step" width="100" />
-            <el-table-column prop="skill" label="Skill" min-width="140" />
+            <el-table-column
+              prop="skill"
+              :label="t('agentObservabilityPage.labels.skill')"
+              min-width="140"
+            />
             <el-table-column
               prop="tool"
               :label="t('agentObservabilityPage.table.tool')"
               min-width="170"
             />
             <el-table-column
-              prop="tool_source"
               :label="t('agentObservabilityPage.table.source')"
               width="90"
-            />
+            >
+              <template #default="{ row }">{{
+                displayValue("agentObservabilityPage.values", row.tool_source)
+              }}</template>
+            </el-table-column>
             <el-table-column
-              prop="status"
               :label="t('agentObservabilityPage.table.status')"
               width="100"
-            />
+            >
+              <template #default="{ row }">{{
+                displayValue("agentObservabilityPage.values", row.status)
+              }}</template>
+            </el-table-column>
             <el-table-column
-              prop="error_type"
               :label="t('agentObservabilityPage.table.error')"
               min-width="130"
-            />
+            >
+              <template #default="{ row }">{{
+                displayValue("agentObservabilityPage.values", row.error_type)
+              }}</template>
+            </el-table-column>
             <el-table-column
               :label="t('agentObservabilityPage.table.tokens')"
               width="90"
@@ -1518,89 +1318,6 @@ onBeforeUnmount(() => {
             :total="traceTotal"
             :page-size="traceQuery.limit"
             @current-change="fetchTraces"
-          />
-        </el-card>
-      </el-tab-pane>
-
-      <el-tab-pane :label="t('agentObservabilityPage.tab.changes')">
-        <el-card shadow="never">
-          <div class="mb-3 flex flex-wrap gap-2">
-            <el-select
-              v-model="changeQuery.category"
-              clearable
-              :placeholder="t('agentObservabilityPage.placeholder.category')"
-              style="width: 140px"
-              ><el-option label="MCP" value="mcp" /><el-option
-                label="Skill"
-                value="skill"
-            /></el-select>
-            <el-input
-              v-model="changeQuery.change_type"
-              clearable
-              :placeholder="t('agentObservabilityPage.placeholder.changeType')"
-              style="width: 190px"
-            />
-            <el-button type="primary" @click="searchChanges">{{
-              t("agentObservabilityPage.button.search")
-            }}</el-button>
-          </div>
-          <el-table v-loading="changeLoading" :data="changes" size="small">
-            <el-table-column type="expand"
-              ><template #default="{ row }">
-                <pre class="json-box">{{ row.detail_json || "{}" }}</pre>
-              </template></el-table-column
-            >
-            <el-table-column
-              :label="t('agentObservabilityPage.table.time')"
-              width="170"
-              ><template #default="{ row }">{{
-                formatTime(row.created_at)
-              }}</template></el-table-column
-            >
-            <el-table-column
-              prop="category"
-              :label="t('agentObservabilityPage.placeholder.category')"
-              width="90"
-            />
-            <el-table-column
-              prop="entity_type"
-              :label="t('agentObservabilityPage.table.entityType')"
-              width="130"
-            />
-            <el-table-column
-              prop="entity_name"
-              :label="t('agentObservabilityPage.table.entity')"
-              min-width="170"
-            />
-            <el-table-column
-              prop="change_type"
-              :label="t('agentObservabilityPage.placeholder.changeType')"
-              min-width="160"
-            />
-            <el-table-column
-              prop="from_version"
-              :label="t('agentObservabilityPage.table.from')"
-              width="120"
-            />
-            <el-table-column
-              prop="to_version"
-              :label="t('agentObservabilityPage.table.to')"
-              width="120"
-            />
-            <el-table-column
-              prop="status"
-              :label="t('agentObservabilityPage.table.status')"
-              width="110"
-            />
-          </el-table>
-          <el-pagination
-            v-model:current-page="changeQuery.page"
-            class="mt-3 justify-end"
-            background
-            layout="total, prev, pager, next"
-            :total="changeTotal"
-            :page-size="changeQuery.limit"
-            @current-change="fetchChanges"
           />
         </el-card>
       </el-tab-pane>

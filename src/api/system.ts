@@ -16,6 +16,12 @@ export interface SystemHealthCheck {
   count?: number;
 }
 
+export interface WSMarketHealth extends SystemHealthCheck {
+  market: "futures" | "spot" | "delivery" | string;
+  enabled: boolean;
+  last_update_at?: number;
+}
+
 export interface DatabaseHealthCheck extends SystemHealthCheck {
   version: number;
   required_version: number;
@@ -69,6 +75,8 @@ export interface SystemHealthReport {
   database: DatabaseHealthCheck;
   binance_rest: SystemHealthCheck;
   futures_ws: SystemHealthCheck;
+  market_ws?: SystemHealthCheck;
+  ws_markets?: WSMarketHealth[];
   announcement_ws: SystemHealthCheck;
   market_intelligence: SystemHealthCheck;
   market_sources: MarketSourceHealth[];
@@ -192,4 +200,8 @@ export interface BinanceAPIUsageSnapshot {
 }
 
 export const getBinanceAPIUsage = () =>
-  http.get<any, Record<string, never>>(baseUrlApi("system/binance-api-usage"));
+  http.get<any, Record<string, never>>(
+    baseUrlApi("system/binance-api-usage"),
+    undefined,
+    { skipProgress: true }
+  );

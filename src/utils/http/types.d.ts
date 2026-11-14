@@ -23,6 +23,8 @@ export interface PureHttpResponse extends AxiosResponse {
 }
 
 export interface PureHttpRequestConfig extends AxiosRequestConfig {
+  /** Suppress the global progress bar for silent background polling. */
+  skipProgress?: boolean;
   beforeRequestCallback?: (request: PureHttpRequestConfig) => void;
   beforeResponseCallback?: (response: PureHttpResponse) => void;
 }

@@ -1,18 +1,28 @@
 import type { FunctionalComponent } from "vue";
-const { VITE_HIDE_HOME } = import.meta.env;
+// The system dashboard is the permanent first tab; Configuration Center is closable.
+export const routerArrays: Array<RouteConfigs> = [
+  {
+    path: "/system-dashboard/overview",
+    name: "SystemDashboardOverview",
+    meta: {
+      title: "menus.systemDashboard",
+      icon: "ep/monitor",
+      fixedTag: true
+    }
+  }
+];
 
-export const routerArrays: Array<RouteConfigs> =
-  VITE_HIDE_HOME === "false"
-    ? [
-        {
-          path: "/dashboard",
-          meta: {
-            title: "menus.pureHome",
-            icon: "ep/home-filled"
-          }
-        }
-      ]
-    : [];
+/** Merge fixed routes without adding the dashboard twice. */
+export function getFixedTags(routes: RouteConfigs[] = []): RouteConfigs[] {
+  return [
+    ...routerArrays,
+    ...routes.filter(
+      route =>
+        route?.meta?.fixedTag &&
+        !routerArrays.some(tag => tag.path === route.path)
+    )
+  ];
+}
 
 export type routeMetaType = {
   title?: string;
@@ -20,6 +30,7 @@ export type routeMetaType = {
   showLink?: boolean;
   savedPosition?: boolean;
   auths?: Array<string>;
+  fixedTag?: boolean;
 };
 
 export type RouteConfigs = {

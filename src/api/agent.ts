@@ -1115,30 +1115,11 @@ export interface AgentObservationTrace {
   created_at: number;
 }
 
-export interface AgentChangeEvent {
-  id: number;
-  category: string;
-  entity_type: string;
-  entity_id?: number;
-  entity_name: string;
-  change_type: string;
-  from_version?: string;
-  to_version?: string;
-  before_hash?: string;
-  after_hash?: string;
-  status: string;
-  detail_json?: string;
-  created_at: number;
-}
-
 export const getAgentObservabilitySummary = (params: Query = {}) =>
   http.get<any, Query>(baseUrlApi("agents/observability/summary"), { params });
 
 export const getAgentObservabilityTraces = (params: Query = {}) =>
   http.get<any, Query>(baseUrlApi("agents/observability/traces"), { params });
-
-export const getAgentObservabilityChanges = (params: Query = {}) =>
-  http.get<any, Query>(baseUrlApi("agents/observability/changes"), { params });
 
 export type AgentWorkflowName =
   | "market_scan"

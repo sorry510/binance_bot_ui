@@ -32,6 +32,15 @@ export default [
         }
       },
       {
+        path: "/ai/controlled-trade",
+        name: "AgentControlledTrade",
+        component: () => import("@/views/ai/controlledTrade.vue"),
+        meta: {
+          title: "menus.agentControlledTrade",
+          showLink: true
+        }
+      },
+      {
         path: "/futures/lead",
         name: "FuturesLead",
         component: () => import("@/views/futures/leadTrading.vue"),
@@ -43,7 +52,7 @@ export default [
       {
         path: "/futures/account",
         name: "futuresAccount",
-        component: () => import("@/views/futures/account.vue"),
+        component: () => import("@/views/futures/account2.vue"),
         meta: {
           title: "menus.futuresAccount",
           showLink: true
@@ -52,11 +61,14 @@ export default [
       {
         path: "/futures/account2",
         name: "futuresAccount2",
-        component: () => import("@/views/futures/account2.vue"),
-        meta: {
-          title: "menus.futuresAccount2",
-          showLink: true
-        }
+        redirect: to => ({ path: "/futures/account", query: { ...to.query } }),
+        meta: { title: "menus.futuresAccount2", showLink: false }
+      },
+      {
+        path: "/futures/account/exchange",
+        name: "FuturesExchangeAccount",
+        component: () => import("@/views/futures/account.vue"),
+        meta: { title: "menus.futuresAccount", showLink: false }
       },
       {
         path: "/futures/strategy-template",
@@ -77,15 +89,6 @@ export default [
         }
       },
       {
-        path: "/ai/controlled-trade",
-        name: "AgentControlledTrade",
-        component: () => import("@/views/ai/controlledTrade.vue"),
-        meta: {
-          title: "menus.agentControlledTrade",
-          showLink: true
-        }
-      },
-      {
         path: "/ai/backtest",
         name: "AgentBacktest",
         component: () => import("@/views/ai/backtest.vue"),
@@ -100,7 +103,7 @@ export default [
         component: () => import("@/views/futures/liquidationOrder.vue"),
         meta: {
           title: "menus.futuresLiquidationOrders",
-          showLink: true
+          showLink: false
         }
       }
     ]
@@ -175,7 +178,8 @@ export default [
     meta: {
       icon: "ri/search-line",
       title: "menus.fundingRate",
-      rank: 5
+      rank: 5,
+      showLink: false
     },
     children: [
       {

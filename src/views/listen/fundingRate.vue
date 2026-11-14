@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
 import {
@@ -12,7 +12,14 @@ defineOptions({ name: "fundingRates" });
 const { t } = useI18n();
 
 const list = ref<any[]>([]);
+const total = ref(0);
+const pagination = reactive({ page: 1, limit: 50 });
 const history = ref<any[]>([]);
+const historyPagination = reactive({ page: 1, limit: 50 });
+const visibleHistory = computed(() => {
+  const start = (historyPagination.page - 1) * historyPagination.limit;
+  return history.value.slice(start, start + historyPagination.limit);
+});
 const dialogVisible = ref(false);
 const dialogTitle = ref("");
 const timer = ref<number | null>(null);
@@ -30,9 +37,27 @@ function formatTime(ts: number | string) {
   return new Date(Number(ts)).toLocaleString();
 }
 
-async function fetchData() {
-  const res = await getFundingRates(search);
-  list.value = res?.data || [];
+async function fetchData(resetPage = false) {
+  if (resetPage) pagination.page = 1;
+  const res = await getFundingRates({
+    symbol: search.symbol,
+    page: pagination.page,
+    limit: pagination.limit
+  });
+  if (res?.code !== 200 || !res?.data) return;
+  list.value = res.data.list || [];
+  total.value = Number(res.data.total || 0);
+  pagination.page = Number(res.data.page || 1);
+}
+
+function changePage(page: number) {
+  pagination.page = page;
+  void fetchData();
+}
+
+function changePageSize(size: number) {
+  pagination.limit = size;
+  void fetchData(true);
 }
 
 async function showHistory(row: any) {
@@ -40,6 +65,8 @@ async function showHistory(row: any) {
     symbol: row.symbol
   });
   dialogVisible.value = true;
+  historyPagination.page = 1;
+  history.value = [];
   const res = await getFundingRateHistory({ symbol: row.symbol });
   history.value = (res?.data || []).slice().reverse();
 }
@@ -64,13 +91,13 @@ onBeforeUnmount(clearTimer);
         v-model="search.symbol"
         :placeholder="t('listenFundingRatePage.placeholder.symbol')"
         style="width: 180px"
-        @keyup.enter="fetchData"
+        @keyup.enter="fetchData(true)"
       />
-      <el-button type="primary" @click="fetchData">{{
+      <el-button type="primary" @click="fetchData(true)">{{
         t("listenFundingRatePage.button.search")
       }}</el-button>
       <span class="ml-auto"
-        >{{ t("listenFundingRatePage.label.total") }}: {{ list.length }}</span
+        >{{ t("listenFundingRatePage.label.total") }}: {{ total }}</span
       >
     </div>
     <el-table :data="list" border size="small">
@@ -119,9 +146,21 @@ onBeforeUnmount(clearTimer);
         ></el-table-column
       >
     </el-table>
+    <div class="mt-3 flex justify-end">
+      <el-pagination
+        v-model:current-page="pagination.page"
+        v-model:page-size="pagination.limit"
+        :page-sizes="[20, 50, 100, 200]"
+        :total="total"
+        background
+        layout="total, sizes, prev, pager, next"
+        @current-change="changePage"
+        @size-change="changePageSize"
+      />
+    </div>
 
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="760px">
-      <el-table :data="history" border size="small">
+      <el-table :data="visibleHistory" border size="small">
         <el-table-column
           :label="t('listenFundingRatePage.table.rate')"
           min-width="120"
@@ -142,6 +181,17 @@ onBeforeUnmount(clearTimer);
           min-width="120"
         />
       </el-table>
+      <div class="mt-3 flex justify-end">
+        <el-pagination
+          v-model:current-page="historyPagination.page"
+          v-model:page-size="historyPagination.limit"
+          :page-sizes="[20, 50, 100, 200]"
+          :total="history.length"
+          background
+          layout="total, sizes, prev, pager, next"
+          @size-change="historyPagination.page = 1"
+        />
+      </div>
     </el-dialog>
   </div>
 </template>

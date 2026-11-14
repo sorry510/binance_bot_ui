@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
 import { Codemirror } from "vue-codemirror";
 import { autocompletion, completeFromList } from "@codemirror/autocomplete";
 import { indentWithTab } from "@codemirror/commands";
@@ -28,6 +29,7 @@ import { validateTechnologyConfig } from "../../utils/technology";
 defineOptions({ name: "FuturesSymbol" });
 
 const { t } = useI18n();
+const router = useRouter();
 
 type IndicatorKey =
   | "ma"
@@ -983,6 +985,12 @@ onBeforeUnmount(() => {
         <el-button type="primary" @click="openBatchDialog">{{
           t("futuresSymbolPage.button.batchEdit")
         }}</el-button>
+        <el-button @click="router.push('/futures/liquidation-orders')">
+          {{ t("futuresSymbolPage.button.marketLiquidation") }}
+        </el-button>
+        <el-button @click="router.push('/funding-rate/funding-rate')">
+          {{ t("futuresSymbolPage.button.fundingRate") }}
+        </el-button>
       </div>
       <div class="w-1/4 text-right">
         {{ t("futuresSymbolPage.label.total") }}: {{ total }}

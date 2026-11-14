@@ -9,6 +9,7 @@ import {
 } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
 import {
   delLocalFuturesPositions,
   getFuturesAccount,
@@ -21,6 +22,11 @@ defineOptions({
   name: "futuresAccount2"
 });
 const { t } = useI18n();
+const router = useRouter();
+
+function openExchangeTab(tab: "position" | "openOrder") {
+  void router.push({ path: "/futures/account/exchange", query: { tab } });
+}
 
 const tabName = ref("position");
 const accountAssets = ref<any[]>([]);
@@ -190,6 +196,9 @@ onBeforeUnmount(() => clearTimer());
           <el-button type="success" @click="getPositions">{{
             t("futuresAccount2Page.button.search")
           }}</el-button>
+          <el-button type="primary" plain @click="openExchangeTab('position')">
+            {{ t("futuresAccount2Page.button.exchangePositions") }}
+          </el-button>
           <span
             >{{ t("futuresAccount2Page.label.currentProfit") }}:
             {{ allProfit }}</span
@@ -279,6 +288,11 @@ onBeforeUnmount(() => clearTimer());
         :label="t('futuresAccount2Page.tab.openOrder')"
         name="openOrder"
       >
+        <div class="mb-3 flex items-center gap-2">
+          <el-button type="primary" plain @click="openExchangeTab('openOrder')">
+            {{ t("futuresAccount2Page.button.exchangeOrders") }}
+          </el-button>
+        </div>
         <el-table :data="openOrders" border size="small">
           <el-table-column
             prop="symbol"
