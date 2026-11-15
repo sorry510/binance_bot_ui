@@ -42,12 +42,9 @@ export const setConfig = (data: Query) => {
   return http.request<any>("put", baseUrlApi("config"), { data });
 };
 
-export const startService = () => {
-  return http.post<any, Query>(baseUrlApi("start"));
-};
-
-export const stopService = () => {
-  return http.post<any, Query>(baseUrlApi("stop"));
+// Manual in-process re-exec: no PM2 command and no automatic restart on save.
+export const restartService = () => {
+  return http.post<any, Query>(baseUrlApi("config/restart"));
 };
 
 export const getFuturesAccount = (params: Query = {}) => {

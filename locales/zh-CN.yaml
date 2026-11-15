@@ -1152,7 +1152,6 @@ futuresSymbolPage:
     updateSuccess: 更新成功
     updateFail: 更新失败
     deleteSuccess: 删除成功
-    operateSuccess: 操作成功
     editSuccess: 编辑成功
     editFail: 编辑失败
     deleteFail: 删除失败
@@ -1289,17 +1288,22 @@ strategyTemplatePage:
     closeShort: 平空
 tradeCodePage:
   button:
-    restart: 重启服务
-    stop: 停止服务
     save: 保存
+    restart: 重启生效
   confirm:
     title: 提示
     save: 确认保存当前配置?
-    restart: 确认重启服务?
-    stop: 确认停止服务?
+    restart: 确认重启 Go 服务以应用已保存的配置吗？正在执行的任务会短暂中断。
   message:
     saveSuccess: 保存成功
-    operateSuccess: 操作成功
+    savedRestartNeeded: 配置已保存，请点击「重启生效」应用修改
+    noChanges: 配置没有改动
+    unsaved: 存在未保存的修改
+    restartRequired: 待重启生效
+    saveFirst: 请先保存当前修改
+    saveFailed: 保存配置失败
+    restartFailed: 无法发起重启
+    restartRequested: 已发起重启，请稍后刷新页面确认服务恢复
 newCoinPage:
   button:
     add: 新增
@@ -3155,3 +3159,13 @@ spotQuantPage:
     verified: 已核算
     rebuildSuccess: 已根据真实逐笔成交重算本地仓位
     rebuildFailed: 账本重算失败，请先检查成交与委托状态
+
+systemLogPage:
+  search: 搜索币种、订单号或关键字
+  all: 全部级别
+  lines: "最近 {count} 行"
+  autoRefresh: 自动刷新
+  refresh: 刷新
+  empty: 暂无日志
+  recentOnly: 仅扫描最近 2 MB 日志；更早的内容可在服务器日志文件中查看。
+  fetchError: 日志读取失败

@@ -125,8 +125,23 @@ export const getMarketConditionUpdateTask = (taskId: string) => {
   );
 };
 
-export const getLog = (params: Query = {}) => {
-  return http.get<any, Query>(baseUrlApi("pm2-log?key=sorry510"), { params });
+export interface ApplicationLogsResult {
+  lines: string[];
+  scanned_bytes: number;
+  has_earlier: boolean;
+}
+
+export const getLog = (
+  params: {
+    limit?: number;
+    level?: string;
+    keyword?: string;
+  } = {}
+) => {
+  return http.get<
+    { code: number; msg: string; data: ApplicationLogsResult },
+    Query
+  >(baseUrlApi("system/logs"), { params });
 };
 
 export const getAlertPipelineStatus = (params: Query = {}) => {

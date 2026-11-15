@@ -1153,7 +1153,6 @@ futuresSymbolPage:
     updateSuccess: Updated successfully
     updateFail: Update failed
     deleteSuccess: Deleted successfully
-    operateSuccess: Operated successfully
     editSuccess: Edited successfully
     editFail: Edit failed
     deleteFail: Delete failed
@@ -1290,17 +1289,22 @@ strategyTemplatePage:
     closeShort: Close Short
 tradeCodePage:
   button:
-    restart: Restart Service
-    stop: Stop Service
     save: Save
+    restart: Restart to apply
   confirm:
     title: Confirm
     save: Confirm saving current config?
-    restart: Confirm restarting service?
-    stop: Confirm stopping service?
+    restart: Restart the Go service to apply the saved settings? Running tasks may be interrupted.
   message:
-    saveSuccess: Saved successfully
-    operateSuccess: Operated successfully
+    saveSuccess: Configuration saved
+    savedRestartNeeded: Configuration saved. Select Restart to apply to activate it.
+    noChanges: No changes to save
+    unsaved: Unsaved changes
+    restartRequired: Restart required
+    saveFirst: Save your changes before restarting
+    saveFailed: Failed to save configuration
+    restartFailed: Failed to request restart
+    restartRequested: Restart requested. Refresh the page shortly to confirm service recovery
 newCoinPage:
   button:
     add: Add
@@ -3158,3 +3162,13 @@ spotQuantPage:
     verified: Verified
     rebuildSuccess: Local position rebuilt from recorded trades
     rebuildFailed: Failed to rebuild; inspect trade and order consistency
+
+systemLogPage:
+  search: Search symbols, order IDs or keywords
+  all: All levels
+  lines: "Latest {count} lines"
+  autoRefresh: Auto refresh
+  refresh: Refresh
+  empty: No log entries
+  recentOnly: Only the most recent 2 MB is scanned; older logs remain on the server.
+  fetchError: Unable to read application logs
