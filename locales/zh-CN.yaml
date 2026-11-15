@@ -2820,7 +2820,10 @@ systemDashboard:
     tradeCounts:
       executionUncertain: 执行结果待确认
       protectionFailed: 保护单失败
-      reconcileRequired: 待对账
+      reconcileRequired: 执行/归属待对账
+      fillVerificationPending: 成交核验待补
+      activeFillVerification: 其中活动仓位
+      historicalFillVerification: 其中已关闭仓位
     messages:
       database connection failed: 数据库连接失败
       load database schema version failed: 读取数据库结构版本失败
@@ -2856,6 +2859,10 @@ systemDashboard:
       no trade safety issue: 未发现交易安全问题
       read managed position reconcile count failed: 读取待对账仓位数失败
       read managed order reconcile count failed: 读取待对账订单数失败
+      read managed order reconcile detail failed: 读取受管订单核验详情失败
+      invalid trade reconcile classification: 交易对账分类异常
+      fillVerificationSummary: '成交 REST 核验待补 {count}（活动仓位 {active}，历史已关闭 {historical}），保护单失败 {protection}'
+      tradeCountersWithVerification: '执行结果待确认 {uncertain}，执行/归属待对账 {reconcile}，保护单失败 {protection}，成交 REST 核验待补 {verification}'
       schema: 数据库结构版本 {version}
       schemaOutdated: 数据库结构版本 {version} 低于要求的 {required}
       restCode: Binance REST 返回状态码 {code}

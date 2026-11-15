@@ -67,6 +67,9 @@ export interface TradeHealthCheck extends SystemHealthCheck {
   execution_uncertain: number;
   protection_failed: number;
   reconcile_required: number;
+  fill_verification_pending?: number;
+  active_fill_verification?: number;
+  historical_fill_verification?: number;
 }
 
 export interface SystemHealthReport {

@@ -2821,7 +2821,10 @@ systemDashboard:
     tradeCounts:
       executionUncertain: Execution uncertain
       protectionFailed: Protection failed
-      reconcileRequired: Reconciliation required
+      reconcileRequired: Execution / ownership reconcile
+      fillVerificationPending: Pending REST fill verification
+      activeFillVerification: Active positions
+      historicalFillVerification: Closed positions
     messages:
       database connection failed: Database connection failed
       load database schema version failed: Load database schema version failed
@@ -2857,6 +2860,10 @@ systemDashboard:
       no trade safety issue: No trade safety issue
       read managed position reconcile count failed: Read managed position reconcile count failed
       read managed order reconcile count failed: Read managed order reconcile count failed
+      read managed order reconcile detail failed: Read managed order reconciliation details failed
+      invalid trade reconcile classification: Invalid trade reconciliation classification
+      fillVerificationSummary: 'REST fill verification pending {count} (active {active}, closed {historical}); protection failures {protection}'
+      tradeCountersWithVerification: 'Uncertain execution {uncertain}, execution/ownership reconciliation {reconcile}, protection failures {protection}, REST fill verification pending {verification}'
       schema: Database schema version {version}
       schemaOutdated: Database schema version {version} is below required {required}
       restCode: Binance REST returned status {code}

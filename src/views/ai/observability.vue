@@ -165,6 +165,28 @@ function translatedHealthMessage(message?: string) {
       reconcile: m[2],
       protection: m[3]
     });
+  if (
+    (m = raw.match(
+      /^fill_verification_pending=(\d+) active=(\d+) historical=(\d+) protection_failed=(\d+)$/
+    ))
+  )
+    return t(group + ".fillVerificationSummary", {
+      count: m[1],
+      active: m[2],
+      historical: m[3],
+      protection: m[4]
+    });
+  if (
+    (m = raw.match(
+      /^execution_uncertain=(\d+) reconcile_required=(\d+) protection_failed=(\d+) fill_verification_pending=(\d+)$/
+    ))
+  )
+    return t(group + ".tradeCountersWithVerification", {
+      uncertain: m[1],
+      reconcile: m[2],
+      protection: m[3],
+      verification: m[4]
+    });
   if (/^read trade safety .* count failed$/.test(raw))
     return t(group + ".tradeReadFailed");
   return displayValue(group, raw);
@@ -600,6 +622,30 @@ onBeforeUnmount(() => {
         <el-descriptions-item
           :label="t('systemDashboard.health.tradeCounts.reconcileRequired')"
           >{{ health.trade.reconcile_required }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="
+            t('systemDashboard.health.tradeCounts.fillVerificationPending')
+          "
+          >{{
+            health.trade.fill_verification_pending ?? 0
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="
+            t('systemDashboard.health.tradeCounts.activeFillVerification')
+          "
+          >{{
+            health.trade.active_fill_verification ?? 0
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :label="
+            t('systemDashboard.health.tradeCounts.historicalFillVerification')
+          "
+          >{{
+            health.trade.historical_fill_verification ?? 0
+          }}</el-descriptions-item
         >
       </el-descriptions>
     </el-card>
