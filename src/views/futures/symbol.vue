@@ -991,6 +991,9 @@ onBeforeUnmount(() => {
         <el-button @click="router.push('/funding-rate/funding-rate')">
           {{ t("futuresSymbolPage.button.fundingRate") }}
         </el-button>
+        <el-button @click="router.push('/futures/lead')">
+          {{ t("menus.leadTrading") }}
+        </el-button>
       </div>
       <div class="w-1/4 text-right">
         {{ t("futuresSymbolPage.label.total") }}: {{ total }}

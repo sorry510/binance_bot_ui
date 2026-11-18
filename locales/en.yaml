@@ -101,7 +101,11 @@ menus:
   notifyConfig: Notify Config
   notificationHistory: Notification History
   futuresTrade: Futures Trade
-  spotQuantTrading: Spot Quant Trading
+  coinMTrading: COIN-M Trading
+  coinMAccount: Local COIN-M Account
+  coinMTemplates: COIN-M Strategy Templates
+  coinMControlledTrade: Positions & Controlled Trade
+  spotQuantTrading: Spot Trading
   spotQuantAccount: Local Spot Account
   spotQuantControlledTrade: Spot Positions & Controlled Trade
   spotQuantTemplates: Spot Strategy Templates
@@ -141,6 +145,7 @@ login:
   pureLogin: Login
   pureLoginSuccess: Login Success
   pureLoginFail: Login Fail
+  pureLoginRateLimited: "Too many login attempts. Try again in {minutes} minute(s)."
   pureUsernameReg: Please enter username
   purePassWordReg: Please enter password
   purePassWordRuleReg: The password format should be any combination of 8-18 digits
@@ -3006,7 +3011,7 @@ systemDashboard:
       5m: 5 minutes
 leadTradingPage:
   title: "Copy Trading"
-  offline: "Management only · live trading not authorized"
+  offline: "Lead uses a separate API key. Enabling trading can place real orders."
   status: "Account status"
   credentials: "Dedicated credentials"
   risk: "Risk limits"
@@ -3018,22 +3023,30 @@ leadTradingPage:
   ready: "Readiness"
   keyHint: "API key"
   portfolio: "Portfolio label"
+  portfolioPlaceholder: "Optional display label only; any text or blank is fine"
   key: "API key"
   secret: "API secret"
+  leadKeyGuideTitle: "Create a dedicated Futures Lead API key"
+  leadKeyGuideIntro: "Create a Futures Lead Portfolio first. Do not use an ordinary Main account key or a Spot Copy Trading key."
+  leadKeyGuideStep1: "On Binance, open Futures → Copy Trading → My Lead and choose your Lead Portfolio."
+  leadKeyGuideStep2: "Within that portfolio, choose API → Create Copy Trading API."
+  leadKeyGuideStep3: "Edit restrictions, whitelist your server's public IPv4 address, and enable Futures trading."
+  leadKeyGuideStep4: "Copy that portfolio's API Key and Secret into the fields below, then save securely. The local label is display-only."
+  leadKeyGuideSecurity: "For USDT Futures Lead portfolios only; at most two keys per portfolio. Do not enable withdrawals or commit secrets to source control."
+  leadKeyGuideOfficial: "Binance official API-key guide (opens new tab)"
   saveCredentials: "Encrypt and save"
   verify: "Read-only verify"
   saveLimits: "Save risk limits"
   pause: "Pause new entries"
-  startLocked: "Request start (Stage 7 locked)"
   reconcileLocked: "Reconcile (live gate locked)"
-  notAuthorized: "Live execution is not authorized"
+  notAuthorized: "Read-only verification is optional. Confirm the Lead key does not belong to the Main account."
   reason: "Blocking reasons"
   maxOrder: "Max order notional (USDT)"
+  maxOrderHelp: "Maximum notional of any new Lead entry (quantity × price), not margin. A larger order is rejected. This does not change Main account settings."
   maxTotal: "Total notional (USDT)"
+  maxTotalHelp: "Lead-wide exposure cap: all current Lead positions (including manual), unfilled opening-order notional, and the proposed entry. Based on current prices; not margin or historical turnover. Main is unaffected."
   dailyLoss: "Daily loss breaker (USDT)"
-  drawdown: "Max drawdown (%)"
-  maxPositions: "Max positions"
-  maxLosing: "Max losing positions"
+  dailyLossHelpTooltip: "UTC-day realized net PnL for Lead (realized PnL plus commission and funding); excludes unrealized PnL. Reaching the loss limit blocks new entries, not existing exits. 0 disables this cap."
   inherited: "Uses existing strategy and symbol selection settings. Edit them in the main configuration page."
   noData: "No data"
   symbol: "Symbol"
@@ -3044,23 +3057,28 @@ leadTradingPage:
   order: "Client order ID"
   intent: "Intent"
   fill: "Cumulative fill"
-  event: "Event"
-  at: "Time"
   api: "5-min REST requests"
   weight: "Estimated weight"
   wsUpdates: "WS events"
-  dropped: "Dropped alerts"
   unknownLive: "Local ownership only; not proof of live Binance positions"
   refresh: "Refresh"
   saveSuccess: "Request completed"
   failed: "Request failed"
   unconfigured: "Secure storage is not configured"
   historical: "Local managed records"
-  offlineGate: "Gate 5/7 not verified"
+  offlineGate: "Orders require a healthy Lead WS, valid risk checks and dedicated credentials. Live identity was not verified."
   dataSource: "Data source"
-  audit: "Audit history"
   openRules: "Strategy settings"
-  startBlocked: "Live entry stays locked"
+  startBlocked: "Automatic entries are off by default"
+  pauseConfirm: "Emergency Pause cannot be resumed until the process restarts. For normal stopping, turn off the entry switch. Pause now?"
+  allowNewOpens: "Allow Lead automatic entries"
+  stagedOnly: "Off by default. Turning off entries does not prevent managed exits or reconciliation. Existing risk and WS checks still apply."
+  enabledWarning: "Entries enabled: confirm this is a dedicated Lead portfolio key, not the Main key."
+  disabledWarning: "New entries disabled; existing managed positions can still exit."
+  enableConfirm: "Enabling may place real Binance orders using your dedicated Lead API key. Confirm account, risk limits and strategy settings before proceeding."
+  enableConfirmButton: "Enable live trading"
+  invalidLimits: "Order and total notional caps must be positive, and the order cap cannot exceed the total cap."
+  dailyLossHelp: "0 disables the additional daily loss cap."
   lastChecked: "Last verification"
 
 aiHub:
@@ -3093,6 +3111,105 @@ spotQuant062:
   importOverwriteTitle: Confirm template overwrite
   importOverwrite: A Spot template named "{name}" already exists. Importing will replace its indicators and rules. Continue?
   importNameRequired: Imported JSON must contain a non-empty template name
+
+coinMPage:
+  config:
+    title: COIN-M Futures Trading
+    enable: Enable COIN-M automated trading
+  symbols:
+    title: COIN-M perpetual contracts
+    all: All perpetuals
+    selectSymbols: Select symbols to edit first
+    enableConfigured: Enable configured contracts
+    syntaxOnly: Syntax checked only; real indicators not evaluated
+    synthetic: Simulated check, not a live trading signal
+    favorite: Favorites
+    autoSync: Symbols are synchronized from public Binance market data; manual creation is not supported
+    budget: Margin budget (USD equivalent)
+    batchBudget: Batch margin budget (USD equivalent)
+    contractSize: Contract size (USD/contract)
+    marginAsset: Margin asset
+    leverage: Leverage
+    marginMode: Margin mode
+    isolated: Isolated
+    crossed: Cross
+    syncNote: Saving settings does not immediately submit orders. However, after deployment, enabling both global and symbol switches can let the COIN-M runner submit real Binance orders if account and strategy checks pass. Do not enable before Demo/Testnet validation.
+    invalidEnable: Set a positive budget and a valid LONG/SHORT entry strategy before enabling.
+  account:
+    title: Local COIN-M Account
+    positions: Local strategy positions
+    orders: Local strategy orders
+    fills: Verified trade fills
+    noPositions: No local COIN-M managed positions
+    noOrders: No local COIN-M managed orders
+    readOnly: Read-only COIN-M managed cycles, orders and verified Fill summaries; wallet balances are fetched separately through signed DAPI reads. This page cannot manually trade. Live validation of the automatic runner is still pending.
+    pNlWarning: Realized and unrealized PnL settle in each margin asset. Never sum different assets; totals remain unavailable without verified Fills or fresh marks.
+    walletTitle: COIN-M wallet balances (read-only)
+    walletUnavailable: COIN-M wallet unavailable. Check selected network and DAPI credentials.
+    walletNote: Signed COIN-M wallet read only on page open or manual refresh. Wallet assets are not owned by the local Managed position ledger.
+    noWallet: No COIN-M assets reported by the selected environment
+    walletBalance: Wallet balance
+    availableBalance: Available balance
+    crossWalletBalance: Cross wallet
+    crossUnrealized: Cross unrealized PnL
+    environment: API environment
+    filteredTotals: Settlement-asset PnL across all filtered pages
+    totalsNote: Realized PnL comes from verified local Fills, excluding fees and funding; fees are grouped by commission asset. Never add different settlement assets. Incomplete Fills or missing marks leave total PnL unavailable. USD estimates are illustrative only.
+    markUnavailable: No fresh COIN-M mark price; unrealized PnL cannot be verified
+    markPrice: COIN-M mark price
+    unrealized: Unrealized PnL
+    totalPnL: Total PnL
+    usdReference: Indicative USD estimate
+    showUSD: Show indicative USD estimate
+    fees: Fees by asset
+    cycles: Cycles
+    evidenceStatus: Evidence
+    invalid: Invalid evidence
+    pending: Pending first Fill
+    filledContracts: Filled contracts
+    pnlStatuses:
+      verified: Verified
+      unpriced: Mark unavailable
+      invalid: Invalid evidence
+      unverified_fills: Incomplete Fills
+      pending_fills: Awaiting first Fill
+    unpriced: Mark unavailable
+    details: Order and fill details
+    side: Position side
+    contracts: Contracts
+    remaining: Remaining contracts
+    entry: Entry price
+    realized: Realized PnL (settlement asset)
+    status: Status
+    tradeId: Exchange trade ID
+    fee: Commission (asset)
+    time: Time
+    search: Search
+    reset: Reset
+    refresh: Refresh
+    symbol: Contract
+    asset: Settlement asset
+  controlled:
+    title: Positions & Controlled Trade
+    notice: This page only displays local Managed positions and orders; manual submit, cancel, close or ownership actions are unavailable. The CM-6 automatic runner is wired in source code and may submit real orders after deployment and both switches are enabled, but Demo/Testnet and live verification are still pending.
+    noAction: Manual controlled trading is unavailable. Local records alone do not prove current exchange positions.
+    statusTitle: COIN-M runtime status (local read-only)
+    statusUnavailable: Cannot read local COIN-M runtime status
+    notConfigured: Not configured
+    entrySwitch: Automatic entry master switch
+    enabled: Enabled
+    disabled: Disabled
+    enabledSymbols: Enabled perpetual symbols
+    managedCycles: Managed cycles needing work
+    unsettledOrders: Orders requiring reconciliation
+    tradeActions: Manual page actions
+    notAvailable: Unavailable
+    runtimeNote: This displays local database state only; it does not verify private WS health, API permissions, or live Binance positions, and it sends no signed requests. Disabling entries does not automatically close positions or cancel existing protection.
+  template:
+    exportJson: Export JSON
+    importNameRequired: Imported JSON must include a nonempty template name
+    overwrite: A COIN-M template named "{name}" already exists. Import will overwrite its indicators and strategy. Continue?
+    overwriteTitle: Overwrite COIN-M template?
 
 spotQuantPage:
   config:

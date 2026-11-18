@@ -46,7 +46,7 @@ export default [
         component: () => import("@/views/futures/leadTrading.vue"),
         meta: {
           title: "menus.leadTrading",
-          showLink: true
+          showLink: false
         }
       },
       {

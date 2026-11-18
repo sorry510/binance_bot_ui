@@ -74,6 +74,19 @@ const onLogin = async (formEl: FormInstance | undefined) => {
             message(t("login.pureLoginFail"), { type: "error" });
           }
         })
+        .catch(error => {
+          if (error?.response?.status === 429) {
+            const retry = Number(error?.response?.data?.data?.retry_after);
+            const minutes = Math.ceil(
+              (Number.isFinite(retry) && retry > 0 ? retry : 900) / 60
+            );
+            message(t("login.pureLoginRateLimited", { minutes }), {
+              type: "error"
+            });
+          } else {
+            message(t("login.pureLoginFail"), { type: "error" });
+          }
+        })
         .finally(() => (loading.value = false));
     }
   });

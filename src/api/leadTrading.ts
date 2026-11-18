@@ -4,14 +4,10 @@ export interface LeadLimits {
   max_order_notional_usdt: number;
   max_total_notional_usdt: number;
   max_daily_realized_loss_usdt: number;
-  max_drawdown_pct: number;
-  max_positions: number;
-  max_losing_positions: number;
 }
 export interface LeadSettings {
   account_id: "lead";
-  enabled: false;
-  allow_new_opens: false;
+  allow_new_opens: boolean;
   limits: LeadLimits;
   updated_at?: string;
 }
@@ -29,8 +25,8 @@ export interface LeadVerification {
 }
 export interface LeadStatus {
   account_id: "lead";
-  enabled: boolean;
   allow_new_opens: boolean;
+  live_trade_authorized: boolean;
   readiness: string;
   ws_healthy: boolean;
   runtime_connected: boolean;
@@ -58,12 +54,6 @@ export interface LeadManagedOrder {
   filled_qty: number;
   created_at: number;
 }
-export interface LeadAuditEvent {
-  account_id: string;
-  action: string;
-  reason: string;
-  occurred_at: string;
-}
 const path = (p: string) => baseUrlApi(`futures/lead/${p}`);
 export const leadStatus = () => http.get<any, any>(path("status"));
 export const leadConfig = () => http.get<any, any>(path("config"));
@@ -74,8 +64,6 @@ export const leadPositions = (
 ) => http.get<any, any>(path("positions"), { params });
 export const leadOrders = (params: { limit?: number; owner?: string } = {}) =>
   http.get<any, any>(path("orders"), { params });
-export const leadEvents = (params: { limit?: number } = {}) =>
-  http.get<any, any>(path("events"), { params });
 export const leadSaveCredentials = (data: {
   api_key: string;
   api_secret: string;
@@ -87,9 +75,3 @@ export const leadSaveConfig = (data: LeadSettings) =>
   http.request<any>("put", path("config"), { data });
 export const leadPause = () =>
   http.request<any>("post", path("pause"), { data: {} });
-export const leadStart = () =>
-  http.request<any>("post", path("start"), { data: {} });
-export const leadReconcile = () =>
-  http.request<any>("post", path("reconcile"), { data: {} });
-export const leadDeleteCredentials = () =>
-  http.request<any>("delete", path("credentials"));

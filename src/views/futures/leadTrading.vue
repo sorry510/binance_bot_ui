@@ -2,13 +2,13 @@
 import { computed, onMounted, onBeforeUnmount, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { QuestionFilled } from "@element-plus/icons-vue";
 import {
   leadStatus,
   leadConfig,
   leadMetrics,
   leadPositions,
   leadOrders,
-  leadEvents,
   leadSaveCredentials,
   leadVerify,
   leadSaveConfig,
@@ -17,11 +17,12 @@ import {
   type LeadVerification,
   type LeadSettings,
   type LeadManagedOrder,
-  type LeadManagedPosition,
-  type LeadAuditEvent
+  type LeadManagedPosition
 } from "@/api/leadTrading";
 
 defineOptions({ name: "FuturesLead" });
+const leadApiGuideUrl =
+  "https://www.binance.com/en/support/faq/detail/2bec848b904b422197ce121d0925f20b";
 const { t } = useI18n();
 const tr = (key: string) => t(`leadTradingPage.${key}`);
 const busy = ref(false);
@@ -30,15 +31,11 @@ const configured = ref(false);
 const dirtyRisk = ref(false);
 const settings = reactive<LeadSettings>({
   account_id: "lead",
-  enabled: false,
   allow_new_opens: false,
   limits: {
     max_order_notional_usdt: 0,
     max_total_notional_usdt: 0,
-    max_daily_realized_loss_usdt: 0,
-    max_drawdown_pct: 0,
-    max_positions: 0,
-    max_losing_positions: 0
+    max_daily_realized_loss_usdt: 0
   }
 });
 const secretForm = reactive({
@@ -48,7 +45,6 @@ const secretForm = reactive({
 });
 const positions = ref<LeadManagedPosition[]>([]);
 const orders = ref<LeadManagedOrder[]>([]);
-const events = ref<LeadAuditEvent[]>([]);
 const metrics = ref<Record<string, any>>({});
 const statusErrors = ref<string[]>([]);
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
@@ -80,8 +76,7 @@ async function refresh() {
     leadConfig(),
     leadMetrics(),
     leadPositions({ limit: 100 }),
-    leadOrders({ limit: 100 }),
-    leadEvents({ limit: 50 })
+    leadOrders({ limit: 100 })
   ]);
   const values = results.map(result =>
     result.status === "fulfilled" ? result.value?.data : undefined
@@ -98,8 +93,7 @@ async function refresh() {
     if (incoming && !dirtyRisk.value) {
       Object.assign(settings, {
         account_id: "lead",
-        enabled: false,
-        allow_new_opens: false,
+        allow_new_opens: Boolean(incoming.allow_new_opens),
         limits: { ...settings.limits, ...incoming.limits }
       });
     }
@@ -107,7 +101,6 @@ async function refresh() {
   if (values[2]) metrics.value = values[2]?.metrics || {};
   if (values[3]) positions.value = values[3]?.positions || [];
   if (values[4]) orders.value = values[4]?.orders || [];
-  if (values[5]) events.value = values[5]?.events || [];
 }
 async function withAction(action: () => Promise<unknown>) {
   if (busy.value) return;
@@ -144,15 +137,64 @@ function verify() {
   withAction(() => leadVerify());
 }
 function saveLimits() {
-  settings.enabled = false;
-  settings.allow_new_opens = false;
+  const { max_order_notional_usdt: order, max_total_notional_usdt: total } =
+    settings.limits;
+  if (!(order > 0 && total > 0 && order <= total)) {
+    ElMessage.warning(tr("invalidLimits"));
+    return;
+  }
   withAction(async () => {
     await leadSaveConfig({ ...settings, limits: { ...settings.limits } });
     dirtyRisk.value = false;
   });
 }
-function pause() {
-  withAction(() => leadPause());
+async function toggleOpens(enabled: boolean) {
+  if (enabled) {
+    const { max_order_notional_usdt: order, max_total_notional_usdt: total } =
+      settings.limits;
+    if (!(order > 0 && total > 0 && order <= total)) {
+      ElMessage.warning(tr("invalidLimits"));
+      settings.allow_new_opens = false;
+      return;
+    }
+    try {
+      await ElMessageBox.confirm(tr("enableConfirm"), tr("trading"), {
+        confirmButtonText: tr("enableConfirmButton"),
+        type: "warning"
+      });
+    } catch {
+      settings.allow_new_opens = false;
+      return;
+    }
+  }
+  // The switch is the ONLY ordinary enable/disable action. Emergency Pause
+  // remains a separate last-resort latch, not the regular OFF control.
+  const value = enabled;
+  await withAction(async () => {
+    await leadSaveConfig({
+      ...settings,
+      allow_new_opens: value,
+      limits: { ...settings.limits }
+    });
+    dirtyRisk.value = false;
+  });
+  // On an API failure, always restore the actual saved state.
+  const saved = await leadConfig().catch(() => undefined);
+  if (saved?.data?.settings) {
+    settings.allow_new_opens = Boolean(saved.data.settings.allow_new_opens);
+  }
+}
+async function pause() {
+  // This Stage 6/Lead-01 pause is one-way for the current process.
+  // A confirmation avoids an accidental irreversible click.
+  try {
+    await ElMessageBox.confirm(tr("pauseConfirm"), tr("pause"), {
+      type: "warning"
+    });
+  } catch {
+    return;
+  }
+  await withAction(() => leadPause());
 }
 onMounted(() => {
   refresh().catch(fail);
@@ -175,7 +217,7 @@ onBeforeUnmount(() => {
     </div>
     <el-alert
       :title="tr('offline')"
-      type="warning"
+      type="info"
       :closable="false"
       show-icon
       class="mb-4"
@@ -218,7 +260,39 @@ onBeforeUnmount(() => {
       </el-col>
       <el-col :xs="24" :lg="12">
         <el-card class="lead-card" shadow="never">
-          <template #header>{{ tr("credentials") }}</template>
+          <template #header>
+            <span class="lead-label-help">
+              {{ tr("credentials") }}
+              <el-popover placement="bottom-start" trigger="hover" :width="380">
+                <template #reference>
+                  <el-icon
+                    class="lead-help-icon"
+                    tabindex="0"
+                    :aria-label="tr('leadKeyGuideTitle')"
+                  >
+                    <QuestionFilled />
+                  </el-icon>
+                </template>
+                <div class="lead-key-guide">
+                  <strong>{{ tr("leadKeyGuideTitle") }}</strong>
+                  <p>{{ tr("leadKeyGuideIntro") }}</p>
+                  <ol>
+                    <li>{{ tr("leadKeyGuideStep1") }}</li>
+                    <li>{{ tr("leadKeyGuideStep2") }}</li>
+                    <li>{{ tr("leadKeyGuideStep3") }}</li>
+                    <li>{{ tr("leadKeyGuideStep4") }}</li>
+                  </ol>
+                  <p>{{ tr("leadKeyGuideSecurity") }}</p>
+                  <a
+                    :href="leadApiGuideUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >{{ tr("leadKeyGuideOfficial") }}</a
+                  >
+                </div>
+              </el-popover>
+            </span>
+          </template>
           <el-form label-position="top" size="small" autocomplete="off">
             <el-form-item :label="tr('key')">
               <el-input
@@ -237,7 +311,11 @@ onBeforeUnmount(() => {
               />
             </el-form-item>
             <el-form-item :label="tr('portfolio')">
-              <el-input v-model="secretForm.portfolio_label" maxlength="128" />
+              <el-input
+                v-model="secretForm.portfolio_label"
+                maxlength="128"
+                :placeholder="tr('portfolioPlaceholder')"
+              />
             </el-form-item>
           </el-form>
           <el-space wrap>
@@ -262,58 +340,104 @@ onBeforeUnmount(() => {
             class="mb-3"
           />
           <el-form label-position="top" size="small" class="lead-risk-form">
-            <el-form-item :label="tr('maxOrder')"
-              ><el-input-number
+            <el-form-item>
+              <template #label>
+                <span class="lead-label-help">
+                  {{ tr("maxOrder") }}
+                  <el-tooltip
+                    :content="tr('maxOrderHelp')"
+                    placement="top"
+                    :show-after="150"
+                    :popper-style="{
+                      maxWidth: '340px',
+                      whiteSpace: 'normal',
+                      lineHeight: '1.5'
+                    }"
+                  >
+                    <el-icon
+                      class="lead-help-icon"
+                      tabindex="0"
+                      :aria-label="tr('maxOrderHelp')"
+                    >
+                      <QuestionFilled />
+                    </el-icon>
+                  </el-tooltip>
+                </span>
+              </template>
+              <el-input-number
                 v-model="settings.limits.max_order_notional_usdt"
                 :min="0"
                 :precision="2"
                 controls-position="right"
                 @change="dirtyRisk = true"
-            /></el-form-item>
-            <el-form-item :label="tr('maxTotal')"
-              ><el-input-number
+              />
+            </el-form-item>
+            <el-form-item>
+              <template #label>
+                <span class="lead-label-help">
+                  {{ tr("maxTotal") }}
+                  <el-tooltip
+                    :content="tr('maxTotalHelp')"
+                    placement="top"
+                    :show-after="150"
+                    :popper-style="{
+                      maxWidth: '340px',
+                      whiteSpace: 'normal',
+                      lineHeight: '1.5'
+                    }"
+                  >
+                    <el-icon
+                      class="lead-help-icon"
+                      tabindex="0"
+                      :aria-label="tr('maxTotalHelp')"
+                    >
+                      <QuestionFilled />
+                    </el-icon>
+                  </el-tooltip>
+                </span>
+              </template>
+              <el-input-number
                 v-model="settings.limits.max_total_notional_usdt"
                 :min="0"
                 :precision="2"
                 controls-position="right"
                 @change="dirtyRisk = true"
-            /></el-form-item>
-            <el-form-item :label="tr('dailyLoss')"
-              ><el-input-number
+              />
+            </el-form-item>
+            <el-form-item>
+              <template #label>
+                <span class="lead-label-help">
+                  {{ tr("dailyLoss") }}
+                  <el-tooltip
+                    :content="tr('dailyLossHelpTooltip')"
+                    placement="top"
+                    :show-after="150"
+                    :popper-style="{
+                      maxWidth: '340px',
+                      whiteSpace: 'normal',
+                      lineHeight: '1.5'
+                    }"
+                  >
+                    <el-icon
+                      class="lead-help-icon"
+                      tabindex="0"
+                      :aria-label="tr('dailyLossHelpTooltip')"
+                    >
+                      <QuestionFilled />
+                    </el-icon>
+                  </el-tooltip>
+                </span>
+              </template>
+              <el-input-number
                 v-model="settings.limits.max_daily_realized_loss_usdt"
                 :min="0"
                 :precision="2"
                 controls-position="right"
                 @change="dirtyRisk = true"
-            /></el-form-item>
-            <el-form-item :label="tr('drawdown')"
-              ><el-input-number
-                v-model="settings.limits.max_drawdown_pct"
-                :min="0"
-                :max="100"
-                :precision="2"
-                controls-position="right"
-                @change="dirtyRisk = true"
-            /></el-form-item>
-            <el-form-item :label="tr('maxPositions')"
-              ><el-input-number
-                v-model="settings.limits.max_positions"
-                :min="0"
-                :max="1000"
-                :precision="0"
-                controls-position="right"
-                @change="dirtyRisk = true"
-            /></el-form-item>
-            <el-form-item :label="tr('maxLosing')"
-              ><el-input-number
-                v-model="settings.limits.max_losing_positions"
-                :min="0"
-                :max="1000"
-                :precision="0"
-                controls-position="right"
-                @change="dirtyRisk = true"
-            /></el-form-item>
+              />
+            </el-form-item>
           </el-form>
+          <p class="lead-note">{{ tr("dailyLossHelp") }}</p>
           <el-button type="primary" :loading="busy" @click="saveLimits">{{
             tr("saveLimits")
           }}</el-button>
@@ -323,18 +447,29 @@ onBeforeUnmount(() => {
         <el-card class="lead-card" shadow="never">
           <template #header>{{ tr("trading") }}</template>
           <el-alert
-            type="warning"
+            :type="settings.allow_new_opens ? 'warning' : 'info'"
             :closable="false"
-            :title="tr('startBlocked')"
+            :title="
+              tr(
+                settings.allow_new_opens ? 'enabledWarning' : 'disabledWarning'
+              )
+            "
             class="mb-3"
           />
           <p>{{ tr("inherited") }}</p>
           <el-space wrap>
+            <span>{{ tr("allowNewOpens") }}</span>
+            <el-switch
+              v-model="settings.allow_new_opens"
+              :loading="busy"
+              :disabled="busy"
+              @change="toggleOpens"
+            />
             <el-button :loading="busy" @click="pause">{{
               tr("pause")
             }}</el-button>
-            <el-button disabled>{{ tr("startLocked") }}</el-button>
           </el-space>
+          <p class="lead-note">{{ tr("stagedOnly") }}</p>
           <div class="lead-divider" />
           <el-descriptions :column="1" size="small" border>
             <el-descriptions-item :label="tr('api')">{{
@@ -345,11 +480,6 @@ onBeforeUnmount(() => {
             }}</el-descriptions-item>
             <el-descriptions-item :label="tr('wsUpdates')">{{
               asNumber(metrics.ws_updates)
-            }}</el-descriptions-item>
-            <el-descriptions-item :label="tr('dropped')">{{
-              metrics.alert_queue_present === true
-                ? asNumber(metrics.alerts_dropped)
-                : "-"
             }}</el-descriptions-item>
           </el-descriptions>
         </el-card>
@@ -411,73 +541,44 @@ onBeforeUnmount(() => {
       <el-col :span="24">
         <el-card class="lead-card" shadow="never">
           <template #header>{{ tr("diagnostics") }}</template>
-          <el-tabs>
-            <el-tab-pane :label="tr('order')">
-              <el-table
-                :data="orders"
-                border
-                size="small"
-                max-height="320"
-                :empty-text="tr('noData')"
-              >
-                <el-table-column
-                  prop="client_order_id"
-                  :label="tr('order')"
-                  min-width="220"
-                />
-                <el-table-column
-                  prop="symbol"
-                  :label="tr('symbol')"
-                  min-width="120"
-                />
-                <el-table-column
-                  prop="position_side"
-                  :label="tr('side')"
-                  min-width="90"
-                />
-                <el-table-column
-                  prop="intent"
-                  :label="tr('intent')"
-                  min-width="105"
-                />
-                <el-table-column
-                  prop="status"
-                  :label="tr('ready')"
-                  min-width="125"
-                />
-                <el-table-column
-                  prop="filled_qty"
-                  :label="tr('fill')"
-                  min-width="110"
-                />
-              </el-table>
-            </el-tab-pane>
-            <el-tab-pane :label="tr('audit')">
-              <el-table
-                :data="events"
-                border
-                size="small"
-                max-height="320"
-                :empty-text="tr('noData')"
-              >
-                <el-table-column
-                  prop="action"
-                  :label="tr('event')"
-                  min-width="170"
-                />
-                <el-table-column
-                  prop="reason"
-                  :label="tr('reason')"
-                  min-width="220"
-                />
-                <el-table-column :label="tr('at')" min-width="180">
-                  <template #default="{ row }">{{
-                    timestamp(row.occurred_at)
-                  }}</template>
-                </el-table-column>
-              </el-table>
-            </el-tab-pane>
-          </el-tabs>
+          <el-table
+            :data="orders"
+            border
+            size="small"
+            max-height="320"
+            :empty-text="tr('noData')"
+          >
+            <el-table-column
+              prop="client_order_id"
+              :label="tr('order')"
+              min-width="220"
+            />
+            <el-table-column
+              prop="symbol"
+              :label="tr('symbol')"
+              min-width="120"
+            />
+            <el-table-column
+              prop="position_side"
+              :label="tr('side')"
+              min-width="90"
+            />
+            <el-table-column
+              prop="intent"
+              :label="tr('intent')"
+              min-width="105"
+            />
+            <el-table-column
+              prop="status"
+              :label="tr('ready')"
+              min-width="125"
+            />
+            <el-table-column
+              prop="filled_qty"
+              :label="tr('fill')"
+              min-width="110"
+            />
+          </el-table>
         </el-card>
       </el-col>
     </el-row>
@@ -505,6 +606,32 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 16px;
+}
+
+.lead-label-help {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.lead-help-icon {
+  color: var(--el-color-primary);
+  cursor: help;
+  outline-offset: 2px;
+}
+
+.lead-key-guide p {
+  margin: 8px 0;
+  line-height: 1.55;
+}
+
+.lead-key-guide ol {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.lead-key-guide li {
+  margin: 4px 0;
 }
 
 .lead-risk-form :deep(.el-input-number) {

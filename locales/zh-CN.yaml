@@ -101,7 +101,11 @@ menus:
   notifyConfig: 通知配置
   notificationHistory: 历史通知
   futuresTrade: 合约交易
-  spotQuantTrading: 现货量化交易
+  coinMTrading: 币本位交易
+  coinMAccount: 币本位本地账户
+  coinMTemplates: 币本位策略模板
+  coinMControlledTrade: 仓位与受控交易
+  spotQuantTrading: 现货交易
   spotQuantAccount: 本地现货账户
   spotQuantControlledTrade: 现货仓位与受控交易
   spotQuantTemplates: 现货策略模板
@@ -141,6 +145,7 @@ login:
   pureLogin: 登录
   pureLoginSuccess: 登录成功
   pureLoginFail: 登录失败
+  pureLoginRateLimited: "登录尝试过多，请 {minutes} 分钟后重试"
   pureUsernameReg: 请输入账号
   purePassWordReg: 请输入密码
   purePassWordRuleReg: 密码格式应为1-20位数字、字母、符号的任意两种组合
@@ -3003,7 +3008,7 @@ systemDashboard:
       5m: 5 分钟
 leadTradingPage:
   title: "合约带单"
-  offline: "仅管理界面 · 真实带单未授权"
+  offline: "带单仅使用独立 API Key；启用开关后可能产生真实交易。"
   status: "账户状态"
   credentials: "专用凭证"
   risk: "账户风险"
@@ -3015,22 +3020,30 @@ leadTradingPage:
   ready: "当前就绪状态"
   keyHint: "API Key"
   portfolio: "Portfolio 名称"
+  portfolioPlaceholder: "可随意填写或留空，仅用于本地显示，不参与账户识别"
   key: "API Key"
   secret: "API Secret"
+  leadKeyGuideTitle: "如何申请合约 Lead 专用 API Key"
+  leadKeyGuideIntro: "必须先在币安创建合约带单 Portfolio；不要使用普通 Main 账户的 API Key，也不要使用现货带单 API。"
+  leadKeyGuideStep1: "在币安网页依次打开「合约 → 跟单 → 我的带单（My Lead）」，选择你的带单组合。"
+  leadKeyGuideStep2: "在该组合中点击「API → 创建带单 API（Create Copy Trading API）」。"
+  leadKeyGuideStep3: "点击「编辑限制」，添加服务器出口 IPv4 到可信 IP 白名单，开启「Enable Futures」合约交易权限。"
+  leadKeyGuideStep4: "复制此组合生成的 API Key / API Secret，填入下方输入框，加密保存；本地 Portfolio 名称仅作展示。"
+  leadKeyGuideSecurity: "仅支持合约 USDT 带单组合；每个组合最多两个 Key。不要开启提币权限，也不要将 API Secret 写入 Git 或日志。"
+  leadKeyGuideOfficial: "查看币安官方申请教程（新窗口）"
   saveCredentials: "加密保存凭证"
   verify: "只读验证"
   saveLimits: "保存风险限制"
   pause: "暂停新开仓"
-  startLocked: "请求启用（Stage 7 前禁止）"
   reconcileLocked: "手动对账（真实 Gate 前禁止）"
-  notAuthorized: "真实交易尚未授权"
+  notAuthorized: "只读验证可选；启用前请自行确认 Lead 专用 Key 未绑定 Main 账户。"
   reason: "阻断原因"
   maxOrder: "单笔最大名义额 (USDT)"
+  maxOrderHelp: "只限制 Lead 账户单次新开仓订单的最大名义金额（数量 × 价格，不是保证金）；超过上限拒绝新开仓。与主账户配置互不影响。"
   maxTotal: "总名义额 (USDT)"
+  maxTotalHelp: "Lead 账户整体持仓敞口上限：现有全部仓位（含手动仓位）的名义额 + 未成交开仓订单剩余名义额 + 本次拟开仓名义额。按当前价格估算，不是保证金，也不是历史累计成交额；不影响 Main 账户。"
   dailyLoss: "日亏损熔断 (USDT)"
-  drawdown: "最大回撤 (%)"
-  maxPositions: "最大持仓数"
-  maxLosing: "最大亏损仓位数"
+  dailyLossHelpTooltip: "按 UTC 自然日统计 Lead 账户已实现净盈亏（已实现盈亏 + 手续费 + 资金费），不含未实现盈亏；当净亏损达到填写值时暂停新开仓，0 表示关闭此项限制。不会自动强制平仓。"
   inherited: "继承现有策略、选币与交易规则；请前往原配置中心修改。"
   noData: "暂无数据"
   symbol: "交易对"
@@ -3041,23 +3054,28 @@ leadTradingPage:
   order: "委托 ID"
   intent: "意图"
   fill: "累计成交"
-  event: "事件"
-  at: "时间"
   api: "5 分钟 REST 请求"
   weight: "估算权重"
   wsUpdates: "WS 事件"
-  dropped: "告警丢弃"
   unknownLive: "本页仅显示本地 Ownership，非 Binance 实时仓位证明"
   refresh: "刷新"
   saveSuccess: "操作已提交"
   failed: "操作未成功"
   unconfigured: "尚未配置安全存储"
   historical: "本地受控记录"
-  offlineGate: "Gate 5/7 尚未验收"
+  offlineGate: "账户、私有 WS 与风控状态均正常时才允许下单；未执行真实账户身份验证。"
   dataSource: "数据来源"
-  audit: "事件历史"
   openRules: "策略配置"
-  startBlocked: "实际开仓入口保持锁定"
+  startBlocked: "自动开仓默认关闭"
+  pauseConfirm: "紧急暂停后，在当前进程中不能再次开启新仓，直到重启。普通停止请关闭自动开仓开关。确定紧急暂停？"
+  allowNewOpens: "允许 Lead 自动开仓"
+  stagedOnly: "开关默认关闭。关闭开仓不会停止已有受控仓位的止盈止损和对账。遇到 API/WS 异常仍按现有风控拒绝交易。"
+  enabledWarning: "自动开仓已允许：确认所填的是带单组合专用 API Key，而不是 Main Key。"
+  disabledWarning: "自动开仓关闭；有受控持仓时仍尝试执行既有平仓策略。"
+  enableConfirm: "启用后将使用 Lead 专用 API Key 执行真实自动交易。请确认账户、风险限制和策略配置，是否开启？"
+  enableConfirmButton: "确认开启真实交易"
+  invalidLimits: "单笔及总名义额必须大于 0，且单笔不得超过总额。"
+  dailyLossHelp: "0 表示不使用额外的每日亏损上限。"
   lastChecked: "上次验证"
 
 aiHub:
@@ -3090,6 +3108,105 @@ spotQuant062:
   importOverwriteTitle: 确认覆盖同名模板
   importOverwrite: 已存在名为「{name}」的现货模板。导入会覆盖该模板的指标与策略，是否继续？
   importNameRequired: 导入的 JSON 必须包含非空的模板名称
+
+coinMPage:
+  config:
+    title: 币本位合约交易
+    enable: 启用币本位自动交易
+  symbols:
+    title: 币本位永续合约
+    all: 全部永续
+    selectSymbols: 请先选择需要批量修改的币种
+    enableConfigured: 启用已配置币种
+    syntaxOnly: 仅完成语法校验，未运行真实指标
+    synthetic: 模拟校验，非实盘信号
+    favorite: 收藏
+    autoSync: 合约由币安公开行情自动同步，不能手动新增
+    budget: 保证金预算（USD 等值）
+    batchBudget: 批量预算（USD 等值）
+    contractSize: 合约面值（USD/张）
+    marginAsset: 保证金币种
+    leverage: 杠杆
+    marginMode: 保证金模式
+    isolated: 逐仓
+    crossed: 全仓
+    syncNote: 保存配置本身不会立即下单；但全局与逐币开关都开启、账户和策略满足条件后，已部署的 CM 自动执行器可能向 Binance 提交真实订单。未完成 Demo/Testnet 验收前不要开启。
+    invalidEnable: 请先设置非零预算和有效的 LONG/SHORT 开仓策略。
+  account:
+    title: 币本位本地账户
+    positions: 本地策略持仓
+    orders: 本地策略订单
+    fills: 真实逐笔成交
+    noPositions: 暂无币本位策略持仓
+    noOrders: 暂无币本位策略订单
+    readOnly: 币本位 Managed 持仓、订单与真实 Fill 的只读汇总；钱包来自独立 DAPI 只读查询。页面不会手动发单；自动执行器需另行完成真实环境验收。
+    pNlWarning: 已实现与未实现盈亏按保证金币种结算。不同币种不可相加；无标记价或 Fill 证据不全时总收益显示为不可用。
+    walletTitle: COIN-M 钱包余额（只读）
+    walletUnavailable: 币本位钱包暂不可读取（请检查所选网络和专用 API 权限）
+    walletNote: 币安 COIN-M 签名余额，仅在打开本页或手动刷新时查询；不代表本地 Managed 仓位的归属。
+    noWallet: 当前环境未返回币本位资产
+    walletBalance: 钱包余额
+    availableBalance: 可用余额
+    crossWalletBalance: 全仓钱包余额
+    crossUnrealized: 全仓未实现盈亏
+    environment: API 环境
+    filteredTotals: 筛选范围内的结算资产收益汇总（全部分页）
+    totalsNote: 实现盈亏来自本地真实 Fill，不计手续费和资金费；手续费按扣费币种单列。不同结算币不相加，缺少 Fill 或标记价格时不显示完整总收益；USD 仅为参考估值。
+    markUnavailable: 暂未获得有效的币本位标记价格，未实现盈亏不能确认
+    markPrice: COIN-M 标记价
+    unrealized: 未实现盈亏
+    totalPnL: 总盈亏
+    usdReference: 参考 USD 估值
+    showUSD: 显示参考 USD 估值
+    fees: 手续费（按币种）
+    cycles: 周期数
+    evidenceStatus: 证据完整性
+    invalid: 证据异常
+    pending: 待首次成交
+    filledContracts: 已成交张数
+    pnlStatuses:
+      verified: 已核实
+      unpriced: 缺少标记价
+      invalid: 证据异常
+      unverified_fills: Fill 尚未完整
+      pending_fills: 待首次成交
+    unpriced: 缺少标记价
+    details: 查看订单与成交明细
+    side: 仓位方向
+    contracts: 合约张数
+    remaining: 剩余张数
+    entry: 开仓价
+    realized: 已实现盈亏（结算币）
+    status: 状态
+    tradeId: 交易所成交号
+    fee: 手续费（币）
+    time: 时间
+    search: 查询
+    reset: 重置
+    refresh: 刷新
+    symbol: 合约
+    asset: 结算币
+  controlled:
+    title: 仓位与受控交易
+    notice: 本页面仅查看本地 Managed 仓位及订单，不提供手动下单、撤单、平仓或归属操作。CM-6 自动策略执行器已有源码接线；完成部署和双开关启用后可能真实交易，但仍未通过 Demo/Testnet 及实盘验收。
+    noAction: 手动受控交易操作未开放；请勿将本地账本视为交易所实时持仓证明。
+    statusTitle: 币本位运行状态（本地只读）
+    statusUnavailable: 本地币本位运行状态无法读取
+    notConfigured: 未配置
+    entrySwitch: 自动开仓总开关
+    enabled: 已开启
+    disabled: 已关闭
+    enabledSymbols: 已启用永续合约
+    managedCycles: 待处理 Managed 周期
+    unsettledOrders: 待核对订单
+    tradeActions: 页面手动操作
+    notAvailable: 未开放
+    runtimeNote: 此处只展示本地数据库状态，不证明私有 WS、API 权限或币安账户健康；不执行签名请求。停止新开仓不会自动平仓或取消已有保护单。
+  template:
+    exportJson: 导出 JSON
+    importNameRequired: 导入 JSON 必须包含非空的模板名称
+    overwrite: 已存在名为「{name}」的币本位模板。导入会覆盖该模板的指标与策略，是否继续？
+    overwriteTitle: 确认覆盖同名币本位模板
 
 spotQuantPage:
   config:
