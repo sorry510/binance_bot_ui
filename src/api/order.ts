@@ -236,3 +236,63 @@ export const getManagedAnomalies = (params: ManagedAnomalyFilters) =>
     baseUrlApi("orders/anomalies"),
     { params }
   );
+
+// UF-5: verified settled Main auto_strategy performance, no mark-to-market
+// valuations, no cross-asset conversion, no presentation-only manual overrides.
+export interface VerifiedPerformanceBreakdown {
+  name: string;
+  trades: number;
+  wins: number;
+  losses: number;
+  zero: number;
+  net_pnl: string;
+}
+export interface VerifiedPerformanceAsset {
+  asset: "USDT" | "USDC";
+  trades: number;
+  wins: number;
+  losses: number;
+  zero: number;
+  win_rate_pct: string;
+  gross_pnl: string;
+  commission: string;
+  net_pnl: string;
+  average_net_pnl: string;
+  profit_factor: string | null;
+  profit_factor_note?: string;
+  settled_net_pnl_drawdown: string;
+  by_symbol: VerifiedPerformanceBreakdown[];
+  by_side: VerifiedPerformanceBreakdown[];
+  by_rule: VerifiedPerformanceBreakdown[];
+}
+export interface VerifiedPerformanceReport {
+  account_id: "main";
+  owner: "auto_strategy";
+  days: 7 | 30;
+  start_closed_at: number;
+  end_closed_at: number;
+  symbol?: string;
+  position_side?: string;
+  rule_hash?: string;
+  observed_at: number;
+  candidate_cycles: number;
+  verified_cycles: number;
+  excluded_cycles: number;
+  excluded_reasons: Record<string, number>;
+  assets: VerifiedPerformanceAsset[];
+  scope: string;
+}
+export interface VerifiedPerformanceFilter {
+  days: 7 | 30;
+  symbol?: string;
+  position_side?: string;
+  rule_hash?: string;
+}
+export const getVerifiedFuturesPerformance = (
+  params: VerifiedPerformanceFilter
+) =>
+  http.get<OrderHistoryApiResult<VerifiedPerformanceReport>, unknown>(
+    baseUrlApi("orders/performance"),
+    { params },
+    { skipProgress: true }
+  );

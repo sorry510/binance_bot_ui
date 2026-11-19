@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { ElMessage, ElMessageBox } from "element-plus";
 import AnomalyPanel from "./AnomalyPanel.vue";
+import PerformancePanel from "./PerformancePanel.vue";
 import {
   getManagedCycleDetails,
   getManagedOrderCycles,
@@ -427,6 +428,7 @@ onMounted(() => load());
     </el-form>
 
     <AnomalyPanel />
+    <PerformancePanel />
 
     <div class="mb-3 flex flex-wrap items-center gap-2">
       <el-button
