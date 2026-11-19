@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
 import {
   getAgentObservabilitySummary,
   getAgentObservabilityTraces,
@@ -18,6 +19,14 @@ import {
 
 defineOptions({ name: "SystemDashboard" });
 const { t, te, locale } = useI18n();
+const router = useRouter();
+function openFuturesAnomalies(category: string) {
+  void router.push({
+    path: "/futures/list",
+    query: { anomalies: "1", category, account_id: "main" }
+  });
+}
+
 const loading = ref(false);
 const healthLoading = ref(false);
 const health = ref<SystemHealthReport | null>(null);
@@ -613,24 +622,50 @@ onBeforeUnmount(() => {
       >
         <el-descriptions-item
           :label="t('systemDashboard.health.tradeCounts.executionUncertain')"
-          >{{ health.trade.execution_uncertain }}</el-descriptions-item
         >
+          <el-link
+            type="primary"
+            :underline="false"
+            @click="openFuturesAnomalies('proposal_execution_uncertain')"
+          >
+            {{ health.trade.execution_uncertain }}
+          </el-link>
+        </el-descriptions-item>
         <el-descriptions-item
           :label="t('systemDashboard.health.tradeCounts.protectionFailed')"
-          >{{ health.trade.protection_failed }}</el-descriptions-item
         >
+          <el-link
+            type="primary"
+            :underline="false"
+            @click="openFuturesAnomalies('proposal_protection_failed')"
+          >
+            {{ health.trade.protection_failed }}
+          </el-link>
+        </el-descriptions-item>
         <el-descriptions-item
           :label="t('systemDashboard.health.tradeCounts.reconcileRequired')"
-          >{{ health.trade.reconcile_required }}</el-descriptions-item
         >
+          <el-link
+            type="primary"
+            :underline="false"
+            @click="openFuturesAnomalies('reconcile_required')"
+          >
+            {{ health.trade.reconcile_required }}
+          </el-link>
+        </el-descriptions-item>
         <el-descriptions-item
           :label="
             t('systemDashboard.health.tradeCounts.fillVerificationPending')
           "
-          >{{
-            health.trade.fill_verification_pending ?? 0
-          }}</el-descriptions-item
         >
+          <el-link
+            type="primary"
+            :underline="false"
+            @click="openFuturesAnomalies('fill_verification_pending')"
+          >
+            {{ health.trade.fill_verification_pending ?? 0 }}
+          </el-link>
+        </el-descriptions-item>
         <el-descriptions-item
           :label="
             t('systemDashboard.health.tradeCounts.activeFillVerification')

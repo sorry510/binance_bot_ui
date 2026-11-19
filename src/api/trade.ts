@@ -95,3 +95,36 @@ export const testStrategyRule = (id: number | string, data: Query) => {
     }
   );
 };
+
+// UF-4: read the Main runner's most recent in-memory entry decisions.
+// No strategy evaluation, Binance requests or trade mutations.
+export interface FuturesEntryDiagnostic {
+  symbol: string;
+  position_side: "LONG" | "SHORT";
+  reason_code: string;
+  observed_at: number;
+  last_order_submitted_at: number;
+}
+export interface FuturesEntryDiagnosticsSnapshot {
+  account_id: "main";
+  global_reason: string;
+  observed_at: number;
+  list: FuturesEntryDiagnostic[];
+  total: number;
+  scope: string;
+}
+export interface FuturesEntryDiagnosticsResponse {
+  code: number;
+  msg: string;
+  data: FuturesEntryDiagnosticsSnapshot | null;
+}
+export const getFuturesEntryDiagnostics = (params: {
+  symbol?: string;
+  position_side?: string;
+}) => {
+  return http.get<FuturesEntryDiagnosticsResponse, unknown>(
+    baseUrlApi("futures/entry-diagnostics"),
+    { params },
+    { skipProgress: true }
+  );
+};

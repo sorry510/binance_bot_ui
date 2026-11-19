@@ -192,3 +192,47 @@ export const deleteManagedHistory = (data: PhysicalDeleteRequest) =>
     baseUrlApi("orders/batch/delete"),
     { data }
   );
+
+// UF-3 local read-only anomaly locator. Source/identities are allowlisted;
+// never interpret this as an exchange balance or confirmed resolution action.
+export interface ManagedAnomalyItem {
+  category: string;
+  source: "managed_order" | "managed_position" | "agent_proposal";
+  account_id: "main" | "lead";
+  owner: string;
+  symbol: string;
+  position_side: string;
+  position_id: number | null;
+  managed_order_id: number | null;
+  proposal_id?: string;
+  client_order_id?: string;
+  exchange_order_id?: string;
+  intent?: string;
+  status: string;
+  settlement_status?: string;
+  requested_qty: number;
+  filled_qty: number;
+  updated_at: number;
+  last_reconciled_at: number;
+}
+export interface ManagedAnomalyPage {
+  total: number;
+  page: number;
+  limit: number;
+  list: ManagedAnomalyItem[];
+  scope: string;
+}
+export interface ManagedAnomalyFilters {
+  account_id: "main" | "lead";
+  owner?: string;
+  symbol?: string;
+  position_side?: string;
+  category?: string;
+  page: number;
+  limit: number;
+}
+export const getManagedAnomalies = (params: ManagedAnomalyFilters) =>
+  http.get<OrderHistoryApiResult<ManagedAnomalyPage>, unknown>(
+    baseUrlApi("orders/anomalies"),
+    { params }
+  );

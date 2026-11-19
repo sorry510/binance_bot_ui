@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+import EntryDiagnostics from "./EntryDiagnostics.vue";
 import { Codemirror } from "vue-codemirror";
 import { autocompletion, completeFromList } from "@codemirror/autocomplete";
 import { indentWithTab } from "@codemirror/commands";
@@ -965,6 +966,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="p-4 futures-symbol-page">
+    <EntryDiagnostics />
     <div class="mb-3 flex items-center justify-between gap-3">
       <div class="flex w-3/4 flex-wrap items-center gap-2">
         <el-button type="success" @click="openAddDialog">{{

@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { ElMessage, ElMessageBox } from "element-plus";
+import AnomalyPanel from "./AnomalyPanel.vue";
 import {
   getManagedCycleDetails,
   getManagedOrderCycles,
@@ -424,6 +425,8 @@ onMounted(() => load());
         }}</el-button>
       </el-form-item>
     </el-form>
+
+    <AnomalyPanel />
 
     <div class="mb-3 flex flex-wrap items-center gap-2">
       <el-button
