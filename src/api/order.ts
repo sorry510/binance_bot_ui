@@ -42,7 +42,12 @@ export interface ManagedCycle {
   completeness_manually_set: boolean;
   history_modified_at: number;
   settlement_status: string;
-  completeness: "verified" | "pending" | "incomplete" | "manual_reviewed";
+  completeness:
+    | "verified"
+    | "pending"
+    | "incomplete"
+    | "estimated"
+    | "manual_reviewed";
   incomplete_reason?: string;
   open_qty: string;
   close_qty: string;
@@ -69,6 +74,11 @@ export interface ManagedCycle {
   total_pnl: string | null;
   display_return_pct: string | null;
   display_pnl_asset?: string;
+  bnb_fee_estimated?: boolean;
+  estimated_fee_usdt?: string | null;
+  estimated_net_pnl?: string | null;
+  bnb_fee_price_usdt?: string | null;
+  bnb_fee_price_updated_at?: number;
 }
 
 export interface ManagedChildOrder {
@@ -110,6 +120,17 @@ export interface ManagedOrderPage {
     { realized: string; unrealized: string; total: string }
   >;
   pnl_unpriced_count: number;
+  summary_included?: boolean;
+}
+
+// UF-6: complete filtered indicative PnL independently from the page.
+// Price timestamps describe local symbols snapshots, not Binance mark prices.
+export interface ManagedOrderSummary {
+  total: number;
+  filtered_pnl: ManagedOrderPage["filtered_pnl"];
+  pnl_unpriced_count: number;
+  calculated_at: number;
+  price_updated_at: number;
 }
 
 export interface ManagedCycleDetail {
@@ -128,6 +149,7 @@ export interface ManagedHistoryFilters {
   end_time?: number;
   page: number;
   limit: number;
+  include_summary?: boolean;
 }
 
 // Real history starts with v23 Managed cycles. Legacy order deletion remains
@@ -136,6 +158,15 @@ export const getManagedOrderCycles = (params: ManagedHistoryFilters) =>
   http.get<OrderHistoryApiResult<ManagedOrderPage>, unknown>(
     baseUrlApi("orders"),
     { params }
+  );
+
+export const getManagedOrderSummary = (
+  params: Omit<ManagedHistoryFilters, "page" | "limit" | "include_summary">
+) =>
+  http.get<OrderHistoryApiResult<ManagedOrderSummary>, unknown>(
+    baseUrlApi("orders/summary"),
+    { params },
+    { skipProgress: true }
   );
 
 export const getManagedCycleDetails = (id: number, accountId = "main") =>
@@ -221,6 +252,8 @@ export interface ManagedAnomalyPage {
   limit: number;
   list: ManagedAnomalyItem[];
   scope: string;
+  settlement_pending_total?: number;
+  with_bnb_commission_total?: number;
 }
 export interface ManagedAnomalyFilters {
   account_id: "main" | "lead";
@@ -228,6 +261,9 @@ export interface ManagedAnomalyFilters {
   symbol?: string;
   position_side?: string;
   category?: string;
+  // UI-only split of execution anomalies and unsettled financial cycles.
+  // Default omitted preserves the old API response for other consumers.
+  exclude_settlement_pending?: boolean;
   page: number;
   limit: number;
 }

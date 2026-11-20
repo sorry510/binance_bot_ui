@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { ElMessage, ElMessageBox } from "element-plus";
-import AnomalyPanel from "./AnomalyPanel.vue";
-import PerformancePanel from "./PerformancePanel.vue";
 import {
   getManagedCycleDetails,
   getManagedOrderCycles,
+  getManagedOrderSummary,
   previewHistoryBulk,
   applyHistoryBulk,
   deleteManagedHistory,
@@ -15,12 +15,15 @@ import {
   type ManagedCycleDetail,
   type ManagedFill,
   type ManagedHistoryFilters,
+  type ManagedOrderSummary,
   type HistoryBulkRequest,
   type HistoryBulkPreview
 } from "@/api/order";
 
 defineOptions({ name: "OrderList" });
 const { t } = useI18n();
+const router = useRouter();
+const route = useRoute();
 const tr = (name: string) => t(`orderPage.${name}`);
 
 const loading = ref(false);
@@ -30,6 +33,13 @@ const filteredPnL = ref<
   Record<string, { realized: string; unrealized: string; total: string }>
 >({});
 const pnlUnpriced = ref(0);
+// UF-6: the all-filter valuation is a distinct, explicitly refreshed fact.
+const summaryLoading = ref(false);
+const summaryError = ref("");
+const summaryCalculatedAt = ref(0);
+const summaryPriceUpdatedAt = ref(0);
+let summaryRequestToken = 0;
+let summaryCacheKey = "";
 const detailCache = reactive<Record<string, ManagedCycleDetail>>({});
 const detailLoading = reactive<Record<string, boolean>>({});
 const query = reactive({
@@ -68,6 +78,74 @@ function currentFilters(): ManagedHistoryFilters {
     limit: query.limit
   };
 }
+// Stable ordered key, excluding pagination, so page 1 -> 2 -> 3 never
+// invalidates or re-runs an all-filter calculation.
+function currentSummaryFilters(): Omit<
+  ManagedHistoryFilters,
+  "page" | "limit" | "include_summary"
+> {
+  const f = currentFilters();
+  return {
+    account_id: f.account_id,
+    owner: f.owner,
+    symbol: f.symbol,
+    position_side: f.position_side,
+    status: f.status,
+    settlement: f.settlement,
+    start_time: f.start_time,
+    end_time: f.end_time
+  };
+}
+function summaryKey(): string {
+  const f = currentSummaryFilters();
+  return JSON.stringify([
+    f.account_id || "main",
+    f.owner || "",
+    (f.symbol || "").toUpperCase(),
+    f.position_side || "",
+    f.status || "",
+    f.settlement || "",
+    f.start_time || 0,
+    f.end_time || 0
+  ]);
+}
+function summaryTime(value: number) {
+  return value ? formatTime(value) : "-";
+}
+async function loadSummary(force = false) {
+  const key = summaryKey();
+  // A failed or in-progress summary is not retried merely by changing page.
+  // A changed filter key or an explicit Refresh always starts a fresh read.
+  if (!force && key === summaryCacheKey) return;
+  const seq = ++summaryRequestToken;
+  summaryCacheKey = key;
+  summaryLoading.value = true;
+  summaryError.value = "";
+  // Never retain a successful valuation from a changed filter or a failed
+  // manual refresh. Empty values here mean "loading", not zero profit.
+  filteredPnL.value = {};
+  pnlUnpriced.value = 0;
+  summaryCalculatedAt.value = 0;
+  summaryPriceUpdatedAt.value = 0;
+  try {
+    const res = await getManagedOrderSummary(currentSummaryFilters());
+    if (seq !== summaryRequestToken) return;
+    if (res.code !== 200 || !res.data) {
+      throw new Error(tr("summary.loadFailed"));
+    }
+    const data: ManagedOrderSummary = res.data;
+    filteredPnL.value = data.filtered_pnl || {};
+    pnlUnpriced.value = Number(data.pnl_unpriced_count || 0);
+    summaryCalculatedAt.value = data.calculated_at || 0;
+    summaryPriceUpdatedAt.value = data.price_updated_at || 0;
+  } catch (error) {
+    if (seq !== summaryRequestToken) return;
+    summaryError.value = failureMessage(error);
+  } finally {
+    if (seq === summaryRequestToken) summaryLoading.value = false;
+  }
+}
+
 function openBulk(action: HistoryBulkRequest["action"]) {
   bulkAction.value = action;
   bulkStatus.value = "";
@@ -176,7 +254,8 @@ async function deleteFiltered() {
     const refreshed = await getManagedOrderCycles({
       ...filters,
       page: 1,
-      limit: 1
+      limit: 1,
+      include_summary: false
     });
     const count = Number(refreshed.data.total || 0);
     if (!count) {
@@ -270,29 +349,34 @@ function resetDetailCache() {
   for (const key of Object.keys(detailCache)) delete detailCache[key];
   for (const key of Object.keys(detailLoading)) delete detailLoading[key];
 }
-async function load(reset = false) {
+async function load(reset = false, refreshSummary = true) {
   if (reset) query.page = 1;
-  const current = ++requestToken;
+  const seq = ++requestToken;
   loading.value = true;
   resetDetailCache();
+
+  // Query only the current page. The independent all-filter calculation is
+  // requested in parallel on initial load, filter change and explicit refresh,
+  // but never solely because the user turned to the next page.
+  const summaryPromise = loadSummary(refreshSummary);
   try {
-    const res = await getManagedOrderCycles(currentFilters());
-    if (current !== requestToken) return;
+    const res = await getManagedOrderCycles({
+      ...currentFilters(),
+      include_summary: false
+    });
+    if (seq !== requestToken) return;
     const data = res.data;
     rows.value = data.list || [];
     total.value = Number(data.total || 0);
-    filteredPnL.value = data.filtered_pnl || {};
-    pnlUnpriced.value = Number(data.pnl_unpriced_count || 0);
   } catch (error) {
-    if (current === requestToken) {
+    if (seq === requestToken) {
       rows.value = [];
       total.value = 0;
-      filteredPnL.value = {};
-      pnlUnpriced.value = 0;
       ElMessage.error(failureMessage(error));
     }
   } finally {
-    if (current === requestToken) loading.value = false;
+    if (seq === requestToken) loading.value = false;
+    await summaryPromise;
   }
 }
 function reset() {
@@ -331,15 +415,33 @@ function fillStatus(fill: ManagedFill) {
     ? tr("completeness.verified")
     : tr("fill.provisional");
 }
+function goToOrderInsights() {
+  void router.push({ path: "/futures/order-insights" });
+}
 function fetchPage(page: number) {
   query.page = page;
-  load();
+  load(false, false);
 }
 function updatePageSize(size: number) {
   query.limit = size;
-  load(true);
+  load(true, false);
 }
-onMounted(() => load());
+onMounted(() => {
+  // Preserve existing dashboard/bookmarked links from UF-3.
+  // After UF-3 moved off the list, the old URL must not silently show
+  // the unrelated order history without the requested anomaly category.
+  if (route.query.anomalies === "1") {
+    const category =
+      typeof route.query.category === "string" ? route.query.category : "";
+    const account = route.query.account_id === "lead" ? "lead" : "main";
+    void router.replace({
+      path: "/futures/order-insights",
+      query: { tab: "anomalies", category, account_id: account }
+    });
+    return;
+  }
+  void load();
+});
 </script>
 
 <template>
@@ -427,8 +529,11 @@ onMounted(() => load());
       </el-form-item>
     </el-form>
 
-    <AnomalyPanel />
-    <PerformancePanel />
+    <div class="mb-3 flex justify-end">
+      <el-button plain @click="goToOrderInsights">
+        {{ tr("navigation.orderInsights") }}
+      </el-button>
+    </div>
 
     <div class="mb-3 flex flex-wrap items-center gap-2">
       <el-button
@@ -453,7 +558,17 @@ onMounted(() => load());
     <div class="mb-3 flex flex-wrap items-center gap-3 text-sm">
       <span>{{ tr("summary.total") }}: {{ total }}</span>
       <span>{{ tr("summary.filtered") }}:</span>
-      <template v-if="Object.keys(filteredPnL).length">
+      <el-text v-if="summaryLoading" size="small" type="info">
+        {{ tr("summary.calculating") }}
+      </el-text>
+      <el-text v-if="summaryError" size="small" type="danger">
+        {{ tr("summary.loadFailed") }}: {{ summaryError }}
+      </el-text>
+      <template
+        v-if="
+          !summaryError && !summaryLoading && Object.keys(filteredPnL).length
+        "
+      >
         <span v-for="(amount, asset) in filteredPnL" :key="asset">
           <strong :class="signed(amount.total)"
             >{{ amount.total }} {{ asset }}</strong
@@ -465,7 +580,7 @@ onMounted(() => load());
           >)
         </span>
       </template>
-      <span v-else>-</span>
+      <span v-else-if="!summaryLoading && !summaryError">-</span>
       <el-tooltip :content="tr('summary.explanation')" placement="top">
         <el-tag type="info" size="small">{{
           tr("summary.filterScope")
@@ -473,6 +588,13 @@ onMounted(() => load());
       </el-tooltip>
       <el-text v-if="pnlUnpriced" type="warning" size="small">
         {{ tr("summary.unpriced") }}: {{ pnlUnpriced }}
+      </el-text>
+      <el-text v-if="summaryCalculatedAt" type="info" size="small">
+        {{ tr("summary.calculatedAt") }}: {{ summaryTime(summaryCalculatedAt) }}
+      </el-text>
+      <el-text v-if="summaryPriceUpdatedAt" type="info" size="small">
+        {{ tr("summary.priceUpdatedAt") }}:
+        {{ summaryTime(summaryPriceUpdatedAt) }}
       </el-text>
     </div>
 
@@ -727,6 +849,14 @@ onMounted(() => load());
           <span :class="signed(row.realized_pnl)">{{
             display(row.realized_pnl)
           }}</span>
+          <el-tooltip
+            v-if="row.bnb_fee_estimated"
+            :content="tr('table.bnbEstimateExplanation')"
+          >
+            <el-tag size="small" type="success">{{
+              tr("table.bnbEstimated")
+            }}</el-tag>
+          </el-tooltip>
         </template>
       </el-table-column>
       <el-table-column :label="tr('table.unrealizedPnl')" min-width="135">
@@ -741,6 +871,25 @@ onMounted(() => load());
           <span :class="signed(row.total_pnl)">
             {{ display(row.total_pnl) }} {{ row.display_pnl_asset || "" }}
           </span>
+          <el-tooltip
+            v-if="row.bnb_fee_estimated"
+            :content="
+              tr('table.bnbEstimateExplanation') +
+              ' ' +
+              tr('table.bnbEstimatePrice') +
+              ': ' +
+              (row.bnb_fee_price_usdt || '-') +
+              ' USDT; ' +
+              tr('table.bnbEstimateFee') +
+              ': ' +
+              (row.estimated_fee_usdt || '-') +
+              ' USDT'
+            "
+          >
+            <el-tag size="small" type="success">{{
+              tr("table.bnbEstimated")
+            }}</el-tag>
+          </el-tooltip>
         </template>
       </el-table-column>
       <el-table-column :label="tr('table.returnPct')" min-width="130">

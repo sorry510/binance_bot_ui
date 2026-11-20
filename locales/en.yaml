@@ -1673,6 +1673,9 @@ listenFundingRatePage:
   message:
     updateSuccess: Updated successfully
 orderPage:
+  navigation:
+    backToOrders: "Back to Futures Orders"
+    orderInsights: "Order anomalies & strategy performance"
   performance:
     title: "Verified live strategy performance"
     expand: "View performance"
@@ -1736,7 +1739,7 @@ orderPage:
     localOnly: "Local read-only"
     collapse: "Collapse"
     expand: "View anomalies"
-    scopeNote: "Reads only local Main/Lead Managed ledgers and Agent proposals. These filtered counts may differ from health summary categories; no Binance reconciliation or trade action is triggered."
+    scopeNote: "Read-only Main/Lead Managed ledger and Agent proposals. Execution/reconciliation anomalies are shown by default; closed cycles with unverified financial settlement are listed separately. They do not necessarily indicate failed orders."
     account: "Account"
     category: "Category"
     symbol: "Symbol"
@@ -1746,7 +1749,12 @@ orderPage:
     search: "Search"
     refresh: "Refresh"
     failed: "Unable to load anomalies"
-    count: "Filtered anomalies"
+    count: "Execution / reconciliation anomalies"
+    settlementRecords: "Financially unverified cycles in this category"
+    settlementPending: "Financial settlement pending"
+    withBNBCommission: "Of which have BNB commission"
+    viewSettlementPending: "Inspect unsettled financial cycles"
+    settlementExplanation: "A closed but financially unverified cycle does not imply execution failure. BNB commissions require trusted conversion before asserting USDT net PnL; other evidence gaps may remain. No settlement status is changed."
     status: "Actual system status"
     identity: "Order / proposal / cycle ID"
     lastChecked: "Last verified / updated"
@@ -1774,13 +1782,13 @@ orderPage:
     no: "No"
     filled: "Filled from Fills"
     categories:
-      all: "All anomalies"
+      all: "Execution / reconciliation anomalies (settlement separate)"
       reconcile_required: "Managed reconciliation (positions & orders)"
       managed_position_reconcile: "Managed position reconciliation"
       managed_order_reconcile: "Managed order reconciliation"
       fill_verification_pending: "Fills awaiting REST verification"
       aged_managed_order: "Aged unresolved order (10 minutes)"
-      settlement_incomplete: "Closed cycle with incomplete settlement"
+      settlement_incomplete: "Closed cycle requiring financial verification"
       proposal_execution_uncertain: "Agent execution uncertain"
       proposal_protection_failed: "Agent protection failed"
   bulk:
@@ -1854,14 +1862,19 @@ orderPage:
     pending: "In progress"
     incomplete: "Needs reconciliation"
     manual_reviewed: "Manually reviewed (not exchange verified)"
+    estimated: "Execution normal (estimated BNB fees)"
   summary:
     total: "Total position cycles"
     filtered: "Filtered total PnL"
     realized: "Realized"
     unrealized: "Unrealized"
     filterScope: "All filtered cycles"
-    explanation: "Calculated across all filtered cycles, not the current page. Realized PnL uses executed prices and unrealized PnL uses the latest symbols table price. Trading fees and funding are excluded; last price may differ from Binance mark price."
+    explanation: "Calculated across all filtered cycles, not the current page. Realized PnL uses executed prices and unrealized PnL uses the latest symbols table price. Trading fees are excluded except for closed BNB-fee cycles with indicative estimates; funding is excluded. Last price may differ from Binance mark price."
     unpriced: "Cycles with unavailable PnL"
+    calculating: "Computing full-filter PnL…"
+    loadFailed: "Full-filter PnL unavailable (not zero)"
+    calculatedAt: "Summary calculated at"
+    priceUpdatedAt: "Latest underlying price snapshot at"
   table:
     positionId: "Cycle ID"
     symbol: "Symbol"
@@ -1877,9 +1890,13 @@ orderPage:
     fee: "Verified fees"
     currentPrice: "Latest price"
     priceUpdated: "Price updated"
+    bnbEstimated: "BNB est."
+    bnbEstimateFee: "Estimated total fees"
+    bnbEstimatePrice: "Current local BNB price"
+    bnbEstimateExplanation: "Closed trade with consistent fills. BNB fees are estimated using the current BNBUSDT price in the local symbols table. Historical estimates change as the stored price changes. Indicative PnL includes these estimated fees; settlement remains uncertified and risk controls are unaffected."
     realizedPnl: "Realized PnL"
     unrealizedPnl: "Unrealized PnL"
-    profit: "Total PnL (before fees)"
+    profit: "Total PnL (BNB estimates include fees)"
     returnPct: "Notional return"
     duration: "Cycle duration"
     updatedAt: "Updated"
@@ -2943,7 +2960,8 @@ opportunityPage:
 systemDashboard:
   health:
     title: System Health
-    subtitle: Read-only checks for core dependencies, scheduler, and trade safety. It never places orders, reconciles positions, or migrates the
+    subtitle:
+      Read-only checks for core dependencies, scheduler, and trade safety. It never places orders, reconciles positions, or migrates the
       database.
     status:
       healthy: Healthy
@@ -3024,32 +3042,32 @@ systemDashboard:
       read managed order reconcile count failed: Read managed order reconcile count failed
       read managed order reconcile detail failed: Read managed order reconciliation details failed
       invalid trade reconcile classification: Invalid trade reconciliation classification
-      fillVerificationSummary: 'REST fill verification pending {count} (active {active}, closed {historical}); protection failures {protection}'
-      tradeCountersWithVerification: 'Uncertain execution {uncertain}, execution/ownership reconciliation {reconcile}, protection failures {protection}, REST fill verification pending {verification}'
+      fillVerificationSummary: "REST fill verification pending {count} (active {active}, closed {historical}); protection failures {protection}"
+      tradeCountersWithVerification: "Uncertain execution {uncertain}, execution/ownership reconciliation {reconcile}, protection failures {protection}, REST fill verification pending {verification}"
       schema: Database schema version {version}
       schemaOutdated: Database schema version {version} is below required {required}
       restCode: Binance REST returned status {code}
       reachable: Connection successful in {duration} ms
       lastMarketUpdate: Last market update {age} ago
-      sourceCounts: '{healthy} healthy, {errors} error, {other} other market sources'
-      sourceNonHealthy: '{healthy} healthy, {other} non-healthy market sources'
-      sourcesHealthy: '{count} healthy market sources'
-      mcpNotHealthy: '{bad}/{total} MCP servers are not healthy'
-      mcpHealthy: '{count} healthy MCP servers'
-      llmCandidates: '{count} LLM routing candidates'
-      llmCandidatesFailures: '{count} LLM routing candidates; {failures} failures in 24h'
-      jobsErrors: '{count} scheduler jobs report errors'
-      jobsEnabled: '{count} scheduler jobs enabled'
-      jobsNeedAttention: '{count} scheduler jobs need attention (database freshness)'
-      jobsRecent: '{count} scheduler jobs have recent task results'
-      agentTasks: '{count} tasks in 24h'
-      agentFailures: '{failed}/{total} tasks failed in 24h'
-      protectionFailures: '{count} protection failures need review'
+      sourceCounts: "{healthy} healthy, {errors} error, {other} other market sources"
+      sourceNonHealthy: "{healthy} healthy, {other} non-healthy market sources"
+      sourcesHealthy: "{count} healthy market sources"
+      mcpNotHealthy: "{bad}/{total} MCP servers are not healthy"
+      mcpHealthy: "{count} healthy MCP servers"
+      llmCandidates: "{count} LLM routing candidates"
+      llmCandidatesFailures: "{count} LLM routing candidates; {failures} failures in 24h"
+      jobsErrors: "{count} scheduler jobs report errors"
+      jobsEnabled: "{count} scheduler jobs enabled"
+      jobsNeedAttention: "{count} scheduler jobs need attention (database freshness)"
+      jobsRecent: "{count} scheduler jobs have recent task results"
+      agentTasks: "{count} tasks in 24h"
+      agentFailures: "{failed}/{total} tasks failed in 24h"
+      protectionFailures: "{count} protection failures need review"
       tradeCounters: Execution uncertain {uncertain}, reconciliation required {reconcile}, protection failed {protection}
       tradeReadFailed: Could not read trade safety statistics
-      ageSeconds: '{count} seconds'
-      ageMinutes: '{count} minutes'
-      ageHoursMinutes: '{hours} hours {minutes} minutes'
+      ageSeconds: "{count} seconds"
+      ageMinutes: "{count} minutes"
+      ageHoursMinutes: "{hours} hours {minutes} minutes"
     sourceValues:
       binance_announcement: Binance announcements
       binance_exchange: Binance exchange
@@ -3061,7 +3079,8 @@ systemDashboard:
   binanceApi:
     moreDetails: REST Diagnostics
     title: Binance API Usage
-    subtitle: Unified rolling observability for Futures / Spot / Delivery REST. Used Weight and Order Count come from Binance response headers
+    subtitle:
+      Unified rolling observability for Futures / Spot / Delivery REST. Used Weight and Order Count come from Binance response headers
       when available. Estimated weight is only for endpoint ranking, not authoritative limit usage.
     requests1m: Requests in 1m
     estimatedWeight1m: Estimated Weight in 1m
@@ -3104,11 +3123,12 @@ systemDashboard:
     status: HTTP
     retainedEvents: Retained Events
     droppedEvents: Dropped Events
-    truncated: The last 5-minute window exceeded the in-memory cap. {count} events have been dropped during this process lifetime; current window
+    truncated:
+      The last 5-minute window exceeded the in-memory cap. {count} events have been dropped during this process lifetime; current window
       totals may be lower than actual usage.
     p95: P95 latency
     retryAfter: Retry-After (seconds)
-    requestWindow: '{duration}: {requests} requests / estimated weight {weight}'
+    requestWindow: "{duration}: {requests} requests / estimated weight {weight}"
     productValues:
       futures: Futures
       spot: Spot

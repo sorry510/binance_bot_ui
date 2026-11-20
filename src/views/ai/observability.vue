@@ -22,8 +22,8 @@ const { t, te, locale } = useI18n();
 const router = useRouter();
 function openFuturesAnomalies(category: string) {
   void router.push({
-    path: "/futures/list",
-    query: { anomalies: "1", category, account_id: "main" }
+    path: "/futures/order-insights",
+    query: { tab: "anomalies", category, account_id: "main" }
   });
 }
 

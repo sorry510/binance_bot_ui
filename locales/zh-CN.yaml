@@ -1673,6 +1673,9 @@ listenFundingRatePage:
   message:
     updateSuccess: 更新成功
 orderPage:
+  navigation:
+    backToOrders: "返回合约订单"
+    orderInsights: "异常订单与实盘统计"
   performance:
     title: "实盘策略效果（已核实）"
     expand: "查看策略统计"
@@ -1736,7 +1739,7 @@ orderPage:
     localOnly: "本地只读"
     collapse: "收起"
     expand: "查看异常订单"
-    scopeNote: "只读取 Main/Lead Managed 账本和 Agent Proposal。此处异常数量可能与系统看板的分类汇总不同；不会自动核对 Binance 或修复订单。"
+    scopeNote: "仅读取 Main/Lead Managed 账本和 Agent Proposal。默认展示执行/对账异常；已关闭但净收益未认证的周期单独列为「财务结算待核实」，不等同于下单失败，也不会自行修复或核对 Binance。"
     account: "账户"
     category: "异常分类"
     symbol: "币种"
@@ -1746,7 +1749,12 @@ orderPage:
     search: "查询"
     refresh: "刷新"
     failed: "异常记录加载失败"
-    count: "当前筛选异常数"
+    count: "当前筛选执行/对账异常数"
+    settlementRecords: "当前财务待核实周期数"
+    settlementPending: "另有财务结算待核实周期"
+    withBNBCommission: "其中记录 BNB 手续费的周期"
+    viewSettlementPending: "查看财务待核实周期"
+    settlementExplanation: "已平仓但财务结算未认证不代表真实订单失败。BNB 手续费订单如经完整成交检查，可在订单页以历史行情估算净收益并标为执行正常；估算不代表正式结算认证，其它核实问题仍单独保留。"
     status: "系统实际状态"
     identity: "订单/提案/周期标识"
     lastChecked: "最后核实/更新时间"
@@ -1774,13 +1782,13 @@ orderPage:
     no: "否"
     filled: "实际 Fill 数量"
     categories:
-      all: "全部异常"
+      all: "全部执行/对账异常（财务待结算单列）"
       reconcile_required: "Managed 待对账（仓位及订单）"
       managed_position_reconcile: "Managed 仓位待对账"
       managed_order_reconcile: "Managed 订单待对账"
       fill_verification_pending: "真实 Fill 尚未 REST 核实"
       aged_managed_order: "超时未终结委托（10 分钟）"
-      settlement_incomplete: "已关闭但结算不完整"
+      settlement_incomplete: "已平仓但财务结算待核实"
       proposal_execution_uncertain: "Agent 执行结果不确定"
       proposal_protection_failed: "Agent 保护单失败"
   bulk:
@@ -1854,14 +1862,19 @@ orderPage:
     pending: "进行中"
     incomplete: "待核对"
     manual_reviewed: "人工已检查（非自动核实）"
+    estimated: "执行正常（BNB手续费估算）"
   summary:
     total: "仓位周期总数"
     filtered: "筛选结果总盈亏"
     realized: "已平仓"
     unrealized: "未平仓浮盈亏"
     filterScope: "全部筛选结果"
-    explanation: "按全部筛选条件累计，而非当前页。已平仓按成交价与开仓均价计算；未平仓以 symbols 表最新价估算。未扣手续费及资金费。行情非币安标记价格，显示值可能与交易所未实现盈亏略有差异。"
+    explanation: "按全部筛选条件累计，而非当前页。已平仓按成交价与开仓均价计算；未平仓以 symbols 表最新价估算。除已完成 BNB 历史手续费估值的周期外，其余未扣手续费；全部不含资金费。行情非币安标记价格，显示值可能与交易所未实现盈亏略有差异。"
     unpriced: "无法完整估值的周期"
+    calculating: "正在计算筛选范围收益…"
+    loadFailed: "筛选范围收益无法计算（未显示零收益）"
+    calculatedAt: "汇总计算时间"
+    priceUpdatedAt: "所用最新行情价时间"
   table:
     positionId: "周期 ID"
     symbol: "币种"
@@ -1877,9 +1890,13 @@ orderPage:
     fee: "已核实手续费"
     currentPrice: "当前价格"
     priceUpdated: "价格更新时间"
+    bnbEstimated: "BNB估算"
+    bnbEstimateFee: "估算总手续费"
+    bnbEstimatePrice: "本地 BNB 当前价格"
+    bnbEstimateExplanation: "已平仓且成交证据正常；统一使用本地 symbols 表中的 BNBUSDT 最新价估算 BNB 手续费，历史订单重新查询时也按当前价格计算。参考盈亏已扣估算手续费，正式结算仍未认证，不影响真实交易风控。"
     realizedPnl: "已平仓盈亏"
     unrealizedPnl: "浮动盈亏"
-    profit: "合计盈亏(未扣费用)"
+    profit: "合计盈亏（BNB单据已扣估算费）"
     returnPct: "名义收益率"
     duration: "周期时长"
     updatedAt: "更新时间"
@@ -3023,32 +3040,32 @@ systemDashboard:
       read managed order reconcile count failed: 读取待对账订单数失败
       read managed order reconcile detail failed: 读取受管订单核验详情失败
       invalid trade reconcile classification: 交易对账分类异常
-      fillVerificationSummary: '成交 REST 核验待补 {count}（活动仓位 {active}，历史已关闭 {historical}），保护单失败 {protection}'
-      tradeCountersWithVerification: '执行结果待确认 {uncertain}，执行/归属待对账 {reconcile}，保护单失败 {protection}，成交 REST 核验待补 {verification}'
+      fillVerificationSummary: "成交 REST 核验待补 {count}（活动仓位 {active}，历史已关闭 {historical}），保护单失败 {protection}"
+      tradeCountersWithVerification: "执行结果待确认 {uncertain}，执行/归属待对账 {reconcile}，保护单失败 {protection}，成交 REST 核验待补 {verification}"
       schema: 数据库结构版本 {version}
       schemaOutdated: 数据库结构版本 {version} 低于要求的 {required}
       restCode: Binance REST 返回状态码 {code}
       reachable: 连接正常，耗时 {duration} 毫秒
       lastMarketUpdate: 最近行情更新距今 {age}
-      sourceCounts: '{healthy} 个正常、{errors} 个异常、{other} 个其他状态的行情来源'
-      sourceNonHealthy: '{healthy} 个正常、{other} 个非正常状态的行情来源'
-      sourcesHealthy: '{count} 个行情来源正常'
-      mcpNotHealthy: '{bad}/{total} 个 MCP 服务状态异常'
-      mcpHealthy: '{count} 个 MCP 服务正常'
-      llmCandidates: '{count} 个 LLM 路由候选'
-      llmCandidatesFailures: '{count} 个 LLM 路由候选；过去 24 小时有 {failures} 次 LLM 调用失败'
-      jobsErrors: '{count} 个调度任务出现错误'
-      jobsEnabled: '{count} 个调度任务已启用'
-      jobsNeedAttention: '{count} 个调度任务需要检查（数据库时间新鲜度）'
-      jobsRecent: '{count} 个调度任务具有近期执行结果'
+      sourceCounts: "{healthy} 个正常、{errors} 个异常、{other} 个其他状态的行情来源"
+      sourceNonHealthy: "{healthy} 个正常、{other} 个非正常状态的行情来源"
+      sourcesHealthy: "{count} 个行情来源正常"
+      mcpNotHealthy: "{bad}/{total} 个 MCP 服务状态异常"
+      mcpHealthy: "{count} 个 MCP 服务正常"
+      llmCandidates: "{count} 个 LLM 路由候选"
+      llmCandidatesFailures: "{count} 个 LLM 路由候选；过去 24 小时有 {failures} 次 LLM 调用失败"
+      jobsErrors: "{count} 个调度任务出现错误"
+      jobsEnabled: "{count} 个调度任务已启用"
+      jobsNeedAttention: "{count} 个调度任务需要检查（数据库时间新鲜度）"
+      jobsRecent: "{count} 个调度任务具有近期执行结果"
       agentTasks: 过去 24 小时共 {count} 个任务
       agentFailures: 过去 24 小时 {failed}/{total} 个任务失败
       protectionFailures: 有 {count} 个保护单失败待检查
       tradeCounters: 执行结果待确认 {uncertain}，待对账 {reconcile}，保护单失败 {protection}
       tradeReadFailed: 读取交易安全统计失败
-      ageSeconds: '{count} 秒'
-      ageMinutes: '{count} 分钟'
-      ageHoursMinutes: '{hours} 小时 {minutes} 分钟'
+      ageSeconds: "{count} 秒"
+      ageMinutes: "{count} 分钟"
+      ageHoursMinutes: "{hours} 小时 {minutes} 分钟"
     sourceValues:
       binance_announcement: Binance 公告
       binance_exchange: Binance 交易所
@@ -3105,7 +3122,7 @@ systemDashboard:
     truncated: 最近 5 分钟事件量超过内存上限；进程累计已有 {count} 条事件被截断，当前窗口统计可能低于真实值。
     p95: 95 分位耗时
     retryAfter: 建议重试等待时间
-    requestWindow: '{duration}：{requests} 次请求 / 估算权重 {weight}'
+    requestWindow: "{duration}：{requests} 次请求 / 估算权重 {weight}"
     productValues:
       futures: 合约
       spot: 现货

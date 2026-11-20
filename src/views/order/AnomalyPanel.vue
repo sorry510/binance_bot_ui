@@ -11,12 +11,15 @@ import {
   type ManagedCycleDetail
 } from "@/api/order";
 
+const props = defineProps<{ standalone?: boolean }>();
 const { t, te } = useI18n();
 const tr = (key: string) => t("orderPage.anomaly." + key);
 const route = useRoute();
-const expanded = ref(route.query.anomalies === "1");
+const expanded = ref(!!props.standalone || route.query.anomalies === "1");
 const busy = ref(false);
 const total = ref(0);
+const settlementPendingTotal = ref(0);
+const bnbCommissionPendingTotal = ref(0);
 const rows = ref<ManagedAnomalyItem[]>([]);
 const errorMessage = ref("");
 const inspected = ref<ManagedAnomalyItem | null>(null);
@@ -70,6 +73,7 @@ async function load(reset = false) {
       symbol: query.symbol.trim() || undefined,
       position_side: query.position_side || undefined,
       category: query.category || undefined,
+      exclude_settlement_pending: true,
       page: query.page,
       limit: query.limit
     };
@@ -78,15 +82,27 @@ async function load(reset = false) {
     if (!res || res.code !== 200 || !res.data) throw new Error(tr("failed"));
     rows.value = res.data.list || [];
     total.value = Number(res.data.total || 0);
+    settlementPendingTotal.value = Number(
+      res.data.settlement_pending_total || 0
+    );
+    bnbCommissionPendingTotal.value = Number(
+      res.data.with_bnb_commission_total || 0
+    );
   } catch (err) {
     if (n !== requestSerial) return;
     rows.value = [];
     total.value = 0;
+    settlementPendingTotal.value = 0;
+    bnbCommissionPendingTotal.value = 0;
     errorMessage.value = readableError(err);
     ElMessage.warning(tr("failed"));
   } finally {
     if (n === requestSerial) busy.value = false;
   }
+}
+function viewSettlementPending() {
+  query.category = "settlement_incomplete";
+  void load(true);
 }
 function toggle() {
   expanded.value = !expanded.value;
@@ -112,7 +128,7 @@ async function inspect(row: ManagedAnomalyItem) {
 watch(
   () => [route.query.anomalies, route.query.category, route.query.account_id],
   () => {
-    if (route.query.anomalies !== "1") return;
+    if (route.query.anomalies !== "1" && !props.standalone) return;
     expanded.value = true;
     query.account_id = route.query.account_id === "lead" ? "lead" : "main";
     const next =
@@ -140,7 +156,7 @@ onMounted(() => {
             {{ tr("localOnly") }}
           </el-tag>
         </div>
-        <el-button @click="toggle">
+        <el-button v-if="!props.standalone" @click="toggle">
           {{ expanded ? tr("collapse") : tr("expand") }}
         </el-button>
       </div>
@@ -201,7 +217,43 @@ onMounted(() => {
         :description="errorMessage"
         class="mb-3"
       />
-      <div class="mb-2 text-sm">{{ tr("count") }}: {{ total }}</div>
+      <div class="mb-3 flex flex-wrap items-center gap-3 text-sm">
+        <span>
+          {{
+            query.category === "settlement_incomplete"
+              ? tr("settlementRecords")
+              : tr("count")
+          }}:
+          <strong>{{ total }}</strong>
+        </span>
+        <span v-if="settlementPendingTotal > 0">
+          {{ tr("settlementPending") }}:
+          <strong>{{ settlementPendingTotal }}</strong>
+        </span>
+        <span v-if="bnbCommissionPendingTotal > 0">
+          {{ tr("withBNBCommission") }}:
+          <strong>{{ bnbCommissionPendingTotal }}</strong>
+        </span>
+        <el-button
+          v-if="
+            settlementPendingTotal > 0 &&
+            query.category !== 'settlement_incomplete'
+          "
+          type="primary"
+          link
+          @click="viewSettlementPending"
+        >
+          {{ tr("viewSettlementPending") }}
+        </el-button>
+      </div>
+      <el-alert
+        v-if="settlementPendingTotal > 0"
+        class="mb-3"
+        type="info"
+        :closable="false"
+        show-icon
+        :title="tr('settlementExplanation')"
+      />
       <el-table
         v-loading="busy"
         :data="rows"

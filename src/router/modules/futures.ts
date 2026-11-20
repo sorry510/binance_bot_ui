@@ -31,6 +31,16 @@ export default [
           showLink: true
         }
       },
+      // Full-width read-only order diagnostics/statistics; no sidebar entry.
+      {
+        path: "/futures/order-insights",
+        name: "FuturesOrderInsights",
+        component: () => import("@/views/order/OrderInsightsPage.vue"),
+        meta: {
+          title: "orderPage.navigation.orderInsights",
+          showLink: false
+        }
+      },
       {
         path: "/ai/controlled-trade",
         name: "AgentControlledTrade",

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   getVerifiedFuturesPerformance,
@@ -7,9 +7,10 @@ import {
   type VerifiedPerformanceFilter
 } from "@/api/order";
 
+const props = defineProps<{ standalone?: boolean }>();
 const { t, te } = useI18n();
 const tr = (key: string) => t("orderPage.performance." + key);
-const open = ref(false);
+const open = ref(!!props.standalone);
 const loading = ref(false);
 const errorMessage = ref("");
 const report = ref<VerifiedPerformanceReport | null>(null);
@@ -81,6 +82,9 @@ function toggle() {
     loading.value = false;
   }
 }
+onMounted(() => {
+  if (props.standalone) void load();
+});
 onBeforeUnmount(() => requestNumber++);
 
 function formatRule(value: string) {
@@ -93,7 +97,7 @@ function formatRule(value: string) {
     <template #header>
       <div class="flex items-center justify-between gap-3">
         <strong>{{ tr("title") }}</strong>
-        <el-button @click="toggle">
+        <el-button v-if="!props.standalone" @click="toggle">
           {{ open ? tr("collapse") : tr("expand") }}
         </el-button>
       </div>
