@@ -22,6 +22,21 @@ const filters = reactive({
 });
 let requestNumber = 0;
 
+// Keep certified and indicative BNB performance visually and financially
+// separate, while reusing the same summary and grouping UI.
+const performanceGroups = computed(() => [
+  ...(report.value?.assets ?? []).map(asset => ({
+    ...asset,
+    estimate: false,
+    key: "verified-" + asset.asset
+  })),
+  ...(report.value?.estimated_assets ?? []).map(asset => ({
+    ...asset,
+    estimate: true,
+    key: "estimated-" + asset.asset
+  }))
+]);
+
 const excluded = computed(() =>
   Object.entries(report.value?.excluded_reasons ?? {})
     .filter(([, count]) => count > 0)
@@ -171,24 +186,36 @@ function formatRule(value: string) {
               <strong>{{ report.verified_cycles }}</strong></span
             >
             <span
+              >{{ tr("estimated") }}:
+              <strong>{{ report.estimated_cycles ?? 0 }}</strong></span
+            >
+            <span
               >{{ tr("excluded") }}:
               <strong>{{ report.excluded_cycles }}</strong></span
             >
             <span>{{ tr("candidates") }}: {{ report.candidate_cycles }}</span>
           </div>
           <el-empty
-            v-if="!report.assets.length"
+            v-if="!performanceGroups.length"
             :description="tr('empty')"
             :image-size="60"
           />
 
-          <div v-for="asset in report.assets" :key="asset.asset" class="mb-4">
+          <div v-for="asset in performanceGroups" :key="asset.key" class="mb-4">
             <div class="mb-2 flex items-center gap-2">
               <el-tag size="small" type="info">{{ asset.asset }}</el-tag>
-              <strong>{{ tr("settledPerformance") }}</strong>
+              <strong>{{
+                tr(
+                  asset.estimate ? "estimatedPerformance" : "settledPerformance"
+                )
+              }}</strong>
               <span class="text-xs text-gray-500">{{
-                tr("currencySeparation")
+                tr(asset.estimate ? "estimateScope" : "currencySeparation")
               }}</span>
+              <span v-if="asset.estimate" class="text-xs text-gray-500">
+                {{ tr("bnbPrice") }}: {{ report.bnb_price_usdt || "-" }} USDT
+                ({{ timestamp(report.bnb_price_updated_at || 0) }})
+              </span>
             </div>
             <el-descriptions :column="3" border size="small">
               <el-descriptions-item :label="tr('trades')">{{
@@ -205,10 +232,16 @@ function formatRule(value: string) {
               <el-descriptions-item :label="tr('grossPnL')">
                 {{ asset.gross_pnl }} {{ asset.asset }}
               </el-descriptions-item>
-              <el-descriptions-item :label="tr('commission')">
+              <el-descriptions-item
+                :label="
+                  tr(asset.estimate ? 'estimatedCommission' : 'commission')
+                "
+              >
                 {{ asset.commission }} {{ asset.asset }}
               </el-descriptions-item>
-              <el-descriptions-item :label="tr('netPnL')">
+              <el-descriptions-item
+                :label="tr(asset.estimate ? 'estimatedNetPnL' : 'netPnL')"
+              >
                 <strong :class="signed(asset.net_pnl)"
                   >{{ asset.net_pnl }} {{ asset.asset }}</strong
                 >
@@ -218,10 +251,21 @@ function formatRule(value: string) {
                   {{ asset.average_net_pnl }} {{ asset.asset }}
                 </span>
               </el-descriptions-item>
-              <el-descriptions-item :label="tr('settledDrawdown')" :span="2">
+              <el-descriptions-item
+                :label="
+                  tr(asset.estimate ? 'estimatedDrawdown' : 'settledDrawdown')
+                "
+                :span="2"
+              >
                 {{ asset.settled_net_pnl_drawdown }} {{ asset.asset }}
                 <el-tooltip
-                  :content="tr('drawdownExplanation')"
+                  :content="
+                    tr(
+                      asset.estimate
+                        ? 'estimatedDrawdownExplanation'
+                        : 'drawdownExplanation'
+                    )
+                  "
                   placement="top"
                 >
                   <el-tag type="info" size="small">{{

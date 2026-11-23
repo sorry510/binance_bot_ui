@@ -486,6 +486,8 @@ async function createTemplate() {
     createDialogVisible.value = false;
     query.page = 1;
     await fetchData();
+  } catch (error) {
+    ElMessage.error(getImportErrorMessage(error));
   } finally {
     dialogLoading.value = false;
   }
@@ -965,7 +967,7 @@ async function confirmTechnology() {
     ElMessage.success(t("strategyTemplatePage.message.actionSuccess"));
     await fetchData();
   } catch (error) {
-    ElMessage.error(t("strategyTemplatePage.message.actionFail"));
+    ElMessage.error(getImportErrorMessage(error));
   } finally {
     dialogLoading.value = false;
   }
@@ -998,7 +1000,7 @@ async function confirmStrategy() {
     ElMessage.success(t("strategyTemplatePage.message.actionSuccess"));
     await fetchData();
   } catch (error) {
-    ElMessage.error(t("strategyTemplatePage.message.actionFail"));
+    ElMessage.error(getImportErrorMessage(error));
   } finally {
     dialogLoading.value = false;
   }

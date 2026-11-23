@@ -22,6 +22,7 @@ import {
 import { CanvasRenderer } from "echarts/renderers";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
 import {
   useStrategyTemplateOptions,
   strategyTemplatePopperClass
@@ -32,6 +33,7 @@ import {
   deleteBacktest,
   getBacktest,
   getBacktestEquity,
+  getBacktestSymbolDefaults,
   getBacktestEvents,
   getBacktestPrefetch,
   getMarketConditionBackfill,
@@ -46,7 +48,9 @@ import {
   type BacktestPrefetch,
   type MarketConditionBackfill,
   type BacktestRun,
-  type BacktestTrade
+  type BacktestTrade,
+  type BacktestPositionMode,
+  type BacktestSymbolDefaults
 } from "@/api/backtest";
 
 useECharts([
@@ -58,6 +62,7 @@ useECharts([
 ]);
 defineOptions({ name: "AgentBacktest" });
 const { t } = useI18n();
+const router = useRouter();
 const {
   options: templateOptions,
   selectLoading,
@@ -96,6 +101,44 @@ const query = reactive({
 });
 const historyCreatedRange = ref<[Date, Date] | null>(null);
 const BACKTEST_FORM_CACHE_KEY = "go_binance_futures:backtest:form:v1";
+// Keep existing form cache key to migrate previously saved preferences without
+// losing them. Page-level filters and view preferences use their own key.
+const BACKTEST_PAGE_CACHE_KEY = "go_binance_futures:backtest:page:v1";
+type BacktestPageCache = {
+  history?: {
+    page?: number;
+    limit?: number;
+    strategy_template_id?: number;
+    strategy_template_name?: string;
+    symbol?: string;
+    status?: string;
+    resolution_mode?: string;
+    created_range?: [number, number] | null;
+  };
+  compare_a?: string;
+  compare_b?: string;
+  detail_tab?: string;
+  trade_page_limit?: number;
+  event_page_limit?: number;
+};
+function readBacktestPageCache(): BacktestPageCache | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(BACKTEST_PAGE_CACHE_KEY);
+    if (!raw) return null;
+    const value: unknown = JSON.parse(raw);
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? (value as BacktestPageCache)
+      : null;
+  } catch {
+    return null;
+  }
+}
+function positivePageSize(value: unknown, fallback: number): number {
+  const size = Number(value);
+  return Number.isInteger(size) && size >= 1 && size <= 500 ? size : fallback;
+}
+
 type BacktestFormCache = {
   strategy_template_id?: number;
   strategy_template_name?: string;
@@ -103,6 +146,8 @@ type BacktestFormCache = {
   symbol?: string;
   range?: [number, number];
   initial_equity?: number;
+  position_mode?: BacktestPositionMode;
+  fixed_margin_usdt?: number;
   position_size_pct?: number;
   leverage?: number;
   fee_rate?: number;
@@ -124,6 +169,37 @@ function readBacktestFormCache(): BacktestFormCache | null {
 }
 
 const cachedForm = readBacktestFormCache();
+const cachedPage = readBacktestPageCache();
+const savedHistory = cachedPage?.history;
+let cachedHistoryTemplateName = savedHistory?.strategy_template_name || "";
+if (savedHistory) {
+  query.page = positivePageSize(savedHistory.page, 1);
+  query.limit = positivePageSize(savedHistory.limit, 20);
+  query.strategy_template_id =
+    Number(savedHistory.strategy_template_id) > 0
+      ? Number(savedHistory.strategy_template_id)
+      : undefined;
+  query.symbol =
+    typeof savedHistory.symbol === "string" ? savedHistory.symbol : "";
+  query.status =
+    typeof savedHistory.status === "string" ? savedHistory.status : "";
+  query.resolution_mode =
+    savedHistory.resolution_mode === "adaptive" ||
+    savedHistory.resolution_mode === "standard_1m"
+      ? savedHistory.resolution_mode
+      : "";
+  const created = savedHistory.created_range;
+  if (
+    Array.isArray(created) &&
+    created.length === 2 &&
+    Number.isFinite(created[0]) &&
+    Number.isFinite(created[1]) &&
+    created[0] > 0 &&
+    created[1] >= created[0]
+  ) {
+    historyCreatedRange.value = [new Date(created[0]), new Date(created[1])];
+  }
+}
 let cachedTemplateName = cachedForm?.strategy_template_name || "";
 const now = Date.now();
 const cachedRange = cachedForm?.range;
@@ -153,6 +229,13 @@ const form = reactive({
     Number(cachedForm?.initial_equity) > 0
       ? Number(cachedForm?.initial_equity)
       : 1000,
+  position_mode: (cachedForm?.position_mode === "equity_percent"
+    ? "equity_percent"
+    : "fixed_margin") as BacktestPositionMode,
+  fixed_margin_usdt:
+    Number(cachedForm?.fixed_margin_usdt) > 0
+      ? Number(cachedForm?.fixed_margin_usdt)
+      : 200,
   position_size_pct:
     Number(cachedForm?.position_size_pct) >= 0.01 &&
     Number(cachedForm?.position_size_pct) <= 1
@@ -199,6 +282,8 @@ function persistBacktestForm() {
         ? [form.range[0].getTime(), form.range[1].getTime()]
         : undefined,
     initial_equity: Number(form.initial_equity),
+    position_mode: form.position_mode,
+    fixed_margin_usdt: Number(form.fixed_margin_usdt),
     position_size_pct: Number(form.position_size_pct),
     leverage: Number(form.leverage),
     fee_rate: Number(form.fee_rate),
@@ -216,6 +301,35 @@ function persistBacktestForm() {
   }
 }
 
+watch(
+  () => form.strategy_template_id,
+  (selected, previous) => {
+    if (previous !== undefined && selected !== previous)
+      cachedTemplateName = "";
+  }
+);
+watch(
+  () => query.strategy_template_id,
+  (selected, previous) => {
+    if (previous !== undefined && selected !== previous)
+      cachedHistoryTemplateName = "";
+  }
+);
+function ensureCachedHistoryTemplateOption() {
+  if (!query.strategy_template_id || !cachedHistoryTemplateName) return;
+  if (
+    historyTemplateOptions.value.some(
+      item => item.id === query.strategy_template_id
+    )
+  )
+    return;
+  historyTemplateOptions.value.unshift({
+    id: query.strategy_template_id,
+    name: cachedHistoryTemplateName,
+    strategy: "",
+    technology: ""
+  });
+}
 function ensureCachedTemplateOption() {
   if (!form.strategy_template_id || !cachedTemplateName) return;
   if (templateOptions.value.some(item => item.id === form.strategy_template_id))
@@ -236,6 +350,8 @@ watch(
     form.range?.[0]?.getTime?.() || 0,
     form.range?.[1]?.getTime?.() || 0,
     form.initial_equity,
+    form.position_mode,
+    form.fixed_margin_usdt,
     form.position_size_pct,
     form.leverage,
     form.fee_rate,
@@ -263,19 +379,87 @@ const paramsRun = ref<BacktestRun | null>(null);
 const trades = ref<BacktestTrade[]>([]);
 const tradeTotal = ref(0);
 const tradeLoading = ref(false);
-const tradeQuery = reactive({ page: 1, limit: 20 });
+const tradeQuery = reactive({
+  page: 1,
+  limit: positivePageSize(cachedPage?.trade_page_limit, 20)
+});
 const events = ref<BacktestEvent[]>([]);
 const eventTotal = ref(0);
 const eventLoading = ref(false);
-const eventQuery = reactive({ page: 1, limit: 50 });
+const eventQuery = reactive({
+  page: 1,
+  limit: positivePageSize(cachedPage?.event_page_limit, 50)
+});
 const equity = ref<BacktestEquityPoint[]>([]);
-const detailTab = ref("summary");
+const detailTab = ref(
+  ["summary", "trades", "events"].includes(cachedPage?.detail_tab || "")
+    ? cachedPage!.detail_tab!
+    : "summary"
+);
 const chartEl = ref<HTMLElement>();
 let chart: EChartsType | undefined;
 let timer: ReturnType<typeof setTimeout> | undefined;
 const clock = ref(Date.now());
-const compareA = ref("");
-const compareB = ref("");
+const compareA = ref(cachedPage?.compare_a || "");
+const compareB = ref(cachedPage?.compare_b || "");
+// Cache editable page state, not transient run progress or exchange data.
+function persistBacktestPage() {
+  if (typeof window === "undefined") return;
+  const selectedHistoryTemplate = historyTemplateOptions.value.find(
+    item => item.id === query.strategy_template_id
+  );
+  if (selectedHistoryTemplate)
+    cachedHistoryTemplateName = selectedHistoryTemplate.name;
+  const payload: BacktestPageCache = {
+    history: {
+      page: query.page,
+      limit: query.limit,
+      strategy_template_id: query.strategy_template_id,
+      strategy_template_name: cachedHistoryTemplateName || undefined,
+      symbol: query.symbol,
+      status: query.status,
+      resolution_mode: query.resolution_mode,
+      created_range:
+        historyCreatedRange.value?.[0] && historyCreatedRange.value?.[1]
+          ? [
+              historyCreatedRange.value[0].getTime(),
+              historyCreatedRange.value[1].getTime()
+            ]
+          : null
+    },
+    compare_a: compareA.value,
+    compare_b: compareB.value,
+    detail_tab: detailTab.value,
+    trade_page_limit: tradeQuery.limit,
+    event_page_limit: eventQuery.limit
+  };
+  try {
+    window.localStorage.setItem(
+      BACKTEST_PAGE_CACHE_KEY,
+      JSON.stringify(payload)
+    );
+  } catch {
+    // No persistence in browser contexts that disallow localStorage.
+  }
+}
+watch(
+  () => [
+    query.page,
+    query.limit,
+    query.strategy_template_id,
+    query.symbol,
+    query.status,
+    query.resolution_mode,
+    historyCreatedRange.value?.[0]?.getTime?.() || 0,
+    historyCreatedRange.value?.[1]?.getTime?.() || 0,
+    compareA.value,
+    compareB.value,
+    detailTab.value,
+    tradeQuery.limit,
+    eventQuery.limit
+  ],
+  persistBacktestPage
+);
 const succeededRuns = computed(() =>
   runs.value.filter(x => x.status === "succeeded" && x.metrics)
 );
@@ -366,6 +550,79 @@ function runDuration(run?: BacktestRun | null) {
     (isActiveRun(run.status) ? clock.value : run.updated_at || clock.value);
   return formatDuration(Math.max(0, end - run.started_at));
 }
+const symbolDefaultsLoading = ref(false);
+const symbolDefaultsLoadedFor = ref("");
+let symbolDefaultsRequest = 0;
+
+// Every coin selection loads its existing live margin, leverage and ROI gates
+// as editable defaults. Ignore late responses for a previously selected coin.
+async function loadSymbolDefaults(
+  symbol: string,
+  preserveExisting = false
+): Promise<boolean> {
+  const normalized = symbol.trim().toUpperCase();
+  const token = ++symbolDefaultsRequest;
+  symbolDefaultsLoadedFor.value = "";
+  if (!normalized) return false;
+  // Snapshot field values so a slow default lookup cannot overwrite edits
+  // the user makes while the request is in flight.
+  const before = {
+    margin: form.fixed_margin_usdt,
+    leverage: form.leverage,
+    profit: form.take_profit_pct,
+    loss: form.stop_loss_pct
+  };
+  symbolDefaultsLoading.value = true;
+  try {
+    const response = await getBacktestSymbolDefaults(normalized);
+    if (Number(response?.code) !== 200) {
+      throw new Error(response?.msg || "cannot load symbol settings");
+    }
+    const data = response.data as BacktestSymbolDefaults;
+    if (token !== symbolDefaultsRequest || form.symbol !== normalized)
+      return false;
+    // Cached values take precedence on page restoration. For a newly
+    // selected symbol the amount defaults to 200 USDT (not symbols.usdt);
+    // leverage and ROI gates still initially come from symbols configuration.
+    if (!preserveExisting) {
+      if (form.fixed_margin_usdt === before.margin)
+        form.fixed_margin_usdt = 200;
+      if (form.leverage === before.leverage)
+        form.leverage = Number(data.leverage) || 1;
+      if (form.take_profit_pct === before.profit)
+        form.take_profit_pct = Number(data.take_profit_pct) || 0;
+      if (form.stop_loss_pct === before.loss)
+        form.stop_loss_pct = Number(data.stop_loss_pct) || 0;
+    }
+    symbolDefaultsLoadedFor.value = normalized;
+    return true;
+  } catch (error: any) {
+    if (token === symbolDefaultsRequest)
+      ElMessage.warning(error?.message || "Failed to load symbol settings");
+    return false;
+  } finally {
+    if (token === symbolDefaultsRequest) symbolDefaultsLoading.value = false;
+  }
+}
+const restoredSymbol = cachedForm?.symbol?.trim().toUpperCase() || "";
+let changedSymbolSinceRestore = false;
+watch(
+  () => form.symbol,
+  (symbol, previousSymbol) => {
+    if (previousSymbol !== undefined && previousSymbol !== symbol)
+      changedSymbolSinceRestore = true;
+    // Both a pending initial request and any recheck triggered by Start
+    // preserve cached user choices until an actual coin change.
+    void loadSymbolDefaults(
+      symbol,
+      !changedSymbolSinceRestore &&
+        !!restoredSymbol &&
+        symbol === restoredSymbol
+    );
+  },
+  { immediate: true }
+);
+
 async function fetchSymbols() {
   try {
     const res = await getFeaturesOptions();
@@ -567,6 +824,7 @@ async function backfillMarketCondition() {
 }
 
 async function submit(symbolOverride = "", openResult = true) {
+  const switchedSymbol = !!symbolOverride && form.symbol !== symbolOverride;
   if (symbolOverride) form.symbol = symbolOverride;
   if (!form.strategy_template_id) {
     ElMessage.error(t("backtestPage.message.templateRequired"));
@@ -583,6 +841,26 @@ async function submit(symbolOverride = "", openResult = true) {
   starting.value = true;
   quickStartingSymbol.value = symbolOverride;
   try {
+    // Quick Test may select another symbol and immediately submit. Wait for
+    // its own configuration so it cannot reuse the previous coin's margin.
+    if (switchedSymbol || symbolDefaultsLoadedFor.value !== form.symbol) {
+      if (
+        !(await loadSymbolDefaults(
+          form.symbol,
+          !changedSymbolSinceRestore &&
+            !!restoredSymbol &&
+            form.symbol === restoredSymbol
+        ))
+      ) {
+        throw new Error(t("backtestPage.message.symbolSettingsRequired"));
+      }
+    }
+    if (
+      form.position_mode === "fixed_margin" &&
+      !(Number(form.fixed_margin_usdt) > 0)
+    ) {
+      throw new Error(t("backtestPage.message.fixedMarginRequired"));
+    }
     const res = await startBacktest({
       strategy_template_id: Number(form.strategy_template_id),
       resolution_mode: form.resolution_mode,
@@ -591,6 +869,8 @@ async function submit(symbolOverride = "", openResult = true) {
       end_time: form.range[1].getTime(),
       config: {
         initial_equity: Number(form.initial_equity),
+        position_mode: form.position_mode,
+        fixed_margin_usdt: Number(form.fixed_margin_usdt),
         position_size_pct: Number(form.position_size_pct),
         leverage: Number(form.leverage),
         fee_rate: Number(form.fee_rate),
@@ -629,8 +909,8 @@ async function openDetail(row: BacktestRun) {
   const res = await getBacktest(row.run_id);
   detail.value = (res?.data || row) as BacktestRun;
   detailVisible.value = true;
-  detailTab.value = "summary";
   await loadResultData();
+  if (detailTab.value === "events") await loadEvents();
 }
 async function loadTrades() {
   if (!detail.value || detail.value.status !== "succeeded") {
@@ -853,12 +1133,15 @@ onMounted(async () => {
     fetchRecentSymbols()
   ]);
   ensureCachedTemplateOption();
+  ensureCachedHistoryTemplateOption();
   persistBacktestForm();
+  persistBacktestPage();
   schedule();
   window.addEventListener("resize", () => chart?.resize());
 });
 onBeforeUnmount(() => {
   persistBacktestForm();
+  persistBacktestPage();
   prefetchGeneration += 1;
   marketConditionBackfillGeneration += 1;
   if (timer) clearTimeout(timer);
@@ -931,10 +1214,37 @@ onBeforeUnmount(() => {
             {{ t(`backtestPage.resolution.help.${form.resolution_mode}`) }}
           </div>
         </el-form-item>
+        <el-form-item :label="t('backtestPage.form.positionMode')">
+          <el-radio-group v-model="form.position_mode">
+            <el-radio value="fixed_margin">{{
+              t("backtestPage.positionMode.fixed_margin")
+            }}</el-radio>
+            <el-radio value="equity_percent">{{
+              t("backtestPage.positionMode.equity_percent")
+            }}</el-radio>
+          </el-radio-group>
+        </el-form-item>
         <el-form-item :label="t('backtestPage.form.initialEquity')"
           ><el-input-number v-model="form.initial_equity" :min="1"
         /></el-form-item>
-        <el-form-item :label="t('backtestPage.form.positionSize')"
+        <el-form-item
+          v-if="form.position_mode === 'fixed_margin'"
+          :label="t('backtestPage.form.fixedMargin')"
+        >
+          <div>
+            <el-input-number
+              v-model="form.fixed_margin_usdt"
+              :min="0.01"
+              :precision="4"
+              :step="1"
+            />
+            <div class="text-xs text-gray-500">
+              {{ t("backtestPage.form.estimatedNotional") }}:
+              {{ num(form.fixed_margin_usdt * form.leverage, 2) }} USDT
+            </div>
+          </div>
+        </el-form-item>
+        <el-form-item v-else :label="t('backtestPage.form.positionSize')"
           ><el-input-number
             v-model="form.position_size_pct"
             :min="0.01"
@@ -1155,10 +1465,24 @@ onBeforeUnmount(() => {
     <el-card v-loading="loading" shadow="never"
       ><template #header
         ><div class="flex justify-between">
-          <span>{{ t("backtestPage.history") }}</span
-          ><el-button size="small" @click="fetchRuns(true)">{{
-            t("backtestPage.button.refresh")
-          }}</el-button>
+          <span>{{ t("backtestPage.history") }}</span>
+          <div class="flex gap-2">
+            <el-button
+              size="small"
+              type="primary"
+              plain
+              @click="
+                router.push({
+                  name: 'AgentBacktest1mCalendar',
+                  query: { symbol: form.symbol }
+                })
+              "
+              >1m K线完整性</el-button
+            >
+            <el-button size="small" @click="fetchRuns(true)">{{
+              t("backtestPage.button.refresh")
+            }}</el-button>
+          </div>
         </div></template
       >
       <el-form :inline="true" class="history-filter">
@@ -1386,9 +1710,25 @@ onBeforeUnmount(() => {
         <el-descriptions-item :label="t('backtestPage.form.initialEquity')">{{
           num(paramsRun.config.initial_equity, 4)
         }}</el-descriptions-item>
-        <el-descriptions-item :label="t('backtestPage.form.positionSize')">{{
-          pct(paramsRun.config.position_size_pct)
+        <el-descriptions-item :label="t('backtestPage.form.positionMode')">{{
+          t(
+            "backtestPage.positionMode." +
+              (paramsRun.config.position_mode || "equity_percent")
+          )
         }}</el-descriptions-item>
+        <el-descriptions-item
+          v-if="paramsRun.config.position_mode === 'fixed_margin'"
+          :label="t('backtestPage.form.fixedMargin')"
+          >{{
+            num(paramsRun.config.fixed_margin_usdt, 4)
+          }}
+          USDT</el-descriptions-item
+        >
+        <el-descriptions-item
+          v-else
+          :label="t('backtestPage.form.positionSize')"
+          >{{ pct(paramsRun.config.position_size_pct) }}</el-descriptions-item
+        >
         <el-descriptions-item :label="t('backtestPage.form.leverage')"
           >{{ paramsRun.config.leverage }}x</el-descriptions-item
         >
@@ -1502,6 +1842,42 @@ onBeforeUnmount(() => {
                   :label="t('backtestPage.resolution.tradeSeconds')"
                   >{{
                     detail.resolution_stats?.trade_drilldown_seconds || 0
+                  }}</el-descriptions-item
+                >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.tradeRowsVisited')"
+                  >{{
+                    detail.resolution_stats?.trade_rows_visited || 0
+                  }}</el-descriptions-item
+                >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.tradeGatePasses')"
+                  >{{
+                    detail.resolution_stats?.trade_gate_passes || 0
+                  }}</el-descriptions-item
+                >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.tradeEnvBuilds')"
+                  >{{
+                    detail.resolution_stats?.trade_env_builds || 0
+                  }}</el-descriptions-item
+                >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.engineTime')"
+                  >{{
+                    formatDuration(detail.resolution_stats?.timing?.engine_ms)
+                  }}</el-descriptions-item
+                >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.archiveParseTime')"
+                  >{{
+                    formatDuration(detail.resolution_stats?.archive_parse_ms)
+                  }}</el-descriptions-item
+                >
+                <el-descriptions-item
+                  :label="t('backtestPage.resolution.sparseQueryTime')"
+                  >{{
+                    formatDuration(detail.resolution_stats?.sparse_query_ms)
                   }}</el-descriptions-item
                 >
                 <el-descriptions-item

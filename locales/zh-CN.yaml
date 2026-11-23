@@ -1677,10 +1677,10 @@ orderPage:
     backToOrders: "返回合约订单"
     orderInsights: "异常订单与实盘统计"
   performance:
-    title: "实盘策略效果（已核实）"
+    title: "实盘策略效果"
     expand: "查看策略统计"
     collapse: "收起"
-    scope: "仅 Main / auto_strategy 的已平仓、正式结算且 REST 成交核实完整的持仓周期；按真实平仓时间统计。只读，排除未结算/资金费用/未知手续费资产，不包含浮动盈亏或人工历史状态。"
+    scope: "只统计 Main / auto_strategy 已平仓周期。已核实结算与 BNB 手续费估算分开统计，后者用本地 symbols.BNBUSDT 当前价换算手续费。均按真实平仓时间归因，不含资金费、浮盈亏，不影响正式结算或交易风控。"
     period: "统计窗口"
     days7: "近 7 天"
     days30: "近 30 天"
@@ -1691,13 +1691,17 @@ orderPage:
     ruleHash: "策略规则 Hash"
     rulePlaceholder: "64 位 Hash 或 unknown"
     refresh: "查询 / 刷新"
-    loadFailed: "已核实策略表现读取失败"
+    loadFailed: "实盘策略表现读取失败"
     closedWindow: "真实平仓时间范围"
-    verified: "纳入周期"
+    verified: "正式已核实"
+    estimated: "BNB估算周期"
     excluded: "排除周期"
     candidates: "候选周期"
-    empty: "本筛选范围没有符合完整核实条件的已结算交易"
-    settledPerformance: "已结算表现"
+    empty: "本筛选范围暂无可统计的已核实或 BNB 估算交易"
+    settledPerformance: "已核实结算表现"
+    estimatedPerformance: "BNB手续费估算表现（非正式结算）"
+    estimateScope: "真实成交完整，手续费按本地 BNB 当前价近似折算；数据随价格变化"
+    bnbPrice: "本地 BNBUSDT 参考价"
     currencySeparation: "每种结算资产独立核算，不进行 USDT/USDC 汇率换算"
     trades: "交易周期数"
     winRate: "胜率"
@@ -1708,9 +1712,13 @@ orderPage:
     noLossSample: "无亏损样本（不可计算）"
     grossPnL: "实际已实现毛收益"
     commission: "实际手续费"
+    estimatedCommission: "估算手续费（含 BNB 折算）"
     netPnL: "净收益"
+    estimatedNetPnL: "估算净收益"
     avgNet: "平均每笔净收益"
     settledDrawdown: "累计已结算净收益回撤"
+    estimatedDrawdown: "累计估算净收益回撤"
+    estimatedDrawdownExplanation: "按真实平仓时间累计 BNB 估算净收益的峰谷差；依赖本地 BNB 当前价格，不是账户权益最大回撤。"
     drawdownExplanation: "仅把已结算周期按真实平仓时间累计净收益，再计算峰谷金额差。不是资金曲线或账户权益最大回撤，也不包含未平仓浮盈亏。"
     notEquityDrawdown: "非账户权益回撤"
     bySymbol: "按币种统计"
@@ -1720,7 +1728,7 @@ orderPage:
     exclusionDetails: "未纳入统计的周期"
     exclusionReason: "排除原因"
     exclusionCount: "周期数"
-    readOnlyDisclaimer: "统计不读取或更改实际交易，人工修改历史状态/完整性不会提高纳入资格；未核实数据不参与胜率、PF 或净收益。"
+    readOnlyDisclaimer: "全部为只读统计；真实结算与 BNB 近似估算分开，不会回填订单、不影响风控或真实交易。缺失成交核实或缺少 BNB 价格的周期不计入估算。"
     calculatedAt: "统计生成时间"
     reasons:
       history_not_activated: "尚未配置历史核实起点 T0"
@@ -2732,6 +2740,12 @@ backtestPage:
       trades: Trades
     secondMinutes: 1s 下钻分钟
     tradeSeconds: Trades 下钻秒
+    tradeRowsVisited: 逐笔成交检查数
+    tradeGatePasses: 达到 ROI 门槛的成交数
+    tradeEnvBuilds: 完整平仓环境构建次数
+    engineTime: 引擎总耗时
+    archiveParseTime: ZIP 解析累计耗时
+    sparseQueryTime: 稀疏 SQL 查询耗时
     downloads: Archive 下载次数
     downloadBytes: 下载量
     secondCacheHits: 1s Cache 命中
@@ -2746,12 +2760,18 @@ backtestPage:
     range: 回测时间
     resolutionMode: 精度模式
     initialEquity: 初始资金
+    positionMode: 仓位计算模式
+    fixedMargin: 单笔保证金 (USDT)
+    estimatedNotional: 预计单笔名义金额
     positionSize: 仓位比例
     leverage: 杠杆
     feeRate: 手续费率
     slippage: 滑点 (bps)
     stopLoss: 止损触发 ROI (%)
     takeProfit: 止盈触发 ROI (%)
+  positionMode:
+    fixed_margin: 固定保证金（模拟实盘）
+    equity_percent: 账户资金比例（原模式）
   button:
     marketConditionBackfill: 补充市场环境历史
     prefetch: 获取历史数据
@@ -2790,6 +2810,8 @@ backtestPage:
   parameters:
     title: 回测创建参数
   message:
+    fixedMarginRequired: 单笔保证金必须大于 0
+    symbolSettingsRequired: 无法读取所选币种的配置，请检查后重试
     templateRequired: 请选择策略模板
     symbolRequired: 请选择合约
     rangeRequired: 请选择回测时间范围

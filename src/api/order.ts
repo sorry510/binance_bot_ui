@@ -273,8 +273,8 @@ export const getManagedAnomalies = (params: ManagedAnomalyFilters) =>
     { params }
   );
 
-// UF-5: verified settled Main auto_strategy performance, no mark-to-market
-// valuations, no cross-asset conversion, no presentation-only manual overrides.
+// UF-5: verified and separately labelled current-BNB-price estimate reports.
+// No mark-to-market, unauthorized settlement or manual display overrides.
 export interface VerifiedPerformanceBreakdown {
   name: string;
   trades: number;
@@ -313,9 +313,13 @@ export interface VerifiedPerformanceReport {
   observed_at: number;
   candidate_cycles: number;
   verified_cycles: number;
+  estimated_cycles: number;
   excluded_cycles: number;
   excluded_reasons: Record<string, number>;
   assets: VerifiedPerformanceAsset[];
+  estimated_assets: VerifiedPerformanceAsset[];
+  bnb_price_usdt?: string;
+  bnb_price_updated_at?: number;
   scope: string;
 }
 export interface VerifiedPerformanceFilter {

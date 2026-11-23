@@ -1,7 +1,11 @@
 import { http, baseUrlApi } from "@/utils/http";
 
 type Query = Record<string, any>;
+export type BacktestPositionMode = "equity_percent" | "fixed_margin";
 export interface BacktestConfig {
+  position_mode?: BacktestPositionMode;
+  fixed_margin_usdt?: number;
+  quantity_step_size?: string;
   initial_equity: number;
   position_size_pct: number;
   leverage: number;
@@ -37,6 +41,15 @@ export interface BacktestGroupMetrics {
 export interface BacktestResolutionStats {
   second_drilldown_minutes: number;
   trade_drilldown_seconds: number;
+  trade_rows_visited?: number;
+  trade_gate_passes?: number;
+  trade_env_builds?: number;
+  archive_parse_ms?: number;
+  sparse_query_ms?: number;
+  timing?: {
+    engine_ms?: number;
+    total_ms?: number;
+  };
   second_cache_hits: number;
   trade_cache_hits: number;
   archive_cache_hits: number;
@@ -206,6 +219,20 @@ export const getMarketConditionBackfill = (id: string) =>
     { params: {} }
   );
 
+export interface BacktestSymbolDefaults {
+  symbol: string;
+  margin_usdt: number;
+  leverage: number;
+  take_profit_pct: number;
+  stop_loss_pct: number;
+  quantity_step_size: string;
+}
+export const getBacktestSymbolDefaults = (symbol: string) =>
+  http.get<any, { symbol: string }>(
+    baseUrlApi("agents/backtests/symbol-defaults"),
+    { params: { symbol } }
+  );
+
 export const startBacktest = (data: StartBacktestRequest) =>
   http.post<any, StartBacktestRequest>(baseUrlApi("agents/backtests"), {
     data
@@ -239,4 +266,41 @@ export const getBacktestEquity = (id: string) =>
   http.get<any, Query>(
     baseUrlApi(`agents/backtests/${encodeURIComponent(id)}/equity`),
     { params: {} }
+  );
+
+export interface MinuteDayCoverage {
+  date: string;
+  expected: number;
+  stored: number;
+  percent: number;
+  status: "complete" | "partial" | "missing" | "future";
+}
+export interface MinuteMonthCoverage {
+  month: string;
+  expected: number;
+  stored: number;
+  percent: number;
+  status: "complete" | "partial" | "missing" | "future";
+  days: MinuteDayCoverage[];
+}
+export interface MinuteCalendarCoverage {
+  symbol: string;
+  from: string;
+  to: string;
+  months: MinuteMonthCoverage[];
+}
+export interface Kline1mRepairRequest {
+  symbol: string;
+  from: string;
+  to: string;
+}
+export const getKline1mCoverage = (params: Kline1mRepairRequest) =>
+  http.get<any, Kline1mRepairRequest>(
+    baseUrlApi("agents/historical-market/1m-coverage"),
+    { params }
+  );
+export const startKline1mRepair = (data: Kline1mRepairRequest) =>
+  http.post<any, Kline1mRepairRequest>(
+    baseUrlApi("agents/historical-market/1m-repair"),
+    { data }
   );

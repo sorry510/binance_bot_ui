@@ -108,6 +108,12 @@ export default [
         }
       },
       {
+        path: "/ai/backtest/1m-calendar",
+        name: "AgentBacktest1mCalendar",
+        component: () => import("@/views/ai/Kline1mCalendar.vue"),
+        meta: { title: "1m K线完整性", showLink: false }
+      },
+      {
         path: "/futures/liquidation-orders",
         name: "futuresLiquidationOrders",
         component: () => import("@/views/futures/liquidationOrder.vue"),

@@ -1677,10 +1677,10 @@ orderPage:
     backToOrders: "Back to Futures Orders"
     orderInsights: "Order anomalies & strategy performance"
   performance:
-    title: "Verified live strategy performance"
+    title: "Live strategy performance"
     expand: "View performance"
     collapse: "Collapse"
-    scope: "Main / auto_strategy only. Includes closed cycles with formally settled, fully REST-verified exchange Fills, grouped by actual close time. Read-only. Excludes incomplete/legacy records, unconvertible fees, unrealized mark-to-market PnL and presentation-only edits."
+    scope: "Main / auto_strategy closed cycles only. Certified settlements and indicative BNB-fee estimates are reported separately. BNB fees use the current local symbols.BNBUSDT price. No funding or unrealized PnL; no settlement or trading risk controls are changed."
     period: "Window"
     days7: "Past 7 days"
     days30: "Past 30 days"
@@ -1691,13 +1691,17 @@ orderPage:
     ruleHash: "Original rule hash"
     rulePlaceholder: "64-char hash or unknown"
     refresh: "Search / Refresh"
-    loadFailed: "Unable to load verified performance"
+    loadFailed: "Unable to load live strategy performance"
     closedWindow: "Actual close-time window"
     verified: "Verified cycles"
+    estimated: "Estimated BNB cycles"
     excluded: "Excluded cycles"
     candidates: "Candidate cycles"
-    empty: "No fully verified settled trades match this filter"
-    settledPerformance: "Settled performance"
+    empty: "No verified or eligible BNB-estimated closed trades match these filters"
+    settledPerformance: "Verified settled performance"
+    estimatedPerformance: "BNB fee estimate (not formally settled)"
+    estimateScope: "Complete exchange Fills; indicative fee conversion using the current local BNB price"
+    bnbPrice: "Current local BNBUSDT price"
     currencySeparation: "Assets are reported separately; no USDT/USDC currency conversion"
     trades: "Trade cycles"
     winRate: "Win rate"
@@ -1708,9 +1712,13 @@ orderPage:
     noLossSample: "No loss sample (undefined)"
     grossPnL: "Realized gross PnL"
     commission: "Exchange commissions"
+    estimatedCommission: "Estimated commissions (incl. BNB)"
     netPnL: "Net PnL"
+    estimatedNetPnL: "Estimated net PnL"
     avgNet: "Average net per trade"
     settledDrawdown: "Cumulative settled net PnL drawdown"
+    estimatedDrawdown: "Cumulative estimated net PnL drawdown"
+    estimatedDrawdownExplanation: "Peak-to-trough cumulative estimated net profit in close-time order, using the current local BNB price. Not an account equity drawdown."
     drawdownExplanation: "Peak-to-trough difference in cumulative net profit of closed/verified cycles, sorted by closing time. Not account equity drawdown and not mark-to-market portfolio drawdown."
     notEquityDrawdown: "Not equity drawdown"
     bySymbol: "By symbol"
@@ -1720,7 +1728,7 @@ orderPage:
     exclusionDetails: "Excluded cycles"
     exclusionReason: "Reason"
     exclusionCount: "Cycles"
-    readOnlyDisclaimer: "Read-only and never modifies or triggers trading. Manual history status/completeness changes cannot certify REST Fills. Excluded cycles do not enter win rate, profit factor or net PnL."
+    readOnlyDisclaimer: "Read-only. Certified and BNB-estimated performance are kept separate. Estimates never certify settlement or affect risk controls. Cycles missing confirmed Fills or a valid local BNB quote stay excluded."
     calculatedAt: "Calculated at"
     reasons:
       history_not_activated: "Historical verification cutoff (T0) not configured"
@@ -2731,6 +2739,12 @@ backtestPage:
       trades: Trades
     secondMinutes: 1s Drill-down Minutes
     tradeSeconds: Trade Drill-down Seconds
+    tradeRowsVisited: Trade Rows Checked
+    tradeGatePasses: Trades Passing ROI Gate
+    tradeEnvBuilds: Full Close Environments Built
+    engineTime: Engine Duration
+    archiveParseTime: ZIP Parsing Time
+    sparseQueryTime: Sparse SQL Query Time
     downloads: Archive Downloads
     downloadBytes: Downloaded Bytes
     secondCacheHits: 1s Cache Hits
@@ -2746,12 +2760,18 @@ backtestPage:
     range: Time Range
     resolutionMode: Resolution Mode
     initialEquity: Initial Equity
+    positionMode: Position Sizing Mode
+    fixedMargin: Margin per Trade (USDT)
+    estimatedNotional: Estimated Notional
     positionSize: Position Size
     leverage: Leverage
     feeRate: Fee Rate
     slippage: Slippage (bps)
     stopLoss: Loss Trigger ROI (%)
     takeProfit: Profit Trigger ROI (%)
+  positionMode:
+    fixed_margin: Fixed Margin (Live-like)
+    equity_percent: Equity Percentage (Legacy)
   button:
     marketConditionBackfill: Backfill Market Condition History
     prefetch: Fetch Historical Data
@@ -2790,6 +2810,8 @@ backtestPage:
   parameters:
     title: Backtest Parameters
   message:
+    fixedMarginRequired: Margin per trade must be greater than zero
+    symbolSettingsRequired: Unable to load symbol settings. Please retry.
     templateRequired: Select a strategy template
     symbolRequired: Select a contract
     rangeRequired: Select a backtest time range
