@@ -553,19 +553,31 @@ function runDuration(run?: BacktestRun | null) {
 const symbolDefaultsLoading = ref(false);
 const symbolDefaultsLoadedFor = ref("");
 let symbolDefaultsRequest = 0;
+let symbolDefaultsPending:
+  | { symbol: string; promise: Promise<boolean> }
+  | undefined;
 
-// Every coin selection loads its existing live margin, leverage and ROI gates
-// as editable defaults. Ignore late responses for a previously selected coin.
-async function loadSymbolDefaults(
+// The symbol watcher and Quick Test both need the same configuration. Reuse
+// one in-flight request per symbol: otherwise the watch invalidates Submit's
+// token and the first click incorrectly reports that settings are unavailable.
+function loadSymbolDefaults(
   symbol: string,
   preserveExisting = false
 ): Promise<boolean> {
   const normalized = symbol.trim().toUpperCase();
+  if (symbolDefaultsPending?.symbol === normalized)
+    return symbolDefaultsPending.promise;
+
   const token = ++symbolDefaultsRequest;
   symbolDefaultsLoadedFor.value = "";
-  if (!normalized) return false;
-  // Snapshot field values so a slow default lookup cannot overwrite edits
-  // the user makes while the request is in flight.
+  if (!normalized) {
+    symbolDefaultsLoading.value = false;
+    symbolDefaultsPending = undefined;
+    return Promise.resolve(false);
+  }
+
+  // Snapshot values so changing the form while the lookup is in-flight does
+  // not overwrite an explicit user edit.
   const before = {
     margin: form.fixed_margin_usdt,
     leverage: form.leverage,
@@ -573,36 +585,43 @@ async function loadSymbolDefaults(
     loss: form.stop_loss_pct
   };
   symbolDefaultsLoading.value = true;
-  try {
-    const response = await getBacktestSymbolDefaults(normalized);
-    if (Number(response?.code) !== 200) {
-      throw new Error(response?.msg || "cannot load symbol settings");
-    }
-    const data = response.data as BacktestSymbolDefaults;
-    if (token !== symbolDefaultsRequest || form.symbol !== normalized)
+  const promise = (async (): Promise<boolean> => {
+    try {
+      const response = await getBacktestSymbolDefaults(normalized);
+      if (token !== symbolDefaultsRequest || form.symbol !== normalized)
+        return false;
+      if (Number(response?.code) !== 200) {
+        throw new Error(response?.msg || "cannot load symbol settings");
+      }
+      const data = response.data as BacktestSymbolDefaults;
+
+      // Cached values take precedence on restoration. A new symbol uses the
+      // default 200 USDT margin, and that symbol's own leverage / ROI gates.
+      if (!preserveExisting) {
+        if (form.fixed_margin_usdt === before.margin)
+          form.fixed_margin_usdt = 200;
+        if (form.leverage === before.leverage)
+          form.leverage = Number(data.leverage) || 1;
+        if (form.take_profit_pct === before.profit)
+          form.take_profit_pct = Number(data.take_profit_pct) || 0;
+        if (form.stop_loss_pct === before.loss)
+          form.stop_loss_pct = Number(data.stop_loss_pct) || 0;
+      }
+      symbolDefaultsLoadedFor.value = normalized;
+      return true;
+    } catch (error: any) {
+      if (token === symbolDefaultsRequest && form.symbol === normalized)
+        ElMessage.warning(error?.message || "Failed to load symbol settings");
       return false;
-    // Cached values take precedence on page restoration. For a newly
-    // selected symbol the amount defaults to 200 USDT (not symbols.usdt);
-    // leverage and ROI gates still initially come from symbols configuration.
-    if (!preserveExisting) {
-      if (form.fixed_margin_usdt === before.margin)
-        form.fixed_margin_usdt = 200;
-      if (form.leverage === before.leverage)
-        form.leverage = Number(data.leverage) || 1;
-      if (form.take_profit_pct === before.profit)
-        form.take_profit_pct = Number(data.take_profit_pct) || 0;
-      if (form.stop_loss_pct === before.loss)
-        form.stop_loss_pct = Number(data.stop_loss_pct) || 0;
+    } finally {
+      if (token === symbolDefaultsRequest) {
+        symbolDefaultsLoading.value = false;
+        symbolDefaultsPending = undefined;
+      }
     }
-    symbolDefaultsLoadedFor.value = normalized;
-    return true;
-  } catch (error: any) {
-    if (token === symbolDefaultsRequest)
-      ElMessage.warning(error?.message || "Failed to load symbol settings");
-    return false;
-  } finally {
-    if (token === symbolDefaultsRequest) symbolDefaultsLoading.value = false;
-  }
+  })();
+  symbolDefaultsPending = { symbol: normalized, promise };
+  return promise;
 }
 const restoredSymbol = cachedForm?.symbol?.trim().toUpperCase() || "";
 let changedSymbolSinceRestore = false;
